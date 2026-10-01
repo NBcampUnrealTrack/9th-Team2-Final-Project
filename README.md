@@ -53,24 +53,20 @@ Push 전 변경된 파일을 다시 확인합니다.
 
 작업 타입	작업내용
 
-✨ update  	해당 파일에 새로운 기능이 생김
+♻️ Refactor	코드 구조 개선
 
-🎉 add	없던 파일을 생성함, 초기 세팅
+⚙️ Setting	프로젝트 세팅
 
-🐛 bugfix	버그 수정
+⚡ Optimization	성능 최적화 작업
 
-♻️ refactor	코드 리팩토링
+✨ Feature	새로운 기능이나 시스템 구현
 
-🩹 fix	코드 수정
+🎨 Art / Level	모델링, FX, 사운드 및 레벨 디자인
 
-🚚 move	파일 옮김/정리
+🐛 Bug	버그 픽스
 
-🔥 del	기능/파일을 삭제
+💻 C++	C++ 소스 코드 수정 (컴파일 필요)
 
-🍻 test	테스트 코드를 작성
+📝 Documentation	README, 주석, 위키 등 문서 작업
 
-💄 style	css
-
-🙈 gitfix	gitignore 수정
-
-🔨script	package.json 변경(npm 설치 등)
+🟦 Blueprint	블루프린트 에셋 수정 (충돌 주의)

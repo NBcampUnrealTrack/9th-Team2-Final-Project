@@ -51,12 +51,16 @@ Push 전 변경된 파일을 다시 확인합니다.
 ## Commit
 커밋 메시지는 어떤 작업을 했는지 알아볼 수 있도록 작성합니다.
 
-예시:
+작업 타입	작업내용
 
-Feat: GameMode 기본 구조 구현
-
-Fix: 상호작용 조건 오류 수정
-
-Update: 호텔 로비 레벨 수정
-
-Add: 조사 아이템 DataAsset 추가
+✨ update  	해당 파일에 새로운 기능이 생김
+🎉 add	없던 파일을 생성함, 초기 세팅
+🐛 bugfix	버그 수정
+♻️ refactor	코드 리팩토링
+🩹 fix	코드 수정
+🚚 move	파일 옮김/정리
+🔥 del	기능/파일을 삭제
+🍻 test	테스트 코드를 작성
+💄 style	css
+🙈 gitfix	gitignore 수정
+🔨script	package.json 변경(npm 설치 등)

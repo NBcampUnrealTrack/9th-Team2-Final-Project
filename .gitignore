@@ -1,25 +1,89 @@
-Binaries/
-Build/
-DerivedDataCache/
-Intermediate/
-Saved/
+# Visual Studio, VSCode 및 Rider 사용자별 파일
+.vs/
+.idea/
+**/.idea/
+.vscode/
+*.ipch
+.vsconfig
+.code-workspace
+.sln.DotSettings.user
 
-*.sln
-*.slnx
-*.suo
-*.xcodeproj
-*.xcworkspace
-*.VC.db
-*.VC.VC.opendb
+# 컴파일된 오브젝트 파일
+*.slo
+*.lo
+*.o
+*.obj
+
+# 프리컴파일된 헤더
+*.gch
+*.pch
+
+# 컴파일된 동적 라이브러리
+*.so
+*.dylib
+
+*.pdb
 
 *.log
 *.tmp
 
 .DS_Store
 
-.vscode/
-.idea/
+# Fortran 모듈 파일
+*.mod
 
-# Visual Studio cache
-.vs/
-*.ipch
+# 컴파일된 정적 라이브러리
+*.lai
+*.la
+*.a
+
+# 실행 파일
+*.exe
+*.out
+*.app
+*.ipa
+
+# 엔진에서 생성될 수 있는 프로젝트 파일
+*.xcodeproj
+*.xcworkspace
+*.sln
+*.slnx
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.VC.VC.opendb
+
+# 프리컴파일된 에셋
+SourceArt/**/*.png
+SourceArt/**/*.tga
+
+# 빌드
+Build/
+
+# PakBlacklist-<BuildConfiguration>.txt 파일 화이트리스트
+!Build/*/
+!Build/*/**
+!Build/*/PakBlacklist*.txt
+
+# 빌드에서 아이콘 파일 무시하지 않음
+!Build/**/*.ico
+
+# 맵용으로 빌드된 데이터. 빌드된 라이트맵을 공유하고 싶으면 이 규칙을 제거해도 됨.
+*_BuiltData.uasset
+
+# 에디터에서 생성된 설정 파일
+Saved/
+DerivedDataCache/
+
+# 엔진에서 사용할 컴파일된 소스 파일
+Intermediate/
+Plugins/*/Intermediate/
+Plugins/**/Binaries/Win64
+Binaries/
+Build/Windows/FileOpenOrder/CookerOpenOrder.log
+Build/Windows/FileOpenOrder/EditorOpenOrder.log
+
+# RiderLink 플러그인 자체를 Git에서 제외
+Plugins/Developer/RiderLink/

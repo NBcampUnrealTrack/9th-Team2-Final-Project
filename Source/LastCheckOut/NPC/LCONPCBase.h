@@ -1,29 +1,40 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "LCONPCBase.generated.h"
 
+/* 호텔 NPC 공용 베이스 (관리인, 직원 등이 상속) */
 UCLASS()
 class LASTCHECKOUT_API ALCONPCBase : public ACharacter
 {
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
 	ALCONPCBase();
 
+	FName GetNPCId() const { return NPCId; }
+
+	/** 현재 이동 속도(cm/s)를 변경한다. */
+	UFUNCTION(BlueprintCallable, Category = "NPC|Movement")
+	void SetMovementSpeed(float NewSpeed);
+
+	UFUNCTION(BlueprintCallable, Category = "NPC|Movement")
+	void SetWalkSpeed();
+
+	UFUNCTION(BlueprintCallable, Category = "NPC|Movement")
+	void SetRunSpeed();
+
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	/** 대화 DataTable 등에서 NPC를 식별하는 ID */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
+	FName NPCId;
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Movement")
+	float WalkSpeed = 200.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Movement")
+	float RunSpeed = 450.f;
 };

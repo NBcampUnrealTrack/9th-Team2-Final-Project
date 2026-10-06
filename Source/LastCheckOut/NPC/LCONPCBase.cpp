@@ -1,34 +1,38 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+#include "NPC/LCONPCBase.h"
 
+#include "GameFramework/CharacterMovementComponent.h"
 
-#include "LCONPCBase.h"
-
-// Sets default values
 ALCONPCBase::ALCONPCBase()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	bUseControllerRotationYaw = false;
+
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	Movement->bOrientRotationToMovement = true;
+	Movement->RotationRate = FRotator(0.f, 360.f, 0.f);
 }
 
-// Called when the game starts or when spawned
 void ALCONPCBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	SetWalkSpeed();
 }
 
-// Called every frame
-void ALCONPCBase::Tick(float DeltaTime)
+void ALCONPCBase::SetMovementSpeed(float NewSpeed)
 {
-	Super::Tick(DeltaTime);
-
+	GetCharacterMovement()->MaxWalkSpeed = NewSpeed;
 }
 
-// Called to bind functionality to input
-void ALCONPCBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ALCONPCBase::SetWalkSpeed()
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
+	SetMovementSpeed(WalkSpeed);
 }
 
+void ALCONPCBase::SetRunSpeed()
+{
+	SetMovementSpeed(RunSpeed);
+}

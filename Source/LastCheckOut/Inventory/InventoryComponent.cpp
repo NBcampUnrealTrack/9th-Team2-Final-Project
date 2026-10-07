@@ -5,9 +5,37 @@ UInventoryComponent::UInventoryComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
+// DataTable + InventoryComponent가 제대로 연결됐는지 테스트용 로그 추후 캐릭터가 생기면 확인
 void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// DataTable 연결 확인
+	if (ItemDataTable)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DataTable 연결 성공!"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("DataTable이 연결되지 않았습니다!"));
+	}
+
+	// RoomKey 아이템 데이터 확인
+	const FItemData* ItemData = GetItemData(FName("RoomKey"));
+
+	if (ItemData)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("아이템 찾기 성공! 이름: %s"),
+			*ItemData->ItemName.ToString()
+		);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("RoomKey 아이템을 찾지 못했습니다!"));
+	}
 }
 
 // 아이템을 인벤토리에 추가
@@ -16,6 +44,13 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
 	// 유효하지 않은 아이템 ID이거나 추가하려는 수량이 0 이하라면 종료
 	if (ItemID.IsNone() || Quantity <= 0)
 	{
+		return;
+	}
+	
+	// DataTable에 등록되지 않은 아이템이라면 종료
+	if (!GetItemData(ItemID))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("존재하지 않는 아이템입니다: %s"), *ItemID.ToString());
 		return;
 	}
 
@@ -115,4 +150,20 @@ bool UInventoryComponent::RemoveItem(FName ItemID, int32 Quantity)
 	}
 
 	return false;
+}
+
+// DataTable에서 아이템 정보를 가져오기
+const FItemData* UInventoryComponent::GetItemData(FName ItemID) const
+{
+	// DataTable이 설정되지 않았다면 종료
+	if (!ItemDataTable)
+	{
+		return nullptr;
+	}
+
+	// ItemID에 해당하는 Row 찾기
+	return ItemDataTable->FindRow<FItemData>(
+		ItemID,
+		TEXT("GetItemData")
+	);
 }

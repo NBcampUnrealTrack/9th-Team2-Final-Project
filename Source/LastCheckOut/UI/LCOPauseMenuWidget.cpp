@@ -5,41 +5,47 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Core/LCOGameInstance.h"
+#include "Player/LCOPlayerController.h"
 
 void ULCOPauseMenuWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
-	// UI 전용 입력 모드에서 이 위젯이 포커스를 받을 수 있도록
-	SetIsFocusable(true);
-
 	if (Btn_Resume)   Btn_Resume->OnClicked.AddDynamic(this, &ThisClass::HandleResumeClicked);
 	if (Btn_Settings) Btn_Settings->OnClicked.AddDynamic(this, &ThisClass::HandleSettingsClicked);
 	if (Btn_MainMenu) Btn_MainMenu->OnClicked.AddDynamic(this, &ThisClass::HandleMainMenuClicked);
 	if (Btn_Quit)     Btn_Quit->OnClicked.AddDynamic(this, &ThisClass::HandleQuitClicked);
+
+	// O 키(옵션 입력) → 일시정지 메뉴 토글
+	if (ALCOPlayerController* LCOPC = Cast<ALCOPlayerController>(GetOwningPlayer()))
+	{
+		LCOPC->OnOptionsRequested.AddDynamic(this, &ThisClass::HandleOptionsRequested);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOPauseMenu] Owning Player가 LCOPlayerController가 아님 - O 키 바인딩 안 됨"));
+	}
 }
 
 void ULCOPauseMenuWidget::OpenPauseMenu()
 {
-	APlayerController* PC = GetOwningPlayer();
-	if (!PC)
+	if (IsInViewport())
 	{
 		return;
 	}
 
-	if (!IsInViewport())
-	{
-		AddToViewport(5);
-	}
-
+	AddToViewport(5);
 	UGameplayStatics::SetGamePaused(this, true);
-
-	UWidgetBlueprintLibrary::SetInputMode_UIOnlyEx(PC, this, EMouseLockMode::DoNotLock);
-	PC->SetShowMouseCursor(true);
+	SetPlayerUIMode(true);
 }
 
 void ULCOPauseMenuWidget::ClosePauseMenu()
 {
+	if (!IsInViewport())
+	{
+		return;
+	}
+
 	// 설정 위젯이 떠 있으면 같이 닫음
 	if (SettingsWidget && SettingsWidget->IsInViewport())
 	{
@@ -47,10 +53,49 @@ void ULCOPauseMenuWidget::ClosePauseMenu()
 	}
 
 	RemoveFromParent();
-
 	UGameplayStatics::SetGamePaused(this, false);
+	SetPlayerUIMode(false);
+}
 
-	if (APlayerController* PC = GetOwningPlayer())
+void ULCOPauseMenuWidget::TogglePauseMenu()
+{
+	if (IsInViewport())
+	{
+		ClosePauseMenu();
+	}
+	else
+	{
+		OpenPauseMenu();
+	}
+}
+
+void ULCOPauseMenuWidget::HandleOptionsRequested()
+{
+	TogglePauseMenu();
+}
+
+void ULCOPauseMenuWidget::SetPlayerUIMode(bool bEnable)
+{
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC)
+	{
+		return;
+	}
+
+	// 플레이어 컨트롤러 쪽 UI 모드 처리 사용 (커서, 이동/시점 차단, 입력 모드)
+	if (ALCOPlayerController* LCOPC = Cast<ALCOPlayerController>(PC))
+	{
+		LCOPC->SetUIMode(bEnable);
+		return;
+	}
+
+	// LCOPlayerController가 아닐 때만 직접 처리
+	if (bEnable)
+	{
+		UWidgetBlueprintLibrary::SetInputMode_GameAndUIEx(PC, this, EMouseLockMode::DoNotLock, false);
+		PC->SetShowMouseCursor(true);
+	}
+	else
 	{
 		UWidgetBlueprintLibrary::SetInputMode_GameOnly(PC);
 		PC->SetShowMouseCursor(false);

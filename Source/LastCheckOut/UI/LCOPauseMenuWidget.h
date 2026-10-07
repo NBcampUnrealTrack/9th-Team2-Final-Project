@@ -9,7 +9,9 @@ class UButton;
 /**
  * 일시정지 메뉴 위젯 베이스 (계속하기 / 설정 / 메인메뉴로 / 게임 종료)
  * - 디자인은 WBP_PauseMenu(부모 클래스 = 이 클래스)에서 진행
- * - 입력(ESC 등) 담당 쪽에서 위젯을 만들어 두고 OpenPauseMenu()만 호출하면 됨
+ * - 게임 맵에서 위젯을 한 번 생성만 해두면,
+ *   LCOPlayerController의 OnOptionsRequested(O 키)에 자동 바인딩되어 열기/닫기 토글
+ * - 커서/입력 처리는 LCOPlayerController::SetUIMode()에 맡김
  */
 UCLASS(Abstract)
 class LASTCHECKOUT_API ULCOPauseMenuWidget : public UUserWidget
@@ -17,13 +19,20 @@ class LASTCHECKOUT_API ULCOPauseMenuWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	// 화면에 띄우고 게임 일시정지 + UI 입력 + 커서 표시
+	// 화면에 띄우고 게임 일시정지 + UI 모드
 	UFUNCTION(BlueprintCallable, Category = "LCO|PauseMenu")
 	void OpenPauseMenu();
 
-	// 화면에서 내리고 일시정지 해제 + 게임 입력 + 커서 숨김
+	// 화면에서 내리고 일시정지 해제 + 게임 모드
 	UFUNCTION(BlueprintCallable, Category = "LCO|PauseMenu")
 	void ClosePauseMenu();
+
+	// 열려 있으면 닫고, 닫혀 있으면 엶
+	UFUNCTION(BlueprintCallable, Category = "LCO|PauseMenu")
+	void TogglePauseMenu();
+
+	UFUNCTION(BlueprintPure, Category = "LCO|PauseMenu")
+	bool IsPauseMenuOpen() const { return IsInViewport(); }
 
 protected:
 	virtual void NativeOnInitialized() override;
@@ -49,6 +58,10 @@ protected:
 	TObjectPtr<UButton> Btn_Quit;
 
 private:
+	// LCOPlayerController::OnOptionsRequested (O 키) 수신
+	UFUNCTION()
+	void HandleOptionsRequested();
+
 	UFUNCTION()
 	void HandleResumeClicked();
 
@@ -60,6 +73,9 @@ private:
 
 	UFUNCTION()
 	void HandleQuitClicked();
+
+	// UI 모드 전환 (LCOPlayerController면 SetUIMode 사용, 아니면 직접 처리)
+	void SetPlayerUIMode(bool bEnable);
 
 	// 생성한 설정 위젯 (중복 생성 방지용)
 	UPROPERTY()

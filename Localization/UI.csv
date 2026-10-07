@@ -1,11 +1,26 @@
-Key,ko,en,ja
-INTERACT_OPEN_DOOR,문 열기,Open Door,ドアを開ける
-INTERACT_CLOSE_DOOR,문 닫기,Close Door,ドアを閉める
-INTERACT_EXAMINE,조사하기,Examine,調べる
-INTERACT_PICKUP,줍기,Pick Up,拾う
-INTERACT_TALK,대화하기,Talk,話す
-INTERACT_USE,사용하기,Use,使う
-MENU_NEW_GAME,새 게임,New Game,ニューゲーム
-MENU_CONTINUE,이어하기,Continue,続きから
-MENU_SETTINGS,설정,Settings,設定
-MENU_QUIT,게임 종료,Quit Game,ゲームを終了
+Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
+INTERACT_OPEN_DOOR,문 열기,Open Door,ドアを開ける,开门,開門,Abrir puerta,Ouvrir la porte,Tür öffnen,Abrir porta,Avaa ovi
+INTERACT_CLOSE_DOOR,문 닫기,Close Door,ドアを閉める,关门,關門,Cerrar puerta,Fermer la porte,Tür schließen,Fechar porta,Sulje ovi
+INTERACT_EXAMINE,조사하기,Examine,調べる,调查,調查,Examinar,Examiner,Untersuchen,Examinar,Tutki
+INTERACT_PICKUP,줍기,Pick Up,拾う,拾取,拾取,Recoger,Ramasser,Aufheben,Pegar,Poimi
+INTERACT_TALK,대화하기,Talk,話す,交谈,交談,Hablar,Parler,Sprechen,Falar,Puhu
+INTERACT_USE,사용하기,Use,使う,使用,使用,Usar,Utiliser,Benutzen,Usar,Käytä
+MENU_NEW_GAME,새 게임,New Game,ニューゲーム,新游戏,新遊戲,Nueva partida,Nouvelle partie,Neues Spiel,Novo jogo,Uusi peli
+MENU_CONTINUE,이어하기,Continue,続きから,继续,繼續,Continuar,Continuer,Fortsetzen,Continuar,Jatka
+MENU_SETTINGS,설정,Settings,設定,设置,設定,Ajustes,Paramètres,Einstellungen,Configurações,Asetukset
+MENU_QUIT,게임 종료,Quit Game,ゲームを終了,退出游戏,離開遊戲,Salir del juego,Quitter le jeu,Spiel beenden,Sair do jogo,Lopeta peli
+SETTINGS_TITLE,설정,Settings,設定,设置,設定,Ajustes,Paramètres,Einstellungen,Configurações,Asetukset
+SETTINGS_LANGUAGE,언어,Language,言語,语言,語言,Idioma,Langue,Sprache,Idioma,Kieli
+SETTINGS_GAMEPLAY,게임 플레이,Gameplay,ゲームプレイ,游戏,遊戲,Jugabilidad,Jeu,Gameplay,Jogabilidade,Peli
+SETTINGS_GRAPHICS,그래픽,Graphics,グラフィック,图形,圖形,Gráficos,Graphismes,Grafik,Gráficos,Grafiikka
+SETTINGS_AUDIO,오디오,Audio,オーディオ,音频,音訊,Audio,Audio,Audio,Áudio,Ääni
+SETTINGS_CONTROLS,조작,Controls,操作,控制,控制,Controles,Commandes,Steuerung,Controles,Ohjaus
+COMMON_BACK,돌아가기,Back,戻る,返回,返回,Volver,Retour,Zurück,Voltar,Takaisin
+SETTINGS_GAMEPLAY_TITLE,게임 플레이 설정,Gameplay Settings,ゲームプレイ設定,游戏设置,遊戲設定,Ajustes de jugabilidad,Paramètres de jeu,Gameplay-Einstellungen,Configurações de jogabilidade,Peliasetukset
+SETTINGS_GRAPHICS_TITLE,그래픽 설정,Graphics Settings,グラフィック設定,图形设置,圖形設定,Ajustes gráficos,Paramètres graphiques,Grafikeinstellungen,Configurações gráficas,Grafiikka-asetukset
+SETTINGS_AUDIO_TITLE,오디오 설정,Audio Settings,オーディオ設定,音频设置,音訊設定,Ajustes de audio,Paramètres audio,Audioeinstellungen,Configurações de áudio,Ääniasetukset
+SETTINGS_CONTROLS_TITLE,조작 설정,Controls Settings,操作設定,控制设置,控制設定,Ajustes de controles,Paramètres des commandes,Steuerungseinstellungen,Configurações de controles,Ohjausasetukset
+SETTINGS_MASTER_VOLUME,전체 음량,Master Volume,マスター音量,主音量,主音量,Volumen general,Volume principal,Gesamtlautstärke,Volume geral,Pää-äänenvoimakkuus
+SETTINGS_BGM_VOLUME,배경음,BGM,BGM,背景音乐,背景音樂,Música,Musique,Musik,Música,Musiikki
+SETTINGS_SFX_VOLUME,효과음,SFX,効果音,音效,音效,Efectos de sonido,Effets sonores,Soundeffekte,Efeitos sonoros,Äänitehosteet
+SETTINGS_VOICE_VOLUME,음성,Voice,ボイス,语音,語音,Voces,Voix,Sprachausgabe,Voz,Puhe

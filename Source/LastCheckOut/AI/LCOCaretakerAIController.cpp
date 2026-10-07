@@ -2,6 +2,9 @@
 
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/PawnMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 
@@ -35,11 +38,15 @@ void ALCOCaretakerAIController::BeginPlay()
 	AIPerception->ConfigureSense(*SightConfig);
 
 	AIPerception->OnTargetPerceptionUpdated.AddDynamic(this, &ALCOCaretakerAIController::OnTargetPerceptionUpdated);
+
+	GetWorldTimerManager().SetTimer(CatchCheckTimer, this, &ALCOCaretakerAIController::CheckCatch, CatchCheckInterval, true);
 }
 
 void ALCOCaretakerAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
+
+	InitialTransform = InPawn->GetActorTransform();
 
 	if (BehaviorTreeAsset)
 	{
@@ -87,4 +94,55 @@ void ALCOCaretakerAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStim
 		BB->SetValueAsVector(LCOBlackboardKeys::LastKnownLocation, Stimulus.StimulusLocation);
 		SetState(ELCOCaretakerState::LostPlayer);
 	}
+}
+
+void ALCOCaretakerAIController::CheckCatch()
+{
+	if (CurrentState != ELCOCaretakerState::Chase || !GetPawn())
+	{
+		return;
+	}
+
+	const UBlackboardComponent* BB = GetBlackboardComponent();
+	AActor* Target = BB ? Cast<AActor>(BB->GetValueAsObject(LCOBlackboardKeys::TargetActor)) : nullptr;
+	if (!Target)
+	{
+		return;
+	}
+
+	if (FVector::Dist(GetPawn()->GetActorLocation(), Target->GetActorLocation()) <= CatchDistance)
+	{
+		HandlePlayerCaught(Target);
+	}
+}
+
+void ALCOCaretakerAIController::HandlePlayerCaught(AActor* CaughtPlayer)
+{
+	// 플레이어를 Player Start 위치로 이동
+	APawn* PlayerPawn = Cast<APawn>(CaughtPlayer);
+	AGameModeBase* GameMode = UGameplayStatics::GetGameMode(this);
+	const AActor* PlayerStart = (GameMode && PlayerPawn) ? GameMode->FindPlayerStart(PlayerPawn->GetController()) : nullptr;
+	if (PlayerPawn && PlayerStart)
+	{
+		PlayerPawn->TeleportTo(PlayerStart->GetActorLocation(), PlayerStart->GetActorRotation());
+		if (UPawnMovementComponent* PlayerMovement = PlayerPawn->GetMovementComponent())
+		{
+			PlayerMovement->StopMovementImmediately();
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOCaretakerAIController] Player Start not found. Player was not reset."));
+	}
+
+	// 관리인을 최초 위치로 되돌리고 순찰 상태로 복귀
+	StopMovement();
+	GetPawn()->TeleportTo(InitialTransform.GetLocation(), InitialTransform.GetRotation().Rotator());
+	AIPerception->ForgetAll();
+
+	if (UBlackboardComponent* BB = GetBlackboardComponent())
+	{
+		BB->ClearValue(LCOBlackboardKeys::TargetActor);
+	}
+	SetState(ELCOCaretakerState::Patrol);
 }

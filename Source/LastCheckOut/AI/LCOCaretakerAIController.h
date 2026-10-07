@@ -49,7 +49,25 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Sight")
 	float SightMaxAge = 3.f;
 
+	/** 추격 중 이 거리 안으로 들어오면 플레이어를 잡은 것으로 처리 */
+	UPROPERTY(EditDefaultsOnly, Category = "AI|Catch")
+	float CatchDistance = 120.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "AI|Catch")
+	float CatchCheckInterval = 0.1f;
+
 private:
+	/** 추격 중인 대상과의 거리를 확인한다. */
+	void CheckCatch();
+
+	/** 임시 처리: 플레이어를 시작 지점으로, 관리인을 최초 위치로 되돌린다. */
+	void HandlePlayerCaught(AActor* CaughtPlayer);
+
+	FTimerHandle CatchCheckTimer;
+
+	/** 관리인이 빙의된 시점의 위치 (잡기 후 복귀 지점) */
+	FTransform InitialTransform;
+
 	UPROPERTY()
 	TObjectPtr<UAIPerceptionComponent> AIPerception;
 

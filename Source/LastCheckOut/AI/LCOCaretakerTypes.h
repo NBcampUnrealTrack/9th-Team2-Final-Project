@@ -20,4 +20,5 @@ namespace LCOBlackboardKeys
 	const FName State = TEXT("State");
 	const FName TargetActor = TEXT("TargetActor");
 	const FName LastKnownLocation = TEXT("LastKnownLocation");
+	const FName PatrolLocation = TEXT("PatrolLocation");
 }

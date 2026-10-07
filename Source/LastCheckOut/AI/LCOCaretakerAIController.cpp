@@ -75,12 +75,14 @@ void ALCOCaretakerAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStim
 
 	if (Stimulus.WasSuccessfullySensed())
 	{
+		//AI가 대상을 포착했을 때 플레이어의 위치와 정보를 블랙보드에 저장, 상태를 Chase로 변경
 		BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, Actor);
 		BB->SetValueAsVector(LCOBlackboardKeys::LastKnownLocation, Stimulus.StimulusLocation);
 		SetState(ELCOCaretakerState::Chase);
 	}
 	else
 	{
+		//AI가 대상을 놓쳤을 때 블랙보드의 TargetActor칸을 깨끗하게 비우고, 마지막 위치를 업데이트하고 상태를 LostPlayer로 변경
 		BB->ClearValue(LCOBlackboardKeys::TargetActor);
 		BB->SetValueAsVector(LCOBlackboardKeys::LastKnownLocation, Stimulus.StimulusLocation);
 		SetState(ELCOCaretakerState::LostPlayer);

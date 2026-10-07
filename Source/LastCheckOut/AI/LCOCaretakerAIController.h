@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "AIController.h"
 #include "AI/LCOCaretakerTypes.h"
+#include "Perception/AIPerceptionTypes.h"
 #include "LCOCaretakerAIController.generated.h"
 
 class UAIPerceptionComponent;

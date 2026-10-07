@@ -8,6 +8,22 @@ void ULCOStorySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	UE_LOG(LogTemp, Log, TEXT("[LCOStorySubsystem] Initialize"));
 }
 
+void ULCOStorySubsystem::StartNewStory()
+{
+	// Log Test
+	UE_LOG(LogTemp, Log, TEXT("[LCOStorySubsystem] StartNewStory: Reset progress (Prev Chapter: %s, Prev Objective: %s)"),
+		*CurrentChapterID.ToString(), *CurrentObjectiveID.ToString());
+
+	// 기존 진행 상태 초기화
+	CurrentChapterID = NAME_None;
+	CurrentObjectiveID = NAME_None;
+
+	// 첫 챕터 시작
+	// 첫 챕터 ID는 DataTable(DataManager)이 생기기 전까지 임시로 여기에서 지정
+	const FName FirstChapterID(TEXT("Chapter1"));
+	StartChapter(FirstChapterID);
+}
+
 void ULCOStorySubsystem::StartChapter(FName ChapterID)
 {
 	if (ChapterID.IsNone())

@@ -13,6 +13,11 @@ public:
 	// GameInstance 생성 시 엔진이 자동 호출 (생성 확인 로그)
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
+	// ---------- New Game ----------
+	// 새 게임 시작. 기존 Chapter / Objective 진행 상태를 초기화한 뒤 첫 챕터(Chapter1)를 시작
+	UFUNCTION(BlueprintCallable, Category = "LCO|Story")
+	void StartNewStory();
+	
 	// ---------- Chapter ----------
 
 	// 챕터 시작. 현재 목표는 비워짐

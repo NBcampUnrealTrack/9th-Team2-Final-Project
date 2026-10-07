@@ -10,8 +10,9 @@ void ULCOMainMenuWidget::NativeOnInitialized()
 	Super::NativeOnInitialized();
 
 	// 위젯 생성 시 1회만 호출 → 중복 바인딩 없음
-	if (Btn_Start) Btn_Start->OnClicked.AddDynamic(this, &ThisClass::HandleStartClicked);
-	if (Btn_Quit)  Btn_Quit->OnClicked.AddDynamic(this, &ThisClass::HandleQuitClicked);
+	if (Btn_Start)    Btn_Start->OnClicked.AddDynamic(this, &ThisClass::HandleStartClicked);
+	if (Btn_Settings) Btn_Settings->OnClicked.AddDynamic(this, &ThisClass::HandleSettingsClicked);
+	if (Btn_Quit)     Btn_Quit->OnClicked.AddDynamic(this, &ThisClass::HandleQuitClicked);
 }
 
 void ULCOMainMenuWidget::HandleStartClicked()
@@ -35,6 +36,28 @@ void ULCOMainMenuWidget::HandleStartClicked()
 
 	bIsTransitioning = true;
 	UGameplayStatics::OpenLevelBySoftObjectPtr(this, GameLevel);
+}
+
+void ULCOMainMenuWidget::HandleSettingsClicked()
+{
+	if (!SettingsWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOMainMenu] SettingsWidgetClass가 비어 있음 - 설정 위젯 완성 후 지정 필요"));
+		return;
+	}
+
+	// 이미 떠 있으면 다시 만들지 않음
+	if (SettingsWidget && SettingsWidget->IsInViewport())
+	{
+		return;
+	}
+
+	SettingsWidget = CreateWidget<UUserWidget>(GetOwningPlayer(), SettingsWidgetClass);
+	if (SettingsWidget)
+	{
+		// 메인 메뉴보다 위에 표시 (닫기는 설정 위젯이 RemoveFromParent로 처리)
+		SettingsWidget->AddToViewport(10);
+	}
 }
 
 void ULCOMainMenuWidget::HandleQuitClicked()

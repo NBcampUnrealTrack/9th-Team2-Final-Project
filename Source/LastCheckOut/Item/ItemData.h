@@ -7,9 +7,8 @@
 UENUM(BlueprintType)
 enum class EItemType : uint8
 {
-	Normal,     // 일반 아이템
 	Consumable, // 소비 아이템
-	KeyItem,    // 열쇠 등
+	KeyItem,    // 열쇠, 호텔도면 등
 	Evidence   // 증거품
 };
 
@@ -40,7 +39,6 @@ struct FItemData : public FTableRowBase
 	
 	// 아이템의 종류를 구분하여 아이템 사용 방식 및 기능을 결정
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EItemType ItemType = EItemType::Normal;
-	
+	EItemType ItemType = EItemType::Consumable;
 	
 };

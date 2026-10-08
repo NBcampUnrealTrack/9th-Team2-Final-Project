@@ -61,6 +61,10 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
 		{
 			// 같은 아이템이 있다면 기존 수량에 추가
 			Slot.Quantity += Quantity;
+			
+			// 인벤토리 변경 이벤트 발생
+			OnInventoryChanged.Broadcast();
+			
 			return;
 		}
 	}
@@ -76,6 +80,9 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
 	
 	// 인벤토리에 새로운 슬롯 추가
 	InventorySlots.Add(NewSlot);
+	
+	// 인벤토리 변경 이벤트 발생
+	OnInventoryChanged.Broadcast();
 }
 
 // 특정 아이템을 가지고 있는지 확인
@@ -144,6 +151,9 @@ bool UInventoryComponent::RemoveItem(FName ItemID, int32 Quantity)
 				InventorySlots.RemoveAt(i);
 			}
 
+			// 인벤토리 변경 이벤트 발생
+			OnInventoryChanged.Broadcast();
+			
 			// 아이템 제거 성공
 			return true;
 		}
@@ -166,4 +176,69 @@ const FItemData* UInventoryComponent::GetItemData(FName ItemID) const
 		ItemID,
 		TEXT("GetItemData")
 	);
+}
+
+// 아이템 사용
+bool UInventoryComponent::UseItem(FName ItemID)
+{
+	// 인벤토리에 해당 아이템이 없으면 사용할 수 없음
+	if (!HasItem(ItemID))
+	{
+		return false;
+	}
+
+	// DataTable에서 아이템 정보 가져오기
+	const FItemData* ItemData = GetItemData(ItemID);
+
+	// 등록되지 않은 아이템이면 사용할 수 없음
+	if (!ItemData)
+	{
+		return false;
+	}
+
+	// 아이템 종류에 따라 사용 방식 분기
+	switch (ItemData->ItemType)
+	{
+	case EItemType::Consumable:
+
+		if (ItemID == FName("CannedCoffee"))
+		{
+			// 이동속도 증가 처리
+			// 캐릭터 담당 코드와 연결
+		}
+		else if (ItemID == FName("RedGinsengCandy"))
+		{
+			// 최대 스태미나 증가 처리
+			// 캐릭터 담당 코드와 연결
+		}
+
+		// 소비 아이템은 사용 후 1개 소모
+		RemoveItem(ItemID, 1);
+		return true;
+
+
+	case EItemType::KeyItem:
+
+		// 사용 시 지도 UI를 열며 아이템은 소모하지 않음
+		if (ItemID == FName("HotelFloorPlan"))
+		{
+			// 지도 UI 열기
+			return true;
+		}
+
+		// RoomKey는 일반 UseItem으로 사용하지 않음
+		return false;
+
+
+	case EItemType::Evidence:
+
+		// 증거품은 사용하거나 소모하지 않음
+		// 아이템 획득 시 Notebook에 등록하는 방식으로 처리
+		return false;
+
+
+	default:
+		// 정의되지 않은 아이템 종류는 사용할 수 없음
+		return false;
+	}
 }

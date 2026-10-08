@@ -1,9 +1,15 @@
 #include "UI/LCONotebookUISubsystem.h"
 
-#include "UI/LCONotebookWidget.h"
+#include "Components/Button.h"
+#include "Components/ContentWidget.h"
+#include "Components/PanelWidget.h"
+#include "Components/TextBlock.h"
+#include "Engine/GameInstance.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
+#include "Localization/LCOLocalizationSubsystem.h"
+#include "UI/LCONotebookWidget.h"
 #include "UObject/UObjectGlobals.h"
 
 void ULCONotebookUISubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -12,6 +18,8 @@ void ULCONotebookUISubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	FWorldDelegates::OnWorldCleanup.AddUObject(this, &ThisClass::HandleWorldCleanup);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &ThisClass::HandlePostLoadMapWithWorld);
+
+	BindLocalizationEvents();
 
 	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
 	{
@@ -23,6 +31,7 @@ void ULCONotebookUISubsystem::Deinitialize()
 {
 	FWorldDelegates::OnWorldCleanup.RemoveAll(this);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
+	UnbindLocalizationEvents();
 
 	CleanupNotebook();
 
@@ -35,6 +44,11 @@ void ULCONotebookUISubsystem::PlayerControllerChanged(APlayerController* NewPlay
 
 	CleanupNotebook();
 	TryCreateNotebook(NewPlayerController);
+}
+
+void ULCONotebookUISubsystem::HandleLanguageChanged(FName NewLanguage)
+{
+	RefreshNotebookLocalizedTexts();
 }
 
 void ULCONotebookUISubsystem::HandleWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources)
@@ -67,6 +81,7 @@ void ULCONotebookUISubsystem::TryCreateNotebook(APlayerController* PlayerControl
 
 	if (NotebookWidget && NotebookWidget->GetOwningPlayer() == PlayerController)
 	{
+		RefreshNotebookLocalizedTexts();
 		return;
 	}
 
@@ -87,6 +102,7 @@ void ULCONotebookUISubsystem::TryCreateNotebook(APlayerController* PlayerControl
 
 	// 생성만 해두면 위젯이 NativeOnInitialized에서 J 키에 바인딩됨 (화면에는 J를 눌러야 표시)
 	NotebookWidget = CreateWidget<ULCONotebookWidget>(PlayerController, LoadedClass);
+	RefreshNotebookLocalizedTexts();
 }
 
 void ULCONotebookUISubsystem::CleanupNotebook()
@@ -104,6 +120,116 @@ void ULCONotebookUISubsystem::CleanupNotebook()
 	}
 
 	NotebookWidget = nullptr;
+}
+
+void ULCONotebookUISubsystem::BindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetLocalizationSubsystem())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+		LocalizationSubsystem->OnLanguageChanged.AddDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
+}
+
+void ULCONotebookUISubsystem::UnbindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetLocalizationSubsystem())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
+}
+
+void ULCONotebookUISubsystem::RefreshNotebookLocalizedTexts() const
+{
+	if (!NotebookWidget || !GetLocalizationSubsystem())
+	{
+		return;
+	}
+
+	SetNotebookButtonText(TEXT("Btn_Tab_Objective"), TEXT("NOTEBOOK_OBJECTIVES"));
+	SetNotebookButtonText(TEXT("Btn_Tab_Clue"), TEXT("NOTEBOOK_CLUES"));
+	SetNotebookButtonText(TEXT("Btn_Tab_Testimony"), TEXT("NOTEBOOK_TESTIMONIES"));
+	SetNotebookButtonText(TEXT("Btn_Tab_Photo"), TEXT("NOTEBOOK_PHOTOS"));
+	SetNotebookButtonText(TEXT("Btn_Tab_Map"), TEXT("NOTEBOOK_MAPS"));
+	SetNotebookTextBlockText(TEXT("Txt_EmptyList"), TEXT("NOTEBOOK_EMPTY"));
+}
+
+void ULCONotebookUISubsystem::SetNotebookButtonText(FName ButtonName, FName TextKey) const
+{
+	if (!NotebookWidget)
+	{
+		return;
+	}
+
+	UButton* Button = Cast<UButton>(NotebookWidget->GetWidgetFromName(ButtonName));
+	UTextBlock* TextBlock = Button ? FindTextBlock(Button->GetContent()) : nullptr;
+	if (!TextBlock)
+	{
+		return;
+	}
+
+	if (const ULCOLocalizationSubsystem* LocalizationSubsystem = GetLocalizationSubsystem())
+	{
+		TextBlock->SetText(LocalizationSubsystem->GetUIText(TextKey));
+	}
+}
+
+void ULCONotebookUISubsystem::SetNotebookTextBlockText(FName TextBlockName, FName TextKey) const
+{
+	if (!NotebookWidget)
+	{
+		return;
+	}
+
+	UTextBlock* TextBlock = Cast<UTextBlock>(NotebookWidget->GetWidgetFromName(TextBlockName));
+	if (!TextBlock)
+	{
+		return;
+	}
+
+	if (const ULCOLocalizationSubsystem* LocalizationSubsystem = GetLocalizationSubsystem())
+	{
+		TextBlock->SetText(LocalizationSubsystem->GetUIText(TextKey));
+	}
+}
+
+UTextBlock* ULCONotebookUISubsystem::FindTextBlock(UWidget* Widget) const
+{
+	if (!Widget)
+	{
+		return nullptr;
+	}
+
+	if (UTextBlock* TextBlock = Cast<UTextBlock>(Widget))
+	{
+		return TextBlock;
+	}
+
+	if (UPanelWidget* PanelWidget = Cast<UPanelWidget>(Widget))
+	{
+		for (int32 ChildIndex = 0; ChildIndex < PanelWidget->GetChildrenCount(); ++ChildIndex)
+		{
+			if (UTextBlock* TextBlock = FindTextBlock(PanelWidget->GetChildAt(ChildIndex)))
+			{
+				return TextBlock;
+			}
+		}
+	}
+
+	if (UContentWidget* ContentWidget = Cast<UContentWidget>(Widget))
+	{
+		return FindTextBlock(ContentWidget->GetContent());
+	}
+
+	return nullptr;
+}
+
+ULCOLocalizationSubsystem* ULCONotebookUISubsystem::GetLocalizationSubsystem() const
+{
+	const ULocalPlayer* LocalPlayer = GetLocalPlayer();
+	return LocalPlayer && LocalPlayer->GetGameInstance()
+		? LocalPlayer->GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>()
+		: nullptr;
 }
 
 bool ULCONotebookUISubsystem::ShouldCreateNotebookForWorld(const UWorld* World) const

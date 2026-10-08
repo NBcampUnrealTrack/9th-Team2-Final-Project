@@ -34,3 +34,9 @@ CONTAINER_FRONT_DESK_DRAWER,프런트 서랍,Front Desk Drawer,フロントの�
 CONTAINER_SAFE,금고,Safe,金庫,保险箱,保險箱,Caja fuerte,Coffre-fort,Tresor,Cofre,Kassakaappi
 INVENTORY_TITLE,인벤토리,Inventory,インベントリ,物品栏,物品欄,Inventario,Inventaire,Inventar,Inventário,Tavaraluettelo
 INVENTORY_EMPTY,소지품이 없다.,No items in inventory.,持ち物は何もない。,没有携带任何物品。,沒有攜帶任何物品。,No llevas ningún objeto.,Vous ne portez aucun objet.,Du hast keine Gegenstände dabei.,Você não possui nenhum item.,Sinulla ei ole esineitä.
+NOTEBOOK_OBJECTIVES,목표,Objectives,目標,目标,目標,Objetivos,Objectifs,Ziele,Objetivos,Tavoitteet
+NOTEBOOK_CLUES,단서,Clues,手がかり,线索,線索,Pistas,Indices,Hinweise,Pistas,Vihjeet
+NOTEBOOK_TESTIMONIES,증언,Testimonies,証言,证言,證言,Testimonios,Témoignages,Zeugenaussagen,Depoimentos,Todistajanlausunnot
+NOTEBOOK_PHOTOS,사진,Photos,写真,照片,照片,Fotos,Photos,Fotos,Fotos,Valokuvat
+NOTEBOOK_MAPS,지도,Maps,地図,地图,地圖,Mapas,Cartes,Karten,Mapas,Kartat
+NOTEBOOK_EMPTY,아직 기록이 없습니다,No entries yet.,まだ記録がありません。,暂无记录,尚無記錄,Aún no hay registros.,Aucune entrée pour le moment.,Noch keine Einträge vorhanden.,Ainda não há registros.,Ei vielä merkintöjä.

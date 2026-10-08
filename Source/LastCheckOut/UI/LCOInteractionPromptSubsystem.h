@@ -7,10 +7,13 @@
 class APawn;
 class AActor;
 class APlayerController;
+class ALCOPlayerCharacter;
 class ULCOInteractComponent;
 class ULCOInteractionWidget;
 class ULCOLocalizationSubsystem;
 class ULCOPlayerInteractionComponent;
+class ULCOStaminaComponent;
+class UProgressBar;
 class UUserWidget;
 class UWorld;
 
@@ -40,6 +43,12 @@ private:
 	UFUNCTION()
 	void HandlePossessedPawnChanged(APawn* OldPawn, APawn* NewPawn);
 
+	UFUNCTION()
+	void HandleStaminaChanged(int32 CurrentStamina, int32 MaxStamina, float Percent);
+
+	UFUNCTION()
+	void HandleSprintStateChanged(bool bIsSprinting);
+
 	void HandleWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources);
 	void HandlePostLoadMapWithWorld(UWorld* LoadedWorld);
 
@@ -50,8 +59,13 @@ private:
 	void UnbindFromPlayerController();
 	void BindToPawn(APawn* Pawn);
 	void UnbindFromInteractionComponent();
+	void BindToStaminaOwner(ALCOPlayerCharacter* Character);
+	void UnbindFromStaminaOwner();
 	void BindToFocusedInteractComponent(ULCOInteractComponent* InteractComponent);
 	void UnbindFromFocusedInteractComponent();
+	void RefreshStaminaBar();
+	void UpdateStaminaBar(int32 CurrentStamina, int32 MaxStamina, float Percent);
+	UProgressBar* FindExistingStaminaBar(APlayerController* PlayerController) const;
 	FText GetPromptText(ULCOInteractComponent* FocusedComponent) const;
 	ULCOLocalizationSubsystem* GetLocalizationSubsystem() const;
 	bool ShouldCreateInteractionPromptForWorld(const UWorld* World) const;
@@ -63,11 +77,26 @@ private:
 	UPROPERTY(Config, EditDefaultsOnly, Category = "LCO|Interaction")
 	FName InteractionWidgetName = TEXT("WBP_TestInteraction");
 
+	UPROPERTY(Config, EditDefaultsOnly, Category = "LCO|Stamina")
+	FName HudWidgetName = TEXT("WBP_TestHUD");
+
+	UPROPERTY(Config, EditDefaultsOnly, Category = "LCO|Stamina")
+	FName StaminaProgressBarName = TEXT("ProgressBar_Stamina");
+
 	UPROPERTY(Transient)
 	TObjectPtr<ULCOInteractionWidget> InteractionWidget;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UProgressBar> StaminaProgressBar;
+
+	UPROPERTY(Transient)
 	TWeakObjectPtr<APlayerController> BoundPlayerController;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<ALCOPlayerCharacter> BoundStaminaCharacter;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<ULCOStaminaComponent> BoundStaminaComponent;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<ULCOPlayerInteractionComponent> BoundInteractionComponent;
@@ -80,4 +109,6 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<TWeakObjectPtr<UUserWidget>> BlockingWidgets;
+
+	bool bStaminaExhausted = false;
 };

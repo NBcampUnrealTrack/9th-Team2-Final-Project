@@ -5,6 +5,10 @@
 #include "LCONotebookUISubsystem.generated.h"
 
 class ULCONotebookWidget;
+class UButton;
+class ULCOLocalizationSubsystem;
+class UTextBlock;
+class UWidget;
 class UWorld;
 
 /**
@@ -29,11 +33,21 @@ public:
 	ULCONotebookWidget* GetNotebookWidget() const { return NotebookWidget; }
 
 private:
+	UFUNCTION()
+	void HandleLanguageChanged(FName NewLanguage);
+
 	void HandleWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources);
 	void HandlePostLoadMapWithWorld(UWorld* LoadedWorld);
 
 	void TryCreateNotebook(APlayerController* PlayerController);
 	void CleanupNotebook();
+	void BindLocalizationEvents();
+	void UnbindLocalizationEvents();
+	void RefreshNotebookLocalizedTexts() const;
+	void SetNotebookButtonText(FName ButtonName, FName TextKey) const;
+	void SetNotebookTextBlockText(FName TextBlockName, FName TextKey) const;
+	UTextBlock* FindTextBlock(UWidget* Widget) const;
+	ULCOLocalizationSubsystem* GetLocalizationSubsystem() const;
 	bool ShouldCreateNotebookForWorld(const UWorld* World) const;
 
 	UPROPERTY(Config, EditDefaultsOnly, Category = "LCO|Notebook")

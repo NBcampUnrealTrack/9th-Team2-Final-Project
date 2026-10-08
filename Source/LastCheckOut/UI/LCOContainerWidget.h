@@ -49,6 +49,7 @@ protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Container")
 	TSubclassOf<ULCOContainerItemWidget> ItemWidgetClass;

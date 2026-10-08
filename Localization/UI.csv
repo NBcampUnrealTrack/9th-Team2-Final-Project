@@ -32,3 +32,5 @@ CONTAINER_DRAWER,서랍,Drawer,引き出し,抽屉,抽屜,Cajón,Tiroir,Schublad
 CONTAINER_DESK_DRAWER,책상 서랍,Desk Drawer,机の引き出し,书桌抽屉,書桌抽屜,Cajón de escritorio,Tiroir de bureau,Schreibtischschublade,Gaveta da escrivaninha,Kirjoituspöydän laatikko
 CONTAINER_FRONT_DESK_DRAWER,프런트 서랍,Front Desk Drawer,フロントの引き出し,前台抽屉,櫃檯抽屜,Cajón de recepción,Tiroir de réception,Rezeptionsschublade,Gaveta da recepção,Vastaanottotiskin laatikko
 CONTAINER_SAFE,금고,Safe,金庫,保险箱,保險箱,Caja fuerte,Coffre-fort,Tresor,Cofre,Kassakaappi
+INVENTORY_TITLE,인벤토리,Inventory,インベントリ,物品栏,物品欄,Inventario,Inventaire,Inventar,Inventário,Tavaraluettelo
+INVENTORY_EMPTY,소지품이 없다.,No items in inventory.,持ち物は何もない。,没有携带任何物品。,沒有攜帶任何物品。,No llevas ningún objeto.,Vous ne portez aucun objet.,Du hast keine Gegenstände dabei.,Você não possui nenhum item.,Sinulla ei ole esineitä.

@@ -4,12 +4,15 @@
 #include "Components/Button.h"
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
+#include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerController.h"
+#include "InputCoreTypes.h"
 #include "Interaction/LCOContainer.h"
 #include "Inventory/InventoryComponent.h"
 #include "Item/ItemData.h"
 #include "Localization/LCOLocalizationSubsystem.h"
 #include "UI/LCOContainerItemWidget.h"
+#include "UI/LCOInteractionPromptSubsystem.h"
 
 void ULCOContainerWidget::NativeOnInitialized()
 {
@@ -47,6 +50,17 @@ void ULCOContainerWidget::NativeDestruct()
 	Super::NativeDestruct();
 }
 
+FReply ULCOContainerWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (IsInViewport() && InKeyEvent.GetKey() == EKeys::F)
+	{
+		CloseContainer();
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
 void ULCOContainerWidget::OpenContainer(ALCOContainer* InContainer, AActor* InInteractor)
 {
 	if (!IsValid(InContainer))
@@ -62,6 +76,14 @@ void ULCOContainerWidget::OpenContainer(ALCOContainer* InContainer, AActor* InIn
 		AddToViewport(ViewportZOrder);
 	}
 
+	if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
+	{
+		if (ULCOInteractionPromptSubsystem* InteractionPromptSubsystem = LocalPlayer->GetSubsystem<ULCOInteractionPromptSubsystem>())
+		{
+			InteractionPromptSubsystem->NotifyBlockingWidgetVisibilityChanged(this, true);
+		}
+	}
+
 	ApplyContainerInputMode();
 	RefreshLocalizedTexts();
 	RefreshItems();
@@ -69,6 +91,12 @@ void ULCOContainerWidget::OpenContainer(ALCOContainer* InContainer, AActor* InIn
 
 void ULCOContainerWidget::CloseContainer()
 {
+	ALCOContainer* ContainerActor = Container.Get();
+	if (IsValid(ContainerActor) && ContainerActor->IsOpen())
+	{
+		ContainerActor->Close();
+	}
+
 	if (!IsInViewport())
 	{
 		if (bContainerInputModeApplied && bRestoreGameInputOnClose)
@@ -78,6 +106,13 @@ void ULCOContainerWidget::CloseContainer()
 
 		Container.Reset();
 		Interactor.Reset();
+		if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
+		{
+			if (ULCOInteractionPromptSubsystem* InteractionPromptSubsystem = LocalPlayer->GetSubsystem<ULCOInteractionPromptSubsystem>())
+			{
+				InteractionPromptSubsystem->NotifyBlockingWidgetVisibilityChanged(this, false);
+			}
+		}
 		return;
 	}
 
@@ -89,6 +124,13 @@ void ULCOContainerWidget::CloseContainer()
 	Container.Reset();
 	Interactor.Reset();
 	RemoveFromParent();
+	if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
+	{
+		if (ULCOInteractionPromptSubsystem* InteractionPromptSubsystem = LocalPlayer->GetSubsystem<ULCOInteractionPromptSubsystem>())
+		{
+			InteractionPromptSubsystem->NotifyBlockingWidgetVisibilityChanged(this, false);
+		}
+	}
 	OnContainerWidgetClosed.Broadcast();
 }
 

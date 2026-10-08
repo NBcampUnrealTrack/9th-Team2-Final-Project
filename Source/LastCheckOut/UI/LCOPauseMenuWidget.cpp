@@ -3,11 +3,13 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Engine/LocalPlayer.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Core/LCOGameInstance.h"
 #include "Localization/LCOLocalizationSubsystem.h"
 #include "Player/LCOPlayerController.h"
+#include "UI/LCOInteractionPromptSubsystem.h"
 
 void ULCOPauseMenuWidget::NativeOnInitialized()
 {
@@ -80,6 +82,13 @@ void ULCOPauseMenuWidget::OpenPauseMenu()
 	}
 
 	AddToViewport(5);
+	if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
+	{
+		if (ULCOInteractionPromptSubsystem* InteractionPromptSubsystem = LocalPlayer->GetSubsystem<ULCOInteractionPromptSubsystem>())
+		{
+			InteractionPromptSubsystem->NotifyBlockingWidgetVisibilityChanged(this, true);
+		}
+	}
 	UGameplayStatics::SetGamePaused(this, true);
 	SetPlayerUIMode(true);
 }
@@ -100,6 +109,13 @@ void ULCOPauseMenuWidget::ClosePauseMenu()
 	RemoveFromParent();
 	UGameplayStatics::SetGamePaused(this, false);
 	SetPlayerUIMode(false);
+	if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
+	{
+		if (ULCOInteractionPromptSubsystem* InteractionPromptSubsystem = LocalPlayer->GetSubsystem<ULCOInteractionPromptSubsystem>())
+		{
+			InteractionPromptSubsystem->NotifyBlockingWidgetVisibilityChanged(this, false);
+		}
+	}
 }
 
 void ULCOPauseMenuWidget::TogglePauseMenu()

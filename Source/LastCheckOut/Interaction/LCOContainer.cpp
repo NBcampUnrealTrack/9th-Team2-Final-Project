@@ -8,6 +8,12 @@ ALCOContainer::ALCOContainer()
 	ItemDataTable = TSoftObjectPtr<UDataTable>(FSoftObjectPath(TEXT("/Game/Data/DT_ItemData/DT_ItemData.DT_ItemData")));
 }
 
+bool ALCOContainer::IsInteractionLocked_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const
+{
+	// 열려 있는 동안(UI 사용 중)에는 상호작용 불가
+	return bBlockInteractionWhileOpen && IsOpen();
+}
+
 void ALCOContainer::HandleUnlockedInteraction(AActor* Interactor)
 {
 	if (!IsOpen())

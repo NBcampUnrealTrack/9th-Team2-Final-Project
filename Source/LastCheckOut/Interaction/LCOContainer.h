@@ -34,6 +34,10 @@ class LASTCHECKOUT_API ALCOContainer : public ALCOOpenableBase
 public:
 	ALCOContainer();
 
+	// ILCOInteractionReceiver
+	// bBlockInteractionWhileOpen이 true면 열려 있는 동안(UI 사용 중) 상호작용 잠금
+	virtual bool IsInteractionLocked_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const override;
+
 	// UI에서 아이템을 클릭 / 드래그했을 때 호출. 보관 목록에서 빼서 Interactor의 인벤토리에 추가
 	// 보관 수량이 부족하거나, 인벤토리가 없거나, 아이템 DataTable에 없는 ID면 false 반환
 	UFUNCTION(BlueprintCallable, Category = "Container")
@@ -77,6 +81,10 @@ protected:
 	// 보관 중인 아이템 목록. BP 기본값 / 레벨 인스턴스에서 아이템 ID(드롭다운)와 수량 입력
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Container")
 	TArray<FLCOContainerItem> ContainedItems;
+
+	// 열려 있는 동안 상호작용을 막을지 (UI를 닫을 때 Close()를 호출하면 다시 상호작용 가능)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Container")
+	bool bBlockInteractionWhileOpen = true;
 
 	// 아이템 ID 드롭다운에 사용할 아이템 DataTable (기본값: DT_ItemData)
 	UPROPERTY(EditDefaultsOnly, Category = "Container")

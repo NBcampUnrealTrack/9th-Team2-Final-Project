@@ -57,8 +57,19 @@ bool ULCOPlayerInteractionComponent::TryInteract()
 		return false;
 	}
 
-	// 상호작용 후 잠긴 대상은 다음 Tick의 UpdateFocus에서 포커스 해제됨
-	return FocusedComponent->Interact(GetOwner());
+	const bool bSuccess = FocusedComponent->Interact(GetOwner());
+	
+	if (bSuccess)
+	{
+		RefreshFocus();
+	}
+
+	return bSuccess;
+}
+
+void ULCOPlayerInteractionComponent::RefreshFocus()
+{
+	OnFocusChanged.Broadcast(IsValid(FocusedComponent) ? FocusedComponent.Get() : nullptr);
 }
 
 ULCOInteractComponent* ULCOPlayerInteractionComponent::TraceForInteractable() const

@@ -24,6 +24,9 @@ public:
 	// 바라보는 대상과 상호작용. 성공 시 true
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	bool TryInteract();
+	
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+    	void RefreshFocus();
 
 	// 현재 바라보는 대상 (없으면 nullptr)
 	UFUNCTION(BlueprintPure, Category = "Interaction")

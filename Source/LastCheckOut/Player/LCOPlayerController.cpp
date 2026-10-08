@@ -47,10 +47,6 @@ void ALCOPlayerController::SetupInputComponent()
 	{
 		EIC->BindAction(OptionsAction, ETriggerEvent::Started, this, &ALCOPlayerController::RequestOptions);
 	}
-	if (QuickSlotAction)
-	{
-		EIC->BindAction(QuickSlotAction, ETriggerEvent::Started, this, &ALCOPlayerController::RequestQuickSlot);
-	}
 }
 
 void ALCOPlayerController::SetUIMode(bool bEnable)
@@ -94,10 +90,4 @@ void ALCOPlayerController::RequestOptions()
 {
 	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerController] Options requested"));
 	OnOptionsRequested.Broadcast();
-}
-
-void ALCOPlayerController::RequestQuickSlot()
-{
-	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerController] QuickSlot requested"));
-	OnQuickSlotRequested.Broadcast();
 }

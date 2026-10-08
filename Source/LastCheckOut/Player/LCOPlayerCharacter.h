@@ -4,6 +4,10 @@
 #include "GameFramework/Character.h"
 #include "LCOPlayerCharacter.generated.h"
 
+
+class USuspicionComponent;
+class UNotebookComponent;
+class ULCOQuickSlotComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
@@ -13,6 +17,7 @@ class ULCOStaminaComponent;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLCOMoveStateChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOSprintStateChanged, bool, bIsSprinting);
 
 UENUM(BlueprintType)
 enum class ELCOViewMode : uint8
@@ -50,6 +55,15 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Stamina")
 	ULCOStaminaComponent* GetStamina() const { return StaminaComponent; }
+	
+	UFUNCTION(BlueprintPure, Category = "LCO|Suspicion")
+	USuspicionComponent* GetSuspicion() const { return SuspicionComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Notebook")
+	UNotebookComponent* GetNotebook() const { return NotebookComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
+	ULCOQuickSlotComponent* GetQuickSlot() const { return QuickSlotComponent; }
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Movement")
 	bool IsSprinting() const { return bIsSprinting; }
@@ -83,6 +97,29 @@ public:
 	// 0 ~ 100 (텍스트 "75%" 표시용)
 	UFUNCTION(BlueprintPure, Category = "LCO|Stamina")
 	int32 GetStaminaPercentInt() const;
+	
+	// 일정 시간 이동속도 증가 (걷기 / 달리기 모두 +Amount)
+	// 이미 적용 중이면 수치와 시간을 새로 덮어씀 (중첩 X). Amount, Duration이 0 이하면 실패
+	UFUNCTION(BlueprintCallable, Category = "LCO|Buff")
+	bool ApplyMoveSpeedBuff(float Amount, float Duration);
+
+	// 일정 시간 최대 스태미나 증가 (+Amount, 늘어난 만큼 즉시 회복)
+	// 이미 적용 중이면 수치와 시간을 새로 덮어씀 (중첩 X). Amount, Duration이 0 이하면 실패
+	UFUNCTION(BlueprintCallable, Category = "LCO|Buff")
+	bool ApplyMaxStaminaBuff(int32 Amount, float Duration);
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Buff")
+	bool IsMoveSpeedBuffActive() const;
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Buff")
+	bool IsMaxStaminaBuffActive() const;
+
+	// 남은 시간(초). 버프가 없으면 0 (UI 표시용)
+	UFUNCTION(BlueprintPure, Category = "LCO|Buff")
+	float GetMoveSpeedBuffRemainingTime() const;
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Buff")
+	float GetMaxStaminaBuffRemainingTime() const;
 
 	// 걷기 → 달리기로 바뀔 때 (발소리, 숨소리, UI 등)
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Movement")
@@ -91,6 +128,9 @@ public:
 	// 달리기 → 걷기로 바뀔 때 (Shift 뗌, 스태미나 소진, 멈춤)
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Movement")
 	FOnLCOMoveStateChanged OnWalkStarted;
+	
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Movement")
+	FOnLCOSprintStateChanged OnSprintStateChanged;
 
 protected:
 	virtual void BeginPlay() override;
@@ -106,6 +146,11 @@ protected:
 	// 달리기 조건(Shift, 이동 중, 지면, 스태미나)을 확인해서 상태 갱신
 	void UpdateSprint();
 	void SetSprinting(bool bNewSprinting);
+	
+	// 퀵슬롯에서 아이템 사용 시 (효과는 OnUseItem, 소비 아이템이면 1개 소모)
+	void UpdateMoveSpeed();
+	void EndMoveSpeedBuff();
+	void EndMaxStaminaBuff();
 
 	// ---------- 컴포넌트 ----------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -123,6 +168,18 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stamina")
 	TObjectPtr<ULCOStaminaComponent> StaminaComponent;
+	
+	// 의심도 (AI 담당). FindComponentByClass로도 찾을 수 있음
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Suspicion")
+	TObjectPtr<USuspicionComponent> SuspicionComponent;
+
+	// 수첩 (발견한 증거 목록)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Notebook")
+	TObjectPtr<UNotebookComponent> NotebookComponent;
+
+	// 퀵슬롯 (Q 휠). 입력 / 위젯은 BP에서 이 컴포넌트에 지정
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "QuickSlot")
+	TObjectPtr<ULCOQuickSlotComponent> QuickSlotComponent;
 
 	// ---------- 입력 에셋 (BP에서 지정) ----------
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -176,4 +233,16 @@ private:
 
 	// 실제로 달리는 중인지
 	bool bIsSprinting = false;
+	
+	// 이동속도 버프 증가량 (버프 없으면 0)
+	float MoveSpeedBonus = 0.f;
+
+	// 최대 스태미나 버프 증가량 (버프 없으면 0)
+	int32 MaxStaminaBonus = 0;
+
+	// 최대 스태미나 버프 적용 전 원래 최대치
+	int32 BaseMaxStamina = 0;
+
+	FTimerHandle MoveSpeedBuffTimer;
+	FTimerHandle MaxStaminaBuffTimer;
 };

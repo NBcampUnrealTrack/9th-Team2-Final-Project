@@ -31,11 +31,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|PauseMenu")
 	void TogglePauseMenu();
 
+	void UnbindFromOptionsInput();
+
 	UFUNCTION(BlueprintPure, Category = "LCO|PauseMenu")
 	bool IsPauseMenuOpen() const { return IsInViewport(); }
 
 protected:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeDestruct() override;
 
 	// 메인메뉴로 버튼을 눌렀을 때 열 레벨 (WBP 클래스 디폴트에서 지정)
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|PauseMenu")

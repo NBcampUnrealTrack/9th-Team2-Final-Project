@@ -11,19 +11,52 @@ void ULCOPauseMenuWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
-	if (Btn_Resume)   Btn_Resume->OnClicked.AddDynamic(this, &ThisClass::HandleResumeClicked);
-	if (Btn_Settings) Btn_Settings->OnClicked.AddDynamic(this, &ThisClass::HandleSettingsClicked);
-	if (Btn_MainMenu) Btn_MainMenu->OnClicked.AddDynamic(this, &ThisClass::HandleMainMenuClicked);
-	if (Btn_Quit)     Btn_Quit->OnClicked.AddDynamic(this, &ThisClass::HandleQuitClicked);
+	if (Btn_Resume)
+	{
+		Btn_Resume->OnClicked.RemoveDynamic(this, &ThisClass::HandleResumeClicked);
+		Btn_Resume->OnClicked.AddDynamic(this, &ThisClass::HandleResumeClicked);
+	}
+
+	if (Btn_Settings)
+	{
+		Btn_Settings->OnClicked.RemoveDynamic(this, &ThisClass::HandleSettingsClicked);
+		Btn_Settings->OnClicked.AddDynamic(this, &ThisClass::HandleSettingsClicked);
+	}
+
+	if (Btn_MainMenu)
+	{
+		Btn_MainMenu->OnClicked.RemoveDynamic(this, &ThisClass::HandleMainMenuClicked);
+		Btn_MainMenu->OnClicked.AddDynamic(this, &ThisClass::HandleMainMenuClicked);
+	}
+
+	if (Btn_Quit)
+	{
+		Btn_Quit->OnClicked.RemoveDynamic(this, &ThisClass::HandleQuitClicked);
+		Btn_Quit->OnClicked.AddDynamic(this, &ThisClass::HandleQuitClicked);
+	}
 
 	// O 키(옵션 입력) → 일시정지 메뉴 토글
 	if (ALCOPlayerController* LCOPC = Cast<ALCOPlayerController>(GetOwningPlayer()))
 	{
+		LCOPC->OnOptionsRequested.RemoveDynamic(this, &ThisClass::HandleOptionsRequested);
 		LCOPC->OnOptionsRequested.AddDynamic(this, &ThisClass::HandleOptionsRequested);
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LCOPauseMenu] Owning Player가 LCOPlayerController가 아님 - O 키 바인딩 안 됨"));
+	}
+}
+
+void ULCOPauseMenuWidget::NativeDestruct()
+{
+	Super::NativeDestruct();
+}
+
+void ULCOPauseMenuWidget::UnbindFromOptionsInput()
+{
+	if (ALCOPlayerController* LCOPC = Cast<ALCOPlayerController>(GetOwningPlayer()))
+	{
+		LCOPC->OnOptionsRequested.RemoveDynamic(this, &ThisClass::HandleOptionsRequested);
 	}
 }
 

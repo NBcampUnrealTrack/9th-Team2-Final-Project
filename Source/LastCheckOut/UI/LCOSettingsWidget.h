@@ -5,6 +5,8 @@
 #include "Components/ComboBoxString.h"
 #include "LCOSettingsWidget.generated.h"
 
+class UButton;
+
 UCLASS()
 class LASTCHECKOUT_API ULCOSettingsWidget : public UUserWidget
 {
@@ -61,9 +63,15 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UTextBlock> BackButtonText;
 
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> BackButton;
+
 private:
 	UFUNCTION()
 	void HandleLanguageSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
+
+	UFUNCTION()
+	void HandleBackClicked();
 
 	void InitializeLanguageOptions();
 	void SelectCurrentLanguage();

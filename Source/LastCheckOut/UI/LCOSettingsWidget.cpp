@@ -1,5 +1,6 @@
 #include "UI/LCOSettingsWidget.h"
 
+#include "Components/Button.h"
 #include "Components/ComboBoxString.h"
 #include "Components/TextBlock.h"
 #include "Localization/LCOLocalizationSubsystem.h"
@@ -53,6 +54,12 @@ void ULCOSettingsWidget::NativeConstruct()
 		LanguageComboBox->OnSelectionChanged.RemoveDynamic(this, &ULCOSettingsWidget::HandleLanguageSelectionChanged);
 		LanguageComboBox->OnSelectionChanged.AddDynamic(this, &ULCOSettingsWidget::HandleLanguageSelectionChanged);
 	}
+
+	if (BackButton)
+	{
+		BackButton->OnClicked.RemoveDynamic(this, &ULCOSettingsWidget::HandleBackClicked);
+		BackButton->OnClicked.AddDynamic(this, &ULCOSettingsWidget::HandleBackClicked);
+	}
 }
 
 void ULCOSettingsWidget::HandleLanguageSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
@@ -73,6 +80,11 @@ void ULCOSettingsWidget::HandleLanguageSelectionChanged(FString SelectedItem, ES
 	}
 
 	RefreshLocalizedTexts();
+}
+
+void ULCOSettingsWidget::HandleBackClicked()
+{
+	RemoveFromParent();
 }
 
 void ULCOSettingsWidget::InitializeLanguageOptions()

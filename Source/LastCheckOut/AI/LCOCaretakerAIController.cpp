@@ -43,6 +43,13 @@ void ALCOCaretakerAIController::BeginPlay()
 	AIPerception->OnTargetPerceptionUpdated.AddDynamic(this, &ALCOCaretakerAIController::OnTargetPerceptionUpdated);
 
 	GetWorldTimerManager().SetTimer(CatchCheckTimer, this, &ALCOCaretakerAIController::CheckCatch, CatchCheckInterval, true);
+
+	// 플레이어가 아직 생성되지 않았을 수 있어 바인딩될 때까지 재시도한다.
+	TryBindSuspicion();
+	if (!BoundSuspicion.IsValid())
+	{
+		GetWorldTimerManager().SetTimer(SuspicionBindTimer, this, &ALCOCaretakerAIController::TryBindSuspicion, 0.5f, true);
+	}
 }
 
 void ALCOCaretakerAIController::OnPossess(APawn* InPawn)
@@ -70,6 +77,12 @@ void ALCOCaretakerAIController::SetState(ELCOCaretakerState NewState)
 
 void ALCOCaretakerAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
+	// 의심도 기준으로 동작할 때는 시야 감지로 상태를 바꾸지 않는다.
+	if (!bUseSightForChase)
+	{
+		return;
+	}
+
 	// 플레이어만 대상으로 한다.
 	const APawn* SensedPawn = Cast<APawn>(Actor);
 	if (!SensedPawn || !SensedPawn->IsPlayerControlled())
@@ -130,6 +143,12 @@ void ALCOCaretakerAIController::CheckCatch()
 
 void ALCOCaretakerAIController::HandlePlayerCaught(AActor* CaughtPlayer)
 {
+	// 체이싱이 끝났으므로 의심도를 초기화한다.
+	if (BoundSuspicion.IsValid())
+	{
+		BoundSuspicion->ResetSuspicion();
+	}
+
 	// 플레이어를 Player Start 위치로 이동
 	APawn* PlayerPawn = Cast<APawn>(CaughtPlayer);
 	AGameModeBase* GameMode = UGameplayStatics::GetGameMode(this);
@@ -237,4 +256,53 @@ void ALCOCaretakerAIController::DrawDebugInfo() const
 		DrawDebugString(World, LastKnown + FVector(0.f, 0.f, 60.f), TEXT("LastKnown"), nullptr, FColor::Yellow, 0.f, true, 1.2f);
 	}
 #endif
+}
+
+void ALCOCaretakerAIController::TryBindSuspicion()
+{
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	USuspicionComponent* Suspicion = PlayerPawn ? PlayerPawn->FindComponentByClass<USuspicionComponent>() : nullptr;
+	if (!Suspicion)
+	{
+		return;
+	}
+
+	BoundSuspicion = Suspicion;
+	Suspicion->OnSuspicionChanged.AddDynamic(this, &ALCOCaretakerAIController::HandleSuspicionChanged);
+	GetWorldTimerManager().ClearTimer(SuspicionBindTimer);
+}
+
+void ALCOCaretakerAIController::HandleSuspicionChanged(float NewValue, ELCOSuspicionLevel NewLevel)
+{
+	if (bUseSightForChase)
+	{
+		return;
+	}
+
+	UBlackboardComponent* BB = GetBlackboardComponent();
+	if (!BB)
+	{
+		return;
+	}
+
+	// 의심도 구간에 따라 상태를 바꾼다.
+	switch (NewLevel)
+	{
+	case ELCOSuspicionLevel::Calm:
+		BB->ClearValue(LCOBlackboardKeys::TargetActor);
+		SetState(ELCOCaretakerState::Patrol);
+		break;
+	case ELCOSuspicionLevel::Suspicious:
+		SetState(ELCOCaretakerState::Suspicious);
+		break;
+	case ELCOSuspicionLevel::Alert:
+		SetState(ELCOCaretakerState::Search);
+		break;
+	case ELCOSuspicionLevel::Danger:
+	case ELCOSuspicionLevel::Chasing:
+		// 시야와 관계없이 플레이어를 추격한다.
+		BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, UGameplayStatics::GetPlayerPawn(this, 0));
+		SetState(ELCOCaretakerState::Chase);
+		break;
+	}
 }

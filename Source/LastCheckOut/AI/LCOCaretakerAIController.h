@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "AIController.h"
 #include "AI/LCOCaretakerTypes.h"
+#include "AI/SuspicionComponent.h"
 #include "Perception/AIPerceptionTypes.h"
 #include "LCOCaretakerAIController.generated.h"
 
@@ -57,6 +58,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Catch")
 	float CatchCheckInterval = 0.1f;
 
+	// true면 시야 감지로 추격한다. (의심도 연동 전 테스트용 임시 동작)
+	// false면 플레이어의 의심도 구간에 따라 상태를 바꾼다.
+	UPROPERTY(EditDefaultsOnly, Category = "AI|Suspicion")
+	bool bUseSightForChase = true;
+
 	// 감지가 끊겨도 이 시간(초) 동안은 추격을 유지한다. 시야 경계에서 감지가 깜빡이는 것을 막는다.
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Sight")
 	float LostGraceTime = 1.0f;
@@ -66,6 +72,15 @@ protected:
 	bool bDrawDebug = false;
 
 private:
+	// 플레이어의 SuspicionComponent를 찾아 의심도 변화에 바인딩한다. 플레이어가 아직 없으면 타이머로 재시도한다.
+	void TryBindSuspicion();
+
+	UFUNCTION()
+	void HandleSuspicionChanged(float NewValue, ELCOSuspicionLevel NewLevel);
+
+	TWeakObjectPtr<USuspicionComponent> BoundSuspicion;
+	FTimerHandle SuspicionBindTimer;
+
 	void DrawDebugInfo() const;
 
 	// 추격 중인 대상과의 거리를 확인한다.

@@ -32,9 +32,61 @@ void ULCOQuickSlotComponent::BeginPlay()
 		return;
 	}
 
+	BindOwnerEvents();
+
 	// 빙의가 BeginPlay보다 늦을 수 있으므로 컨트롤러 변경도 감시
 	OwnerPawn->ReceiveControllerChangedDelegate.AddUniqueDynamic(this, &ThisClass::HandleControllerChanged);
 	TrySetupForController(OwnerPawn->GetController());
+}
+
+void ULCOQuickSlotComponent::BindOwnerEvents()
+{
+	// 달리기 / 걷기 상태
+	if (ALCOPlayerCharacter* Character = Cast<ALCOPlayerCharacter>(GetOwner()))
+	{
+		Character->OnSprintStarted.AddUniqueDynamic(this, &ThisClass::HandleSprintStarted);
+		Character->OnWalkStarted.AddUniqueDynamic(this, &ThisClass::HandleWalkStarted);
+		bIsSprinting = Character->IsSprinting();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOQuickSlot] Owner가 LCOPlayerCharacter가 아님 - 달리기 상태 자동 연결 안 됨"));
+	}
+
+	// 인벤토리 변경
+	if (UInventoryComponent* Inventory = GetInventory())
+	{
+		Inventory->OnInventoryChanged.AddUniqueDynamic(this, &ThisClass::HandleInventoryChanged);
+	}
+}
+
+void ULCOQuickSlotComponent::UnbindOwnerEvents()
+{
+	if (ALCOPlayerCharacter* Character = Cast<ALCOPlayerCharacter>(GetOwner()))
+	{
+		Character->OnSprintStarted.RemoveDynamic(this, &ThisClass::HandleSprintStarted);
+		Character->OnWalkStarted.RemoveDynamic(this, &ThisClass::HandleWalkStarted);
+	}
+
+	if (UInventoryComponent* Inventory = GetInventory())
+	{
+		Inventory->OnInventoryChanged.RemoveDynamic(this, &ThisClass::HandleInventoryChanged);
+	}
+}
+
+void ULCOQuickSlotComponent::HandleSprintStarted()
+{
+	HandleSprintStateChanged(true);
+}
+
+void ULCOQuickSlotComponent::HandleWalkStarted()
+{
+	HandleSprintStateChanged(false);
+}
+
+void ULCOQuickSlotComponent::HandleInventoryChanged()
+{
+	RefreshWidgets();
 }
 
 void ULCOQuickSlotComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -56,6 +108,7 @@ void ULCOQuickSlotComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		}
 	}
 
+	UnbindOwnerEvents();
 	RemoveWidgets();
 	Super::EndPlay(EndPlayReason);
 }
@@ -288,10 +341,18 @@ bool ULCOQuickSlotComponent::UseSlot(int32 SlotIndex)
 		return false;
 	}
 
+	// 실제 효과 / 소모는 인벤토리가 처리 (증거품, 열쇠 등 사용 불가 아이템은 false)
+	UInventoryComponent* Inventory = GetInventory();
+	if (!Inventory || !Inventory->UseItem(ItemID))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LCOQuickSlot] %d번 슬롯 아이템(%s) 사용 불가"), SlotIndex + 1, *ItemID.ToString());
+		return false;
+	}
+
 	UE_LOG(LogTemp, Log, TEXT("[LCOQuickSlot] %d번 슬롯 사용: %s"), SlotIndex + 1, *ItemID.ToString());
 	OnQuickSlotItemUsed.Broadcast(SlotIndex, ItemID);
 
-	// 사용 처리에서 수량이 바뀌었을 수 있으므로 갱신
+	// 수량 변화는 OnInventoryChanged로 갱신되지만, 사용 불가 → 가능 등 상태 반영을 위해 한 번 더
 	RefreshWidgets();
 	return true;
 }

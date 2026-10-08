@@ -4,7 +4,7 @@
 #include "GameFramework/Character.h"
 #include "LCONPCBase.generated.h"
 
-/* 호텔 NPC 공용 베이스 (관리인, 직원 등이 상속) */
+// 호텔 NPC 공용 베이스 (관리인, 직원 등이 상속)
 UCLASS()
 class LASTCHECKOUT_API ALCONPCBase : public ACharacter
 {
@@ -15,7 +15,7 @@ public:
 
 	FName GetNPCId() const { return NPCId; }
 
-	/** 현재 이동 속도(cm/s)를 변경한다. */
+	// 현재 이동 속도(cm/s)를 변경한다.
 	UFUNCTION(BlueprintCallable, Category = "NPC|Movement")
 	void SetMovementSpeed(float NewSpeed);
 
@@ -28,7 +28,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	/** 대화 DataTable 등에서 NPC를 식별하는 ID */
+	// 대화 DataTable 등에서 NPC를 식별하는 ID
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
 	FName NPCId;
 

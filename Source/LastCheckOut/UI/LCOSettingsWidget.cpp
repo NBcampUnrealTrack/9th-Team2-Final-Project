@@ -60,6 +60,15 @@ void ULCOSettingsWidget::NativeConstruct()
 		BackButton->OnClicked.RemoveDynamic(this, &ULCOSettingsWidget::HandleBackClicked);
 		BackButton->OnClicked.AddDynamic(this, &ULCOSettingsWidget::HandleBackClicked);
 	}
+
+	BindLocalizationEvents();
+}
+
+void ULCOSettingsWidget::NativeDestruct()
+{
+	UnbindLocalizationEvents();
+
+	Super::NativeDestruct();
 }
 
 void ULCOSettingsWidget::HandleLanguageSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
@@ -79,12 +88,34 @@ void ULCOSettingsWidget::HandleLanguageSelectionChanged(FString SelectedItem, ES
 		}
 	}
 
-	RefreshLocalizedTexts();
 }
 
 void ULCOSettingsWidget::HandleBackClicked()
 {
 	RemoveFromParent();
+}
+
+void ULCOSettingsWidget::HandleLanguageChanged(FName NewLanguage)
+{
+	SelectCurrentLanguage();
+	RefreshLocalizedTexts();
+}
+
+void ULCOSettingsWidget::BindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+		LocalizationSubsystem->OnLanguageChanged.AddDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
+}
+
+void ULCOSettingsWidget::UnbindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
 }
 
 void ULCOSettingsWidget::InitializeLanguageOptions()

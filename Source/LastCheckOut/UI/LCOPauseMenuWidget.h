@@ -5,6 +5,7 @@
 #include "LCOPauseMenuWidget.generated.h"
 
 class UButton;
+class UTextBlock;
 
 /**
  * 일시정지 메뉴 위젯 베이스 (계속하기 / 설정 / 메인메뉴로 / 게임 종료)
@@ -38,6 +39,7 @@ public:
 
 protected:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 
 	// 메인메뉴로 버튼을 눌렀을 때 열 레벨 (WBP 클래스 디폴트에서 지정)
@@ -60,6 +62,18 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Btn_Quit;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_Resume;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_Settings;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_MainMenu;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_Quit;
+
 private:
 	// LCOPlayerController::OnOptionsRequested (O 키) 수신
 	UFUNCTION()
@@ -77,8 +91,14 @@ private:
 	UFUNCTION()
 	void HandleQuitClicked();
 
+	UFUNCTION()
+	void HandleLanguageChanged(FName NewLanguage);
+
 	// UI 모드 전환 (LCOPlayerController면 SetUIMode 사용, 아니면 직접 처리)
 	void SetPlayerUIMode(bool bEnable);
+	void BindLocalizationEvents();
+	void UnbindLocalizationEvents();
+	void RefreshLocalizedTexts();
 
 	// 생성한 설정 위젯 (중복 생성 방지용)
 	UPROPERTY()

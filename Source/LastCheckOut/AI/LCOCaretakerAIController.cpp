@@ -70,14 +70,6 @@ void ALCOCaretakerAIController::SetState(ELCOCaretakerState NewState)
 
 void ALCOCaretakerAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	// 테스트용: 감지 이벤트가 들어온 시각과 거리를 기록한다.
-	if (Actor && GetPawn())
-	{
-		UE_LOG(LogTemp, Log, TEXT("[Caretaker] Perception %s: %s (Dist %.0f, Time %.2f)"),
-			Stimulus.WasSuccessfullySensed() ? TEXT("SENSED") : TEXT("LOST"), *Actor->GetName(),
-			FVector::Dist(GetPawn()->GetActorLocation(), Actor->GetActorLocation()), GetWorld()->GetTimeSeconds());
-	}
-
 	// 플레이어만 대상으로 한다.
 	const APawn* SensedPawn = Cast<APawn>(Actor);
 	if (!SensedPawn || !SensedPawn->IsPlayerControlled())

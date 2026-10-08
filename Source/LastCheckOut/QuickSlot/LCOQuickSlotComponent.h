@@ -21,8 +21,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOQuickSlotItemUsed, int32, Slo
  * - BP_PlayerCharacter에 Add Component로 붙여서 사용 (캐릭터 / 컨트롤러 C++ 수정 없음)
  * - 슬롯 순서 등록: 인벤토리 UI에서 AssignSlot / SwapSlots / ClearSlot 호출
  * - Q 꾹 누르기: 원형 휠 표시 + 시간 느려짐 → 마우스 방향으로 선택 → 떼면 사용
- * - 평소엔 숨김, 달리는 동안만 HUD 표시 → 캐릭터의 달리기 상태 델리게이트에 HandleSprintStateChanged 바인딩
- * - 실제 아이템 효과는 OnQuickSlotItemUsed를 받는 쪽에서 처리 (소모품이면 거기서 RemoveItem 호출)
+ * - 평소엔 숨김, 달리는 동안만 HUD 표시 (캐릭터 OnSprintStarted / OnWalkStarted 자동 바인딩)
+ * - 사용 시 InventoryComponent::UseItem 호출 (효과·소모는 인벤토리에서 처리), 성공하면 OnQuickSlotItemUsed
+ * - 인벤토리 OnInventoryChanged 자동 바인딩 → 수량 즉시 갱신
  *
  * 슬롯 인덱스: 0~3 (화면 표시 1~4)
  * 휠 방향:     위=1번, 오른쪽=2번, 아래=3번, 왼쪽=4번 (시계방향)
@@ -80,8 +81,7 @@ public:
 
 	// ---------- 달리기 상태 ----------
 
-	// 캐릭터의 달리기/걷기 상태 델리게이트(bool bIsSprinting)에 바인딩할 함수
-	// 델리게이트가 생기기 전에는 BP에서 직접 호출해서 테스트 가능
+	// 달리기 상태 변경 (캐릭터 델리게이트로 자동 호출됨, BP에서 직접 호출해 테스트도 가능)
 	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
 	void HandleSprintStateChanged(bool bInIsSprinting);
 
@@ -95,7 +95,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "LCO|QuickSlot")
 	FOnLCOQuickSlotsChanged OnQuickSlotsChanged;
 
-	// 휠에서 아이템 사용 시 (실제 효과는 여기 바인딩해서 처리)
+	// 휠에서 아이템 사용 성공 시 (효과는 UseItem에서 처리됨, 여기선 사운드/연출 등)
 	UPROPERTY(BlueprintAssignable, Category = "LCO|QuickSlot")
 	FOnLCOQuickSlotItemUsed OnQuickSlotItemUsed;
 
@@ -156,6 +156,20 @@ private:
 
 	UFUNCTION()
 	void HandleControllerChanged(APawn* Pawn, AController* OldController, AController* NewController);
+
+	// 캐릭터 OnSprintStarted / OnWalkStarted
+	UFUNCTION()
+	void HandleSprintStarted();
+
+	UFUNCTION()
+	void HandleWalkStarted();
+
+	// 인벤토리 OnInventoryChanged → 수량/아이콘 즉시 갱신
+	UFUNCTION()
+	void HandleInventoryChanged();
+
+	void BindOwnerEvents();
+	void UnbindOwnerEvents();
 
 	void CreateWidgets(APlayerController* PC);
 	void RemoveWidgets();

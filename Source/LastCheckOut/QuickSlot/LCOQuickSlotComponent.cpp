@@ -4,6 +4,7 @@
 #include "Inventory/InventoryComponent.h"
 #include "Item/ItemData.h"
 #include "Player/LCOPlayerController.h"
+#include "Player/LCOPlayerCharacter.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"

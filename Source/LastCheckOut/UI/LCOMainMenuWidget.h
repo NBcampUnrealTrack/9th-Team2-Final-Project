@@ -5,6 +5,7 @@
 #include "LCOMainMenuWidget.generated.h"
 
 class UButton;
+class UTextBlock;
 
 /**
  * 메인 메뉴 위젯 베이스 (게임 시작 / 설정 / 종료)
@@ -18,6 +19,8 @@ class LASTCHECKOUT_API ULCOMainMenuWidget : public UUserWidget
 
 protected:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 	// 게임 시작 시 열 레벨 (WBP 클래스 디폴트에서 지정)
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|MainMenu")
@@ -36,6 +39,15 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Btn_Quit;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_Start;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_Settings;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_Quit;
+
 private:
 	UFUNCTION()
 	void HandleStartClicked();
@@ -45,6 +57,13 @@ private:
 
 	UFUNCTION()
 	void HandleQuitClicked();
+
+	UFUNCTION()
+	void HandleLanguageChanged(FName NewLanguage);
+
+	void BindLocalizationEvents();
+	void UnbindLocalizationEvents();
+	void RefreshLocalizedTexts();
 
 	// 생성한 설정 위젯 (중복 생성 방지용)
 	UPROPERTY()

@@ -1,10 +1,12 @@
 #include "UI/LCOPauseMenuWidget.h"
 
 #include "Components/Button.h"
+#include "Components/TextBlock.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Core/LCOGameInstance.h"
+#include "Localization/LCOLocalizationSubsystem.h"
 #include "Player/LCOPlayerController.h"
 
 void ULCOPauseMenuWidget::NativeOnInitialized()
@@ -47,8 +49,18 @@ void ULCOPauseMenuWidget::NativeOnInitialized()
 	}
 }
 
+void ULCOPauseMenuWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	BindLocalizationEvents();
+	RefreshLocalizedTexts();
+}
+
 void ULCOPauseMenuWidget::NativeDestruct()
 {
+	UnbindLocalizationEvents();
+
 	Super::NativeDestruct();
 }
 
@@ -192,4 +204,55 @@ void ULCOPauseMenuWidget::HandleMainMenuClicked()
 void ULCOPauseMenuWidget::HandleQuitClicked()
 {
 	UKismetSystemLibrary::QuitGame(this, GetOwningPlayer(), EQuitPreference::Quit, false);
+}
+
+void ULCOPauseMenuWidget::HandleLanguageChanged(FName NewLanguage)
+{
+	RefreshLocalizedTexts();
+}
+
+void ULCOPauseMenuWidget::BindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+		LocalizationSubsystem->OnLanguageChanged.AddDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
+}
+
+void ULCOPauseMenuWidget::UnbindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
+}
+
+void ULCOPauseMenuWidget::RefreshLocalizedTexts()
+{
+	const ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>();
+	if (!LocalizationSubsystem)
+	{
+		return;
+	}
+
+	if (Txt_Resume)
+	{
+		Txt_Resume->SetText(LocalizationSubsystem->GetUIText(TEXT("MENU_RESUME")));
+	}
+
+	if (Txt_Settings)
+	{
+		Txt_Settings->SetText(LocalizationSubsystem->GetUIText(TEXT("MENU_SETTINGS")));
+	}
+
+	if (Txt_MainMenu)
+	{
+		Txt_MainMenu->SetText(LocalizationSubsystem->GetUIText(TEXT("MENU_MAIN_MENU")));
+	}
+
+	if (Txt_Quit)
+	{
+		Txt_Quit->SetText(LocalizationSubsystem->GetUIText(TEXT("MENU_QUIT")));
+	}
 }

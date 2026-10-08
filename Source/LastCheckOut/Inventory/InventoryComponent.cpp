@@ -201,7 +201,7 @@ bool UInventoryComponent::UseItem(FName ItemID)
 	{
 	case EItemType::Consumable:
 
-		if (ItemID == FName("CannedCoffee"))
+		if (ItemID == FName("CanCoffee"))
 		{
 			// 이동속도 증가 처리
 			// 캐릭터 담당 코드와 연결

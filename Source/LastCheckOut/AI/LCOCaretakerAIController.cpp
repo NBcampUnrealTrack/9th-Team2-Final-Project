@@ -96,15 +96,24 @@ void ALCOCaretakerAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStim
 		//AI가 대상을 포착했을 때 플레이어의 위치와 정보를 블랙보드에 저장, 상태를 Chase로 변경
 		BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, Actor);
 		BB->SetValueAsVector(LCOBlackboardKeys::LastKnownLocation, Stimulus.StimulusLocation);
+		GetWorldTimerManager().ClearTimer(LostGraceTimer);
 		SetState(ELCOCaretakerState::Chase);
 	}
 	else
 	{
-		//AI가 대상을 놓쳤을 때 블랙보드의 TargetActor칸을 깨끗하게 비우고, 마지막 위치를 업데이트하고 상태를 LostPlayer로 변경
-		BB->ClearValue(LCOBlackboardKeys::TargetActor);
+		// AI가 대상을 놓쳤을 때 마지막 위치를 갱신하고, 유예 시간 뒤에도 감지되지 않으면 LostPlayer로 변경
 		BB->SetValueAsVector(LCOBlackboardKeys::LastKnownLocation, Stimulus.StimulusLocation);
-		SetState(ELCOCaretakerState::LostPlayer);
+		GetWorldTimerManager().SetTimer(LostGraceTimer, this, &ALCOCaretakerAIController::FinishLostGrace, LostGraceTime, false);
 	}
+}
+
+void ALCOCaretakerAIController::FinishLostGrace()
+{
+	if (UBlackboardComponent* BB = GetBlackboardComponent())
+	{
+		BB->ClearValue(LCOBlackboardKeys::TargetActor);
+	}
+	SetState(ELCOCaretakerState::LostPlayer);
 }
 
 void ALCOCaretakerAIController::CheckCatch()
@@ -147,6 +156,7 @@ void ALCOCaretakerAIController::HandlePlayerCaught(AActor* CaughtPlayer)
 	}
 
 	// 관리인을 최초 위치로 되돌리고 순찰 상태로 복귀
+	GetWorldTimerManager().ClearTimer(LostGraceTimer);
 	StopMovement();
 	GetPawn()->TeleportTo(InitialTransform.GetLocation(), InitialTransform.GetRotation().Rotator());
 	AIPerception->ForgetAll();

@@ -1,5 +1,5 @@
 #include "LCOPuzzleBase.h"
-#include "../Interaction/LCOInteractComponent.h"
+#include "Interaction/LCOInteractComponent.h"
 
 ALCOPuzzleBase::ALCOPuzzleBase()
 {

@@ -1,4 +1,5 @@
 #include "LCOGameMode.h"
+#include "LastCheckOut.h"
 #include "LastCheckOut/Core/LCOGameInstance.h"
 #include "LastCheckOut/Story/LCOStorySubsystem.h"
 
@@ -18,7 +19,7 @@ void ALCOGameMode::BeginPlay()
 void ALCOGameMode::InitializeCurrentMap()
 {
 	// Log Test
-	UE_LOG(LogTemp, Log, TEXT("[LCOGameMode] InitializeCurrentMap: %s"), 
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] InitializeCurrentMap: %s"), 
 		*GetWorld()->GetMapName()); 
 }
 
@@ -30,7 +31,7 @@ void ALCOGameMode::StartGame()
 	if (!LCOGameInstance)
 	{
 		// Log Test
-		UE_LOG(LogTemp, Warning, TEXT("[LCOGameMode] StartGame: LCOGameInstance not found"));
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] StartGame: LCOGameInstance not found"));
 		return;
 	}
 	
@@ -39,14 +40,14 @@ void ALCOGameMode::StartGame()
 	if (!StorySubsystem)
 	{
 		// Log Test
-		UE_LOG(LogTemp, Warning, TEXT("[LCOGameMode] StartGame: LCOStorySubsystem not found"));
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] StartGame: LCOStorySubsystem not found"));
 		return;
 	}
 	
 	// 현재 시작 방식 확인
 	// Log Test
 	const ELCOGameStartMode StartMode = LCOGameInstance->GetStartMode();
-	UE_LOG(LogTemp, Log, TEXT("[LCOGameMode] StartGame: StartMode = %s"), 
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartGame: StartMode = %s"), 
 		*UEnum::GetValueAsString(StartMode));
 	
 	switch (StartMode)
@@ -62,7 +63,7 @@ void ALCOGameMode::StartGame()
 	case ELCOGameStartMode::Continue:
 		// 이어하기: SaveManager 구현 전까지 미지원
 		// Log Test
-		UE_LOG(LogTemp, Warning, TEXT("[LCOGameMode] StartGame: Continue is not supported yet"));
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] StartGame: Continue is not supported yet"));
 		break;
 
 	case ELCOGameStartMode::None:
@@ -75,13 +76,13 @@ void ALCOGameMode::StartGame()
 		if (StorySubsystem->GetCurrentChapterID().IsNone())
 		{
 			// Log Test
-			UE_LOG(LogTemp, Log, TEXT("[LCOGameMode] StartGame: No chapter in progress -> StartNewStory"));
+			UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartGame: No chapter in progress -> StartNewStory"));
 			StorySubsystem->StartNewStory();
 		}
 		else
 		{
 			// Log Test
-			UE_LOG(LogTemp, Log, TEXT("[LCOGameMode] StartGame: Keep current chapter = %s"),
+			UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartGame: Keep current chapter = %s"),
 				*StorySubsystem->GetCurrentChapterID().ToString());
 		}
 		break;

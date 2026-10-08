@@ -21,15 +21,16 @@ public:
 	// 게임 실행 시 1회 호출. GameInstance 적용 여부 확인용 로그
 	virtual void Init() override;
 	
-	// 시작 방식 설정 (메인 메뉴의 "새 게임" / "이어하기" 버튼에서 호출 예정)
+	// 시작 방식 설정 (메인 메뉴 시작 버튼 LCOMainMenuWidget에서 NewGame으로 설정)
 	UFUNCTION(BlueprintCallable, Category = "LCO|GameStart")
 	void SetStartMode(ELCOGameStartMode NewMode);
 
-	// 현재 시작 방식 조회 (GameMode의 StartGame에서 읽을 예정)
+	// 현재 시작 방식 조회 (LCOGameMode::StartGame()에서 사용)
 	UFUNCTION(BlueprintPure, Category = "LCO|GameStart")
 	ELCOGameStartMode GetStartMode() const { return StartMode; }
 
-	// 시작 처리 완료 후 / 메인 메뉴 복귀 시 None으로 되돌림
+	// None으로 되돌림 
+	// LCOGameMode의 NewGame 처리 후, LCOPauseMenuWidget의 메인 메뉴 복귀 시 호출
 	UFUNCTION(BlueprintCallable, Category = "LCO|GameStart")
 	void ResetStartMode();
 

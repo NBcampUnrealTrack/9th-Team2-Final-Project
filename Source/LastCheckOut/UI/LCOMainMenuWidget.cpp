@@ -1,9 +1,11 @@
 #include "UI/LCOMainMenuWidget.h"
 
 #include "Components/Button.h"
+#include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Core/LCOGameInstance.h"
+#include "Localization/LCOLocalizationSubsystem.h"
 
 void ULCOMainMenuWidget::NativeOnInitialized()
 {
@@ -13,6 +15,21 @@ void ULCOMainMenuWidget::NativeOnInitialized()
 	if (Btn_Start)    Btn_Start->OnClicked.AddDynamic(this, &ThisClass::HandleStartClicked);
 	if (Btn_Settings) Btn_Settings->OnClicked.AddDynamic(this, &ThisClass::HandleSettingsClicked);
 	if (Btn_Quit)     Btn_Quit->OnClicked.AddDynamic(this, &ThisClass::HandleQuitClicked);
+}
+
+void ULCOMainMenuWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	BindLocalizationEvents();
+	RefreshLocalizedTexts();
+}
+
+void ULCOMainMenuWidget::NativeDestruct()
+{
+	UnbindLocalizationEvents();
+
+	Super::NativeDestruct();
 }
 
 void ULCOMainMenuWidget::HandleStartClicked()
@@ -63,4 +80,50 @@ void ULCOMainMenuWidget::HandleSettingsClicked()
 void ULCOMainMenuWidget::HandleQuitClicked()
 {
 	UKismetSystemLibrary::QuitGame(this, GetOwningPlayer(), EQuitPreference::Quit, false);
+}
+
+void ULCOMainMenuWidget::HandleLanguageChanged(FName NewLanguage)
+{
+	RefreshLocalizedTexts();
+}
+
+void ULCOMainMenuWidget::BindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+		LocalizationSubsystem->OnLanguageChanged.AddDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
+}
+
+void ULCOMainMenuWidget::UnbindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
+}
+
+void ULCOMainMenuWidget::RefreshLocalizedTexts()
+{
+	const ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>();
+	if (!LocalizationSubsystem)
+	{
+		return;
+	}
+
+	if (Txt_Start)
+	{
+		Txt_Start->SetText(LocalizationSubsystem->GetUIText(TEXT("MENU_NEW_GAME")));
+	}
+
+	if (Txt_Settings)
+	{
+		Txt_Settings->SetText(LocalizationSubsystem->GetUIText(TEXT("MENU_SETTINGS")));
+	}
+
+	if (Txt_Quit)
+	{
+		Txt_Quit->SetText(LocalizationSubsystem->GetUIText(TEXT("MENU_QUIT")));
+	}
 }

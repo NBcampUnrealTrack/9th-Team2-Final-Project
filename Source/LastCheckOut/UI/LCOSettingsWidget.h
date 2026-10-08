@@ -14,6 +14,7 @@ class LASTCHECKOUT_API ULCOSettingsWidget : public UUserWidget
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UComboBoxString> LanguageComboBox;
@@ -73,6 +74,11 @@ private:
 	UFUNCTION()
 	void HandleBackClicked();
 
+	UFUNCTION()
+	void HandleLanguageChanged(FName NewLanguage);
+
+	void BindLocalizationEvents();
+	void UnbindLocalizationEvents();
 	void InitializeLanguageOptions();
 	void SelectCurrentLanguage();
 	void RefreshLocalizedTexts();

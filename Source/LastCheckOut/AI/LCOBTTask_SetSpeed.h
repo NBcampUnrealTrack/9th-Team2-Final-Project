@@ -11,7 +11,7 @@ enum class ELCOSpeedMode : uint8
 	Run
 };
 
-/* NPC의 이동 속도를 걷기/달리기로 전환한다. 실제 속도 값은 NPC 클래스가 가진다. */
+// NPC의 이동 속도를 걷기/달리기로 전환한다. 실제 속도 값은 NPC 클래스가 가진다.
 UCLASS()
 class LASTCHECKOUT_API ULCOBTTask_SetSpeed : public UBTTaskNode
 {

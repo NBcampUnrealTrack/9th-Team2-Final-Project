@@ -37,6 +37,9 @@ public:
 	// 옵션 키(O, 추후 ESC) 입력 시
 	UPROPERTY(BlueprintAssignable, Category = "LCO|UI")
 	FOnLCOMenuRequested OnOptionsRequested;
+	
+	UPROPERTY(BlueprintAssignable, Category = "LCO|UI")
+	FOnLCOMenuRequested OnQuickSlotRequested;
 
 protected:
 	virtual void BeginPlay() override;
@@ -45,6 +48,7 @@ protected:
 	void RequestInventory();
 	void RequestNotebook();
 	void RequestOptions();
+	void RequestQuickSlot();
 
 	// 기본 입력 매핑 (BP에서 IMC 지정)
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -58,6 +62,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> OptionsAction;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	TObjectPtr<UInputAction> QuickSlotAction;
 
 private:
 	bool bInUIMode = false;

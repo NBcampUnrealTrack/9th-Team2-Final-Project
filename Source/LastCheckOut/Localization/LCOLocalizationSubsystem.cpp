@@ -35,6 +35,11 @@ FText ULCOLocalizationSubsystem::GetDialogueText(FName Key) const
 	return GetLocalizedText(DialogueTextRows, Key);
 }
 
+FText ULCOLocalizationSubsystem::GetItemText(FName ItemID) const
+{
+	return GetLocalizedText(ItemTextRows, ItemID, false);
+}
+
 void ULCOLocalizationSubsystem::SetLanguage(FName LanguageCode)
 {
 	if (!IsSupportedLanguage(LanguageCode))
@@ -43,16 +48,24 @@ void ULCOLocalizationSubsystem::SetLanguage(FName LanguageCode)
 		return;
 	}
 
+	if (CurrentLanguage == LanguageCode)
+	{
+		return;
+	}
+
 	CurrentLanguage = LanguageCode;
+	OnLanguageChanged.Broadcast(CurrentLanguage);
 }
 
 void ULCOLocalizationSubsystem::LoadLocalizationFiles()
 {
 	UITextRows.Empty();
 	DialogueTextRows.Empty();
+	ItemTextRows.Empty();
 
 	LoadCsvFile(TEXT("Localization/UI.csv"), UITextRows);
 	LoadCsvFile(TEXT("Localization/Dialogue.csv"), DialogueTextRows);
+	LoadCsvFile(TEXT("Localization/Items.csv"), ItemTextRows);
 }
 
 void ULCOLocalizationSubsystem::LoadCsvFile(const FString& RelativePath, TMap<FName, FLCOLocalizedTextRow>& OutRows)
@@ -130,6 +143,11 @@ void ULCOLocalizationSubsystem::LoadCsvFile(const FString& RelativePath, TMap<FN
 
 FText ULCOLocalizationSubsystem::GetLocalizedText(const TMap<FName, FLCOLocalizedTextRow>& Rows, FName Key) const
 {
+	return GetLocalizedText(Rows, Key, true);
+}
+
+FText ULCOLocalizationSubsystem::GetLocalizedText(const TMap<FName, FLCOLocalizedTextRow>& Rows, FName Key, bool bFallbackToKey) const
+{
 	if (Key.IsNone())
 	{
 		return FText::GetEmpty();
@@ -138,7 +156,7 @@ FText ULCOLocalizationSubsystem::GetLocalizedText(const TMap<FName, FLCOLocalize
 	const FLCOLocalizedTextRow* Row = Rows.Find(Key);
 	if (!Row)
 	{
-		return FText::FromName(Key);
+		return bFallbackToKey ? FText::FromName(Key) : FText::GetEmpty();
 	}
 
 	const FString* LocalizedString = Row->TextByLanguage.Find(CurrentLanguage);
@@ -153,7 +171,7 @@ FText ULCOLocalizationSubsystem::GetLocalizedText(const TMap<FName, FLCOLocalize
 		return FText::FromString(*FallbackString);
 	}
 
-	return FText::FromName(Key);
+	return bFallbackToKey ? FText::FromName(Key) : FText::GetEmpty();
 }
 
 bool ULCOLocalizationSubsystem::IsSupportedLanguage(FName LanguageCode) const

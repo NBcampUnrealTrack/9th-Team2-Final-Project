@@ -5,7 +5,7 @@
 #include "AI/LCOCaretakerTypes.h"
 #include "LCOBTTask_SetState.generated.h"
 
-/* 관리인 컨트롤러의 상태를 지정한 값으로 바꾼다. (Blackboard State 키도 함께 갱신됨) */
+// 관리인 컨트롤러의 상태를 지정한 값으로 바꾼다. (Blackboard State 키도 함께 갱신됨)
 UCLASS()
 class LASTCHECKOUT_API ULCOBTTask_SetState : public UBTTaskNode
 {

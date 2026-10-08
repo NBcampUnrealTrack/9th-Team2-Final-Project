@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "../Interaction/LCOInteractionReceiver.h"
+#include "Interaction/LCOInteractionReceiver.h"
 #include "LCOPuzzleBase.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPuzzleSolved, ALCOPuzzleBase*, Puzzle);

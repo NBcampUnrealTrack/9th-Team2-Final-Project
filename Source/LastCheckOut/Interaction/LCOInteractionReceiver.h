@@ -27,4 +27,9 @@ public:
 	// 구현하지 않으면 false(잠기지 않음)로 동작
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
 	bool IsInteractionLocked(ULCOInteractComponent* SourceComponent, AActor* Interactor) const;
+
+	// 현재 상태에 맞는 상호작용 문구 (예: "닫기", "잠겨 있다")
+	// 빈 문구를 반환하면 컴포넌트의 기본 문구(InteractPrompt)를 사용. 구현하지 않으면 빈 문구로 동작
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
+	FText GetInteractionPrompt(ULCOInteractComponent* SourceComponent, AActor* Interactor) const;
 };

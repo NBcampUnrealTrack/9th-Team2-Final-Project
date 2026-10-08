@@ -40,8 +40,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	FName GetInputID() const { return InputID; }
 
+	// UI에 표시할 상호작용 문구. 대상이 상태별 문구를 주면 그 문구를, 아니면 기본 문구(InteractPrompt)를 반환
+	// Interactor를 넘기면 보는 사람에 따른 문구(열쇠 보유 여부 등)까지 반영
 	UFUNCTION(BlueprintPure, Category = "Interaction")
-	FText GetInteractPrompt() const { return InteractPrompt; }
+	FText GetInteractPrompt(AActor* Interactor = nullptr) const;
 
 	// 상호작용 성공 시 호출 (사운드, 버튼 눌림 애니메이션 등 연출용)
 	UPROPERTY(BlueprintAssignable, Category = "Interaction")

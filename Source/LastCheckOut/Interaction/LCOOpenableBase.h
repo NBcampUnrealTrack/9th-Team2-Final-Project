@@ -19,6 +19,12 @@ public:
 	// 잠겨 있으면 열쇠 확인, 열 수 있는 상태면 HandleUnlockedInteraction() 호출
 	virtual void HandleInteraction_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) override;
 
+	// 열려 있고 다시 닫을 수 없으면(bCanClose = false) 더 할 수 있는 동작이 없으므로 잠금
+	virtual bool IsInteractionLocked_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const override;
+
+	// 상태별 문구: 잠김(열쇠 보유 여부에 따라) / 열림 / 닫힘
+	virtual FText GetInteractionPrompt_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const override;
+
 	// 열기. 잠겨 있거나 이미 열려 있으면 무시
 	UFUNCTION(BlueprintCallable, Category = "Openable")
 	void Open();
@@ -91,6 +97,27 @@ protected:
 	// 잠금 해제 시 열쇠 아이템을 소모할지
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Openable|Lock", meta = (EditCondition = "bIsLocked"))
 	bool bConsumeKeyItem = false;
+
+	// ---------- 상호작용 문구 (비워두면 LCOInteract 컴포넌트의 Interact Prompt 사용) ----------
+
+	// 닫혀 있을 때 (예: "문 열기", "서랍 열기"). 기본값은 비어 있음 → 컴포넌트 문구 사용
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Openable|Prompt")
+	FText OpenPrompt;
+
+	// 열려 있을 때 (예: "문 닫기")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Openable|Prompt")
+	FText ClosePrompt;
+
+	// 잠겨 있고 열쇠가 없을 때
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Openable|Prompt")
+	FText LockedPrompt;
+
+	// 잠겨 있지만 열쇠를 가지고 있을 때
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Openable|Prompt")
+	FText UnlockWithKeyPrompt;
+
+	// Interactor의 인벤토리에 열쇠(RequiredItemID)가 있는지
+	bool HasKeyItem(const AActor* Interactor) const;
 
 private:
 	// 상호작용한 액터의 인벤토리에서 열쇠를 확인하고, 있으면 잠금 해제

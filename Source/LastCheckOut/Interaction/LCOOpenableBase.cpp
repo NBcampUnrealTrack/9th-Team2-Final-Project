@@ -6,6 +6,10 @@ ALCOOpenableBase::ALCOOpenableBase()
 	PrimaryActorTick.bCanEverTick = false;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+
+	ClosePrompt = NSLOCTEXT("LCOInteraction", "OpenableClosePrompt", "닫기");
+	LockedPrompt = NSLOCTEXT("LCOInteraction", "OpenableLockedPrompt", "잠겨 있다");
+	UnlockWithKeyPrompt = NSLOCTEXT("LCOInteraction", "OpenableUnlockWithKeyPrompt", "열쇠로 열기");
 }
 
 void ALCOOpenableBase::BeginPlay()
@@ -27,6 +31,21 @@ void ALCOOpenableBase::HandleInteraction_Implementation(ULCOInteractComponent* S
 	}
 
 	HandleUnlockedInteraction(Interactor);
+}
+
+bool ALCOOpenableBase::IsInteractionLocked_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const
+{
+	return bIsOpen && !bCanClose;
+}
+
+FText ALCOOpenableBase::GetInteractionPrompt_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const
+{
+	if (bIsLocked)
+	{
+		return HasKeyItem(Interactor) ? UnlockWithKeyPrompt : LockedPrompt;
+	}
+
+	return bIsOpen ? ClosePrompt : OpenPrompt;
 }
 
 void ALCOOpenableBase::HandleUnlockedInteraction(AActor* Interactor)
@@ -90,7 +109,7 @@ void ALCOOpenableBase::Lock()
 	UE_LOG(LogTemp, Log, TEXT("[LCOOpenable] %s Lock"), *GetName());
 }
 
-bool ALCOOpenableBase::TryUnlockWithKey(AActor* Interactor)
+bool ALCOOpenableBase::HasKeyItem(const AActor* Interactor) const
 {
 	// 열쇠가 지정되지 않았으면 열쇠로 열 수 없음
 	if (RequiredItemID.IsNone() || !IsValid(Interactor))
@@ -98,15 +117,20 @@ bool ALCOOpenableBase::TryUnlockWithKey(AActor* Interactor)
 		return false;
 	}
 
-	UInventoryComponent* Inventory = Interactor->FindComponentByClass<UInventoryComponent>();
-	if (!Inventory || !Inventory->HasItem(RequiredItemID))
+	const UInventoryComponent* Inventory = Interactor->FindComponentByClass<UInventoryComponent>();
+	return Inventory && Inventory->HasItem(RequiredItemID);
+}
+
+bool ALCOOpenableBase::TryUnlockWithKey(AActor* Interactor)
+{
+	if (!HasKeyItem(Interactor))
 	{
 		return false;
 	}
 
 	if (bConsumeKeyItem)
 	{
-		Inventory->RemoveItem(RequiredItemID, 1);
+		Interactor->FindComponentByClass<UInventoryComponent>()->RemoveItem(RequiredItemID, 1);
 	}
 
 	Unlock();

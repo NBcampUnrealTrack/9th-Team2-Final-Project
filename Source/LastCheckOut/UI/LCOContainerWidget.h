@@ -47,7 +47,9 @@ public:
 
 protected:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Container")
 	TSubclassOf<ULCOContainerItemWidget> ItemWidgetClass;
@@ -71,6 +73,9 @@ protected:
 	TObjectPtr<UButton> CloseButton;
 
 	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> ContainerTitleText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> EmptyText;
 
 private:
@@ -80,6 +85,12 @@ private:
 	UFUNCTION()
 	void HandleItemClicked(FName ItemID, int32 ListedQuantity);
 
+	UFUNCTION()
+	void HandleLanguageChanged(FName NewLanguage);
+
+	void BindLocalizationEvents();
+	void UnbindLocalizationEvents();
+	void RefreshLocalizedTexts();
 	void ApplyContainerInputMode();
 	void RestoreGameInputMode();
 	bool ShouldRestoreGameOnlyInputMode(APlayerController* PC) const;

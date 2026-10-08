@@ -38,6 +38,9 @@ public:
 	// bBlockInteractionWhileOpen이 true면 열려 있는 동안(UI 사용 중) 상호작용 잠금
 	virtual bool IsInteractionLocked_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const override;
 
+	// 창고는 상호작용으로 닫지 않으므로, 열려 있을 때도 열기 문구(UI 다시 열기) 사용
+	virtual FText GetInteractionPrompt_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const override;
+
 	// UI에서 아이템을 클릭 / 드래그했을 때 호출. 보관 목록에서 빼서 Interactor의 인벤토리에 추가
 	// 보관 수량이 부족하거나, 인벤토리가 없거나, 아이템 DataTable에 없는 ID면 false 반환
 	UFUNCTION(BlueprintCallable, Category = "Container")

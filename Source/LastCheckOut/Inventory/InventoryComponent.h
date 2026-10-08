@@ -7,6 +7,9 @@
 #include "Item/ItemData.h"
 #include "InventoryComponent.generated.h"
 
+// 인벤토리 내용이 변경되었을 때 발생하는 이벤트
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChanged);
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class LASTCHECKOUT_API UInventoryComponent : public UActorComponent
 {
@@ -42,6 +45,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool RemoveItem(FName ItemID, int32 Quantity);
 	
+	// 아이템 ID를 기준으로 아이템 사용 처리
+	// 소비 아이템은 사용 후 1개 소모
+	// 비소모 아이템은 해당 기능만 실행
+	UFUNCTION(BlueprintCallable)
+	bool UseItem(FName ItemID);
+	
 	// ---------------------------------------------------------------------------------------------------------
 	
 	// 아이템 정보를 저장하고 있는 DataTable
@@ -50,4 +59,11 @@ public:
 	
 	// ItemID를 이용해 DataTable에서 아이템 정보를 가져옴
 	const FItemData* GetItemData(FName ItemID) const;
+	
+	// ---------------------------------------------------------------------------------------------------------
+	
+	// 인벤토리 변경 이벤트
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FOnInventoryChanged OnInventoryChanged;
+	
 };

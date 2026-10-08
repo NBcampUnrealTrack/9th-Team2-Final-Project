@@ -4,11 +4,15 @@
 #include "Components/Button.h"
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
+#include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerController.h"
+#include "InputCoreTypes.h"
 #include "Interaction/LCOContainer.h"
 #include "Inventory/InventoryComponent.h"
 #include "Item/ItemData.h"
+#include "Localization/LCOLocalizationSubsystem.h"
 #include "UI/LCOContainerItemWidget.h"
+#include "UI/LCOInteractionPromptSubsystem.h"
 
 void ULCOContainerWidget::NativeOnInitialized()
 {
@@ -23,8 +27,18 @@ void ULCOContainerWidget::NativeOnInitialized()
 	}
 }
 
+void ULCOContainerWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	BindLocalizationEvents();
+	RefreshLocalizedTexts();
+}
+
 void ULCOContainerWidget::NativeDestruct()
 {
+	UnbindLocalizationEvents();
+
 	if (bContainerInputModeApplied && bRestoreGameInputOnClose)
 	{
 		RestoreGameInputMode();
@@ -34,6 +48,17 @@ void ULCOContainerWidget::NativeDestruct()
 	Interactor.Reset();
 
 	Super::NativeDestruct();
+}
+
+FReply ULCOContainerWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (IsInViewport() && InKeyEvent.GetKey() == EKeys::F)
+	{
+		CloseContainer();
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 }
 
 void ULCOContainerWidget::OpenContainer(ALCOContainer* InContainer, AActor* InInteractor)
@@ -51,12 +76,27 @@ void ULCOContainerWidget::OpenContainer(ALCOContainer* InContainer, AActor* InIn
 		AddToViewport(ViewportZOrder);
 	}
 
+	if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
+	{
+		if (ULCOInteractionPromptSubsystem* InteractionPromptSubsystem = LocalPlayer->GetSubsystem<ULCOInteractionPromptSubsystem>())
+		{
+			InteractionPromptSubsystem->NotifyBlockingWidgetVisibilityChanged(this, true);
+		}
+	}
+
 	ApplyContainerInputMode();
+	RefreshLocalizedTexts();
 	RefreshItems();
 }
 
 void ULCOContainerWidget::CloseContainer()
 {
+	ALCOContainer* ContainerActor = Container.Get();
+	if (IsValid(ContainerActor) && ContainerActor->IsOpen())
+	{
+		ContainerActor->Close();
+	}
+
 	if (!IsInViewport())
 	{
 		if (bContainerInputModeApplied && bRestoreGameInputOnClose)
@@ -66,6 +106,13 @@ void ULCOContainerWidget::CloseContainer()
 
 		Container.Reset();
 		Interactor.Reset();
+		if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
+		{
+			if (ULCOInteractionPromptSubsystem* InteractionPromptSubsystem = LocalPlayer->GetSubsystem<ULCOInteractionPromptSubsystem>())
+			{
+				InteractionPromptSubsystem->NotifyBlockingWidgetVisibilityChanged(this, false);
+			}
+		}
 		return;
 	}
 
@@ -77,6 +124,13 @@ void ULCOContainerWidget::CloseContainer()
 	Container.Reset();
 	Interactor.Reset();
 	RemoveFromParent();
+	if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
+	{
+		if (ULCOInteractionPromptSubsystem* InteractionPromptSubsystem = LocalPlayer->GetSubsystem<ULCOInteractionPromptSubsystem>())
+		{
+			InteractionPromptSubsystem->NotifyBlockingWidgetVisibilityChanged(this, false);
+		}
+	}
 	OnContainerWidgetClosed.Broadcast();
 }
 
@@ -155,6 +209,63 @@ void ULCOContainerWidget::HandleItemClicked(FName ItemID, int32 ListedQuantity)
 	TakeContainerItem(ItemID, Quantity);
 }
 
+void ULCOContainerWidget::HandleLanguageChanged(FName NewLanguage)
+{
+	RefreshLocalizedTexts();
+	RefreshItems();
+}
+
+void ULCOContainerWidget::BindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+		LocalizationSubsystem->OnLanguageChanged.AddDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
+}
+
+void ULCOContainerWidget::UnbindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
+}
+
+void ULCOContainerWidget::RefreshLocalizedTexts()
+{
+	const ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>();
+	if (!LocalizationSubsystem)
+	{
+		if (ContainerTitleText)
+		{
+			ContainerTitleText->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		return;
+	}
+
+	if (ContainerTitleText)
+	{
+		const FName ContainerNameKey = TEXT("CONTAINER_STORAGE_CABINET");
+		const FText ContainerTitle = LocalizationSubsystem->GetUIText(ContainerNameKey);
+
+		if (!ContainerNameKey.IsNone() && !ContainerTitle.IsEmpty() && ContainerTitle.ToString() != ContainerNameKey.ToString())
+		{
+			ContainerTitleText->SetText(ContainerTitle);
+			ContainerTitleText->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+		else
+		{
+			ContainerTitleText->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	if (EmptyText)
+	{
+		EmptyText->SetText(LocalizationSubsystem->GetUIText(TEXT("CONTAINER_EMPTY")));
+	}
+}
+
 void ULCOContainerWidget::ApplyContainerInputMode()
 {
 	APlayerController* PC = GetOwningPlayer();
@@ -219,6 +330,15 @@ bool ULCOContainerWidget::ShouldRestoreGameOnlyInputMode(APlayerController* PC) 
 
 FText ULCOContainerWidget::ResolveItemName(FName ItemID) const
 {
+	if (const ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		const FText LocalizedItemName = LocalizationSubsystem->GetItemText(ItemID);
+		if (!LocalizedItemName.IsEmpty())
+		{
+			return LocalizedItemName;
+		}
+	}
+
 	const AActor* InteractorActor = Interactor.Get();
 	const UInventoryComponent* Inventory = IsValid(InteractorActor) ? InteractorActor->FindComponentByClass<UInventoryComponent>() : nullptr;
 	const FItemData* ItemData = Inventory ? Inventory->GetItemData(ItemID) : nullptr;

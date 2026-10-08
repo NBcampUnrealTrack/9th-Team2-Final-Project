@@ -14,6 +14,16 @@ bool ALCOContainer::IsInteractionLocked_Implementation(ULCOInteractComponent* So
 	return bBlockInteractionWhileOpen && IsOpen();
 }
 
+FText ALCOContainer::GetInteractionPrompt_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const
+{
+	if (!IsLocked() && IsOpen())
+	{
+		return OpenPrompt;
+	}
+
+	return Super::GetInteractionPrompt_Implementation(SourceComponent, Interactor);
+}
+
 void ALCOContainer::HandleUnlockedInteraction(AActor* Interactor)
 {
 	if (!IsOpen())

@@ -38,6 +38,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "LCO|UI")
 	FOnLCOMenuRequested OnOptionsRequested;
 
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;

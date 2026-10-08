@@ -4,6 +4,8 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "LCOLocalizationSubsystem.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOLanguageChanged, FName, NewLanguage);
+
 struct FLCOLocalizedTextRow
 {
 	TMap<FName, FString> TextByLanguage;
@@ -24,10 +26,16 @@ public:
 	FText GetDialogueText(FName Key) const;
 
 	UFUNCTION(BlueprintCallable, Category = "LCO|Localization")
+	FText GetItemText(FName ItemID) const;
+
+	UFUNCTION(BlueprintCallable, Category = "LCO|Localization")
 	void SetLanguage(FName LanguageCode);
 
 	UFUNCTION(BlueprintCallable, Category = "LCO|Localization")
 	FName GetLanguage() const { return CurrentLanguage; }
+
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Localization")
+	FOnLCOLanguageChanged OnLanguageChanged;
 
 private:
 	static const FName KoreanLanguage;
@@ -44,6 +52,7 @@ private:
 	void LoadLocalizationFiles();
 	void LoadCsvFile(const FString& RelativePath, TMap<FName, FLCOLocalizedTextRow>& OutRows);
 	FText GetLocalizedText(const TMap<FName, FLCOLocalizedTextRow>& Rows, FName Key) const;
+	FText GetLocalizedText(const TMap<FName, FLCOLocalizedTextRow>& Rows, FName Key, bool bFallbackToKey) const;
 	bool IsSupportedLanguage(FName LanguageCode) const;
 	bool LoadUtf8FileToString(const FString& FullPath, FString& OutContent) const;
 
@@ -52,4 +61,5 @@ private:
 
 	TMap<FName, FLCOLocalizedTextRow> UITextRows;
 	TMap<FName, FLCOLocalizedTextRow> DialogueTextRows;
+	TMap<FName, FLCOLocalizedTextRow> ItemTextRows;
 };

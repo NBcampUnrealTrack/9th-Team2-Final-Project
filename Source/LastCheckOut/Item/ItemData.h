@@ -4,6 +4,15 @@
 #include "Engine/DataTable.h"
 #include "ItemData.generated.h"
 
+UENUM(BlueprintType)
+enum class EItemType : uint8
+{
+	Normal,     // 일반 아이템
+	Consumable, // 소비 아이템
+	KeyItem,    // 열쇠 등
+	Evidence   // 증거품
+};
+
 USTRUCT(BlueprintType)
 struct FItemData : public FTableRowBase
 {
@@ -27,6 +36,11 @@ struct FItemData : public FTableRowBase
 
 	// 슬롯당 최대 보유 개수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 MaxStackCount = 20; // 현재 인벤토리 기본 기능에서는 미적용 추후 사용 예정
+	int32 MaxStackCount = 20; 
+	
+	// 아이템의 종류를 구분하여 아이템 사용 방식 및 기능을 결정
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EItemType ItemType = EItemType::Normal;
+	
 	
 };

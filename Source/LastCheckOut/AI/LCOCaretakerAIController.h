@@ -79,6 +79,9 @@ private:
 	void HandleSuspicionChanged(float NewValue, ELCOSuspicionLevel NewLevel);
 
 	TWeakObjectPtr<USuspicionComponent> BoundSuspicion;
+
+	// 직전에 처리한 의심도 구간. 구간이 바뀔 때만 상태를 갱신한다.
+	ELCOSuspicionLevel LastSuspicionLevel = ELCOSuspicionLevel::Calm;
 	FTimerHandle SuspicionBindTimer;
 
 	void DrawDebugInfo() const;

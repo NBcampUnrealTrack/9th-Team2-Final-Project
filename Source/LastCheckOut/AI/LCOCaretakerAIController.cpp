@@ -280,9 +280,19 @@ void ALCOCaretakerAIController::HandleSuspicionChanged(float NewValue, ELCOSuspi
 	}
 
 	UBlackboardComponent* BB = GetBlackboardComponent();
-	if (!BB)
+	if (!BB || NewLevel == LastSuspicionLevel)
 	{
 		return;
+	}
+	LastSuspicionLevel = NewLevel;
+
+	// 의심 구간에 진입하는 순간의 플레이어 위치를 수색 기준점으로 기록한다. (계속 추적하지 않는다.)
+	if (NewLevel == ELCOSuspicionLevel::Suspicious || NewLevel == ELCOSuspicionLevel::Alert)
+	{
+		if (const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0))
+		{
+			BB->SetValueAsVector(LCOBlackboardKeys::LastKnownLocation, PlayerPawn->GetActorLocation());
+		}
 	}
 
 	// 의심도 구간에 따라 상태를 바꾼다.

@@ -60,7 +60,7 @@ void USuspicionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
-	if (Suspicion <= 0.f || bMaxReached)
+	/*if (Suspicion <= 0.f || bMaxReached)
 	{
 		return;
 	}
@@ -69,7 +69,7 @@ void USuspicionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	if (TimeSinceLastChange >= DecayDelay)
 	{
 		SetSuspicion(Suspicion - DecayRate * DeltaTime);
-	}
+	}*/
 }
 
 void USuspicionComponent::SetSuspicion(float NewValue)

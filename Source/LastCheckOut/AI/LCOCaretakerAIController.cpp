@@ -8,6 +8,75 @@
 #include "Kismet/GameplayStatics.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
+#include "HAL/IConsoleManager.h"
+
+#if !UE_BUILD_SHIPPING
+// 테스트용 콘솔 명령: 플레이어의 의심도를 직접 조절한다. (출시 빌드 제외)
+namespace
+{
+	USuspicionComponent* FindPlayerSuspicion(UWorld* World)
+	{
+		const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
+		return PlayerPawn ? PlayerPawn->FindComponentByClass<USuspicionComponent>() : nullptr;
+	}
+
+	float GetFirstArg(const TArray<FString>& Args, float DefaultValue)
+	{
+		return Args.IsEmpty() ? DefaultValue : FCString::Atof(*Args[0]);
+	}
+
+	FAutoConsoleCommandWithWorldAndArgs GAddSuspicionCommand(
+		TEXT("LCO.Suspicion.Add"), TEXT("LCO.Suspicion.Add <Amount> : 의심도를 올린다. (기본 15)"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (USuspicionComponent* Suspicion = FindPlayerSuspicion(World))
+			{
+				Suspicion->AddSuspicion(GetFirstArg(Args, 15.f));
+			}
+		}));
+
+	FAutoConsoleCommandWithWorldAndArgs GReduceSuspicionCommand(
+		TEXT("LCO.Suspicion.Reduce"), TEXT("LCO.Suspicion.Reduce <Amount> : 의심도를 내린다. (기본 20)"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (USuspicionComponent* Suspicion = FindPlayerSuspicion(World))
+			{
+				Suspicion->ReduceSuspicion(GetFirstArg(Args, 20.f));
+			}
+		}));
+
+	FAutoConsoleCommandWithWorldAndArgs GSetSuspicionCommand(
+		TEXT("LCO.Suspicion.Set"), TEXT("LCO.Suspicion.Set <Value> : 의심도를 지정한 값으로 맞춘다."),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			USuspicionComponent* Suspicion = FindPlayerSuspicion(World);
+			if (!Suspicion)
+			{
+				return;
+			}
+
+			const float Diff = GetFirstArg(Args, 0.f) - Suspicion->GetSuspicion();
+			if (Diff > 0.f)
+			{
+				Suspicion->AddSuspicion(Diff);
+			}
+			else
+			{
+				Suspicion->ReduceSuspicion(-Diff);
+			}
+		}));
+
+	FAutoConsoleCommandWithWorldAndArgs GResetSuspicionCommand(
+		TEXT("LCO.Suspicion.Reset"), TEXT("LCO.Suspicion.Reset : 의심도를 0으로 초기화한다."),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (USuspicionComponent* Suspicion = FindPlayerSuspicion(World))
+			{
+				Suspicion->ResetSuspicion();
+			}
+		}));
+}
+#endif
 
 ALCOCaretakerAIController::ALCOCaretakerAIController()
 {
@@ -229,6 +298,14 @@ void ALCOCaretakerAIController::DrawDebugInfo() const
 
 	// 상태 텍스트
 	DrawDebugString(World, Origin + FVector(0.f, 0.f, 120.f), UEnum::GetDisplayValueAsText(CurrentState).ToString(), nullptr, StateColor, 0.f, true, 1.5f);
+
+	// 플레이어 의심도 수치와 구간
+	if (BoundSuspicion.IsValid())
+	{
+		DrawDebugString(World, Origin + FVector(0.f, 0.f, 150.f),
+			FString::Printf(TEXT("Suspicion %.0f (%s)"), BoundSuspicion->GetSuspicion(), *UEnum::GetDisplayValueAsText(BoundSuspicion->GetSuspicionLevel()).ToString()),
+			nullptr, FColor::White, 0.f, true, 1.2f);
+	}
 
 	const UBlackboardComponent* BB = GetBlackboardComponent();
 	if (!BB)

@@ -7,6 +7,9 @@
 #include "Item/ItemData.h"
 #include "InventoryComponent.generated.h"
 
+class ALCOPlayerCharacter;
+class UDataTable;
+
 // 인벤토리 내용이 변경되었을 때 발생하는 이벤트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChanged);
 
@@ -57,6 +60,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UDataTable> ItemDataTable;
 	
+	// 수첩 데이터가 저장된 DataTable
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	TObjectPtr<UDataTable> NotebookTable;
+	
 	// ItemID를 이용해 DataTable에서 아이템 정보를 가져옴
 	const FItemData* GetItemData(FName ItemID) const;
 	
@@ -66,4 +73,5 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FOnInventoryChanged OnInventoryChanged;
 	
+
 };

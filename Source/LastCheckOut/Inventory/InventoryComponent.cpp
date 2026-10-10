@@ -1,41 +1,17 @@
 #include "InventoryComponent.h"
+#include "Player/LCOPlayerCharacter.h"
+#include "Notebook/LCONotebookSubsystem.h"
 
 UInventoryComponent::UInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-// DataTable + InventoryComponent가 제대로 연결됐는지 테스트용 로그 추후 캐릭터가 생기면 확인
+
 void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// DataTable 연결 확인
-	if (ItemDataTable)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("DataTable 연결 성공!"));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("DataTable이 연결되지 않았습니다!"));
-	}
-
-	// RoomKey 아이템 데이터 확인
-	const FItemData* ItemData = GetItemData(FName("RoomKey"));
-
-	if (ItemData)
-	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("아이템 찾기 성공! 이름: %s"),
-			*ItemData->ItemName.ToString()
-		);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("RoomKey 아이템을 찾지 못했습니다!"));
-	}
+	
 }
 
 // 아이템을 인벤토리에 추가
@@ -46,11 +22,20 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
 	{
 		return;
 	}
-	
+
+	// DataTable에서 아이템 정보 가져오기
+	const FItemData* ItemData = GetItemData(ItemID);
+
 	// DataTable에 등록되지 않은 아이템이라면 종료
-	if (!GetItemData(ItemID))
+	if (!ItemData)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("존재하지 않는 아이템입니다: %s"), *ItemID.ToString());
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("존재하지 않는 아이템입니다: %s"),
+			*ItemID.ToString()
+		);
+
 		return;
 	}
 
@@ -61,25 +46,39 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
 		{
 			// 같은 아이템이 있다면 기존 수량에 추가
 			Slot.Quantity += Quantity;
-			
+
 			// 인벤토리 변경 이벤트 발생
 			OnInventoryChanged.Broadcast();
-			
+
 			return;
 		}
 	}
-
+	
 	// 같은 아이템이 없다면 새로운 슬롯 생성
 	FInventorySlot NewSlot;
-	
+
 	// 새 슬롯에 아이템 ID 저장
 	NewSlot.ItemID = ItemID;
-	
+
 	// 새 슬롯에 아이템 수량 저장
 	NewSlot.Quantity = Quantity;
-	
+
 	// 인벤토리에 새로운 슬롯 추가
 	InventorySlots.Add(NewSlot);
+	
+	// 증거품이면 수첩에 기록
+	// 같은 ID는 NotebookSubsystem에서 중복 등록되지 않음
+	if (ItemData->ItemType == EItemType::Evidence && NotebookTable)
+	{
+		if (UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr)
+		{
+			if (ULCONotebookSubsystem* Notebook =
+				GI->GetSubsystem<ULCONotebookSubsystem>())
+			{
+				Notebook->AddEntryFromTable(NotebookTable, ItemID);
+			}
+		}
+	}
 	
 	// 인벤토리 변경 이벤트 발생
 	OnInventoryChanged.Broadcast();
@@ -180,7 +179,15 @@ const FItemData* UInventoryComponent::GetItemData(FName ItemID) const
 
 // 아이템 사용
 bool UInventoryComponent::UseItem(FName ItemID)
-{
+{   
+	// 인벤토리를 소유한 캐릭터 가져오기
+	ALCOPlayerCharacter* Character = Cast<ALCOPlayerCharacter>(GetOwner());
+
+	if (!Character)
+	{
+		return false;
+	}
+	
 	// 인벤토리에 해당 아이템이 없으면 사용할 수 없음
 	if (!HasItem(ItemID))
 	{
@@ -201,43 +208,71 @@ bool UInventoryComponent::UseItem(FName ItemID)
 	{
 	case EItemType::Consumable:
 
-		if (ItemID == FName("CanCoffee"))
+		// DataTable에 설정된 버프 종류에 따라 효과 적용
+		switch (ItemData->BuffType)
 		{
-			// 이동속도 증가 처리
-			// 캐릭터 담당 코드와 연결
-		}
-		else if (ItemID == FName("RedGinsengCandy"))
-		{
-			// 최대 스태미나 증가 처리
-			// 캐릭터 담당 코드와 연결
+		case EBuffType::MoveSpeed:
+
+			// 이동속도 증가 버프 적용
+			if (!Character->ApplyMoveSpeedBuff(
+				ItemData->BuffAmount,
+				ItemData->BuffDuration))
+			{
+				return false;
+			}
+
+			break;
+
+
+		case EBuffType::MaxStamina:
+
+			// 최대 스태미나 증가 버프 적용
+			if (!Character->ApplyMaxStaminaBuff(
+				static_cast<int32>(ItemData->BuffAmount),
+				ItemData->BuffDuration))
+			{
+				return false;
+			}
+
+			break;
+
+
+		case EBuffType::None:
+		default:
+
+			// 적용할 버프가 없는 소비 아이템
+			return false;
 		}
 
-		// 소비 아이템은 사용 후 1개 소모
+		// 버프 적용 성공 시 아이템 1개 소모
 		RemoveItem(ItemID, 1);
+
 		return true;
 
 
 	case EItemType::KeyItem:
 
-		// 사용 시 지도 UI를 열며 아이템은 소모하지 않음
+		// 호텔 평면도 사용
 		if (ItemID == FName("HotelFloorPlan"))
 		{
-			// 지도 UI 열기
+			// TODO: 지도 UI 열기
 			return true;
 		}
 
 		// RoomKey는 일반 UseItem으로 사용하지 않음
+		// 문과 상호작용할 때 HasItem()으로 보유 여부 확인
 		return false;
 
 
 	case EItemType::Evidence:
 
-		// 증거품은 사용하거나 소모하지 않음
-		// 아이템 획득 시 Notebook에 등록하는 방식으로 처리
+		// 증거품은 직접 사용하는 아이템이 아님
+		// 획득 시 Notebook에 등록
 		return false;
 
 
 	default:
+
 		// 정의되지 않은 아이템 종류는 사용할 수 없음
 		return false;
 	}

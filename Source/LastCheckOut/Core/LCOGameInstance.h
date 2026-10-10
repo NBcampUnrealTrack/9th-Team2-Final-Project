@@ -2,7 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "Inventory/InventorySlot.h"
+#include "Player/LCOPlayerCharacter.h"
 #include "LCOGameInstance.generated.h"
+
+class ULCOStorySubsystem;
+class ULCONotebookSubsystem;
 
 UENUM(BlueprintType)
 enum class ELCOGameStartMode : uint8
@@ -10,6 +15,30 @@ enum class ELCOGameStartMode : uint8
 	None      UMETA(DisplayName = "None"),       // 선택 안 됨 (메뉴 없이 바로 실행 등)
 	NewGame   UMETA(DisplayName = "New Game"),   // 새 게임
 	Continue  UMETA(DisplayName = "Continue")    // 이어하기
+};
+
+// 맵 이동(Open Level) 시 캐릭터가 새로 생성되면서 사라지는 데이터를 잠깐 맡아두는 구조체
+// 이동 직전에 채우고, 새 맵에서 복원한 즉시 비움 (평소 원본은 캐릭터의 컴포넌트)
+USTRUCT()
+struct FLCOPlayerCarryData
+{
+	GENERATED_BODY()
+
+	// 인벤토리 슬롯 (InventoryComponent::InventorySlots)
+	UPROPERTY()
+	TArray<FInventorySlot> InventorySlots;
+
+	// 퀵슬롯 등록 아이템 (슬롯 순서대로)
+	UPROPERTY()
+	TArray<FName> QuickSlotItemIDs;
+
+	// 1인칭 / 3인칭 시점
+	UPROPERTY()
+	ELCOViewMode ViewMode = ELCOViewMode::FirstPerson;
+
+	// 보관된 데이터가 있는지
+	UPROPERTY()
+	bool bHasData = false;
 };
 
 UCLASS()
@@ -34,9 +63,34 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|GameStart")
 	void ResetStartMode();
 
+	// ---------- Subsystem 접근 ----------
+
+	// 스토리 진행 (챕터 / 목표 / 완료 목표)
+	UFUNCTION(BlueprintPure, Category = "LCO|System")
+	ULCOStorySubsystem* GetStorySubsystem() const;
+
+	// 수첩 기록
+	UFUNCTION(BlueprintPure, Category = "LCO|System")
+	ULCONotebookSubsystem* GetNotebookSubsystem() const;
+
+	// ---------- 맵 이동용 임시 보관 ----------
+
+	// 맵 이동 직전 저장 (LCOGameMode::TravelToLevel()에서 호출)
+	void StoreCarryData(const FLCOPlayerCarryData& Data);
+
+	// 꺼내면서 비움. 보관된 데이터가 없으면 false (LCOGameMode::RestorePlayerCarryData()에서 호출)
+	bool ConsumeCarryData(FLCOPlayerCarryData& OutData);
+
+	// 보관함 비우기 (새 게임 시작 시 호출)
+	void ClearCarryData();
+
 private:
 	// 현재 시작 방식. 기본값 None
 	// VisibleInstanceOnly: 디버깅 시 디테일 패널에서 값 확인용 (수정은 불가)
 	UPROPERTY(VisibleInstanceOnly, Category = "LCO|GameStart")
 	ELCOGameStartMode StartMode = ELCOGameStartMode::None;
+
+	// 맵 이동 중에만 값이 들어 있음
+	UPROPERTY()
+	FLCOPlayerCarryData CarryData;
 };

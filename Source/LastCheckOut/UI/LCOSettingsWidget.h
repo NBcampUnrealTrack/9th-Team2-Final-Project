@@ -6,6 +6,7 @@
 #include "LCOSettingsWidget.generated.h"
 
 class UButton;
+class USlider;
 
 UCLASS()
 class LASTCHECKOUT_API ULCOSettingsWidget : public UUserWidget
@@ -55,6 +56,18 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UTextBlock> VoiceVolumeText;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<USlider> MasterVolumeSlider;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<USlider> BGMVolumeSlider;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<USlider> SFXVolumeSlider;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<USlider> VoiceVolumeSlider;
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UTextBlock> ControlsText;
 
@@ -77,9 +90,27 @@ private:
 	UFUNCTION()
 	void HandleLanguageChanged(FName NewLanguage);
 
+	UFUNCTION()
+	void HandleMasterVolumeChanged(float Value);
+
+	UFUNCTION()
+	void HandleBGMVolumeChanged(float Value);
+
+	UFUNCTION()
+	void HandleSFXVolumeChanged(float Value);
+
+	UFUNCTION()
+	void HandleVoiceVolumeChanged(float Value);
+
 	void BindLocalizationEvents();
 	void UnbindLocalizationEvents();
+	void ResolveAudioSliders();
+	void BindAudioSliders();
+	void UnbindAudioSliders();
+	void InitializeAudioSliders();
 	void InitializeLanguageOptions();
 	void SelectCurrentLanguage();
 	void RefreshLocalizedTexts();
+
+	bool bUpdatingAudioSliders = false;
 };

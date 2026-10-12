@@ -18,6 +18,11 @@ void ALCOPlayerController::BeginPlay()
 			UE_LOG(LogTemp, Warning, TEXT("[LCOPlayerController] DefaultMappingContext is not set"));
 		}
 	}
+	if (PlayerCameraManager)
+	{
+		PlayerCameraManager->ViewPitchMin = MinViewPitch;
+		PlayerCameraManager->ViewPitchMax = MaxViewPitch;
+	}
 
 	SetUIMode(false);
 }

@@ -1,7 +1,7 @@
 #include "Localization/LCOLocalizationSubsystem.h"
 
 #include "Containers/StringConv.h"
-#include "HAL/PlatformFileManager.h"
+#include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Serialization/Csv/CsvParser.h"
@@ -64,14 +64,42 @@ void ULCOLocalizationSubsystem::LoadLocalizationFiles()
 	ItemTextRows.Empty();
 
 	LoadCsvFile(TEXT("Localization/UI.csv"), UITextRows);
-	LoadCsvFile(TEXT("Localization/Dialogue.csv"), DialogueTextRows);
+	LoadDialogueCsvFiles();
 	LoadCsvFile(TEXT("Localization/Items.csv"), ItemTextRows);
+}
+
+void ULCOLocalizationSubsystem::LoadDialogueCsvFiles()
+{
+	TMap<FName, FString> LoadedKeySources;
+
+	const FString LocalizationDir = FPaths::Combine(FPaths::ProjectDir(), TEXT("Localization"));
+	const FString LegacyDialogueCsvPath = FPaths::Combine(LocalizationDir, TEXT("Dialogue.csv"));
+	if (IFileManager::Get().FileExists(*LegacyDialogueCsvPath))
+	{
+		LoadCsvFileByFullPath(LegacyDialogueCsvPath, DialogueTextRows, &LoadedKeySources);
+	}
+
+	TArray<FString> DialogueCsvFiles;
+	IFileManager::Get().FindFiles(DialogueCsvFiles, *FPaths::Combine(LocalizationDir, TEXT("Dialogue_*.csv")), true, false);
+	DialogueCsvFiles.Sort();
+
+	for (const FString& DialogueCsvFile : DialogueCsvFiles)
+	{
+		const FString DialogueCsvPath = FPaths::IsRelative(DialogueCsvFile)
+			? FPaths::Combine(LocalizationDir, DialogueCsvFile)
+			: DialogueCsvFile;
+		LoadCsvFileByFullPath(DialogueCsvPath, DialogueTextRows, &LoadedKeySources);
+	}
 }
 
 void ULCOLocalizationSubsystem::LoadCsvFile(const FString& RelativePath, TMap<FName, FLCOLocalizedTextRow>& OutRows)
 {
 	const FString FullPath = FPaths::Combine(FPaths::ProjectDir(), RelativePath);
+	LoadCsvFileByFullPath(FullPath, OutRows);
+}
 
+void ULCOLocalizationSubsystem::LoadCsvFileByFullPath(const FString& FullPath, TMap<FName, FLCOLocalizedTextRow>& OutRows, TMap<FName, FString>* LoadedKeySources)
+{
 	FString CsvContent;
 	if (!LoadUtf8FileToString(FullPath, CsvContent))
 	{
@@ -137,7 +165,28 @@ void ULCOLocalizationSubsystem::LoadCsvFile(const FString& RelativePath, TMap<FN
 			}
 		}
 
-		OutRows.Add(FName(*KeyString), MoveTemp(LocalizedRow));
+		const FName KeyName(*KeyString);
+		if (FLCOLocalizedTextRow* ExistingRow = OutRows.Find(KeyName))
+		{
+			if (LoadedKeySources)
+			{
+				const FString* ExistingSource = LoadedKeySources->Find(KeyName);
+				UE_LOG(LogTemp, Warning, TEXT("[LCOLocalization] Duplicate dialogue key '%s' in CSV: %s (previous: %s). Keeping the first value."),
+					*KeyString,
+					*FullPath,
+					ExistingSource ? **ExistingSource : TEXT("unknown"));
+				continue;
+			}
+
+			*ExistingRow = MoveTemp(LocalizedRow);
+			continue;
+		}
+
+		OutRows.Add(KeyName, MoveTemp(LocalizedRow));
+		if (LoadedKeySources)
+		{
+			LoadedKeySources->Add(KeyName, FullPath);
+		}
 	}
 }
 

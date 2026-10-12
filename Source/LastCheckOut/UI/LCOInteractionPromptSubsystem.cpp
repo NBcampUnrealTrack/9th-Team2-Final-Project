@@ -12,6 +12,7 @@
 #include "Interaction/LCODoor.h"
 #include "Interaction/LCOInteractComponent.h"
 #include "Localization/LCOLocalizationSubsystem.h"
+#include "NPC/LCONPCBase.h"
 #include "Player/LCOPlayerCharacter.h"
 #include "Player/LCOPlayerInteractionComponent.h"
 #include "Player/LCOStaminaComponent.h"
@@ -106,7 +107,7 @@ void ULCOInteractionPromptSubsystem::RefreshInteractionPrompt()
 
 	if (!IsInteractionPromptSuppressed() && IsValid(FocusedComponent) && FocusedComponent->CanInteract(Interactor))
 	{
-		InteractionWidget->ShowInteraction(GetPromptText(FocusedComponent));
+		InteractionWidget->ShowInteraction(GetPromptText(FocusedComponent, Interactor));
 	}
 	else
 	{
@@ -491,7 +492,7 @@ UProgressBar* ULCOInteractionPromptSubsystem::FindExistingStaminaBar(APlayerCont
 	return nullptr;
 }
 
-FText ULCOInteractionPromptSubsystem::GetPromptText(ULCOInteractComponent* FocusedComponent) const
+FText ULCOInteractionPromptSubsystem::GetPromptText(ULCOInteractComponent* FocusedComponent, AActor* Interactor) const
 {
 	if (!FocusedComponent)
 	{
@@ -515,7 +516,15 @@ FText ULCOInteractionPromptSubsystem::GetPromptText(ULCOInteractComponent* Focus
 			: FocusedComponent->GetInteractPrompt();
 	}
 
-	return FocusedComponent->GetInteractPrompt();
+	AActor* InteractionTarget = FocusedComponent->GetInteractionTarget();
+	if (Cast<ALCONPCBase>(InteractionTarget ? InteractionTarget : FocusedActor))
+	{
+		return LocalizationSubsystem
+			? LocalizationSubsystem->GetUIText(TEXT("INTERACT_TALK"))
+			: FocusedComponent->GetInteractPrompt(Interactor);
+	}
+
+	return FocusedComponent->GetInteractPrompt(Interactor);
 }
 
 ULCOLocalizationSubsystem* ULCOInteractionPromptSubsystem::GetLocalizationSubsystem() const

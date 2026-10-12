@@ -50,6 +50,13 @@ protected:
 	// 기본 입력 매핑 (BP에서 IMC 지정)
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
+	
+	// 카메라 상하 각도 제한 (바닥 / 하늘을 수직으로 보는 것 방지)
+	UPROPERTY(EditDefaultsOnly, Category = "Camera")
+	float MinViewPitch = -70.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Camera")
+	float MaxViewPitch = 60.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> InventoryAction;

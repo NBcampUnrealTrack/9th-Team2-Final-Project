@@ -2,21 +2,23 @@
 #include "Player/LCOPlayerController.h"
 #include "Player/LCOPlayerInteractionComponent.h"
 #include "Player/LCOStaminaComponent.h"
+#include "Player/LCOCameraOcclusionComponent.h"
 #include "Inventory/InventoryComponent.h"
+#include "AI/SuspicionComponent.h"
+#include "Notebook/NotebookComponent.h"
+#include "QuickSlot/LCOQuickSlotComponent.h"
+#include "CameraCapture/LCOCameraCaptureComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
-#include "AI/SuspicionComponent.h"
-#include "Notebook/NotebookComponent.h"
-#include "QuickSlot/LCOQuickSlotComponent.h"
 #include "TimerManager.h"
 
 ALCOPlayerCharacter::ALCOPlayerCharacter()
 {
-	// 달리기 상태 갱신용
+	// 달리기 상태, 시야각 갱신용
 	PrimaryActorTick.bCanEverTick = true;
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.f);
@@ -31,6 +33,8 @@ ALCOPlayerCharacter::ALCOPlayerCharacter()
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 
+	CameraOcclusionComponent = CreateDefaultSubobject<ULCOCameraOcclusionComponent>(TEXT("CameraOcclusion"));
+	CameraCaptureComponent = CreateDefaultSubobject<ULCOCameraCaptureComponent>(TEXT("CameraCapture"));
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 	InteractionComponent = CreateDefaultSubobject<ULCOPlayerInteractionComponent>(TEXT("PlayerInteraction"));
 	StaminaComponent = CreateDefaultSubobject<ULCOStaminaComponent>(TEXT("Stamina"));
@@ -52,10 +56,19 @@ void ALCOPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// 웅크리기 설정 (BP에서 바꾼 값 반영)
+	GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
+	GetCharacterMovement()->SetCrouchedHalfHeight(CrouchedHalfHeight);
+
+	// 상호작용 트레이스(GetPawnViewLocation)가 웅크렸을 때도 카메라 높이와 맞도록
+	CrouchedEyeHeight = CrouchedCameraPivotHeight;
+
+	CurrentCameraHeight = CameraPivotHeight;
+
 	// BP에서 바꾼 값 반영
 	UpdateMoveSpeed();
+	Camera->SetFieldOfView(DefaultFOV);
 	SetViewMode(DefaultViewMode);
-	
 }
 
 void ALCOPlayerCharacter::Tick(float DeltaSeconds)
@@ -63,6 +76,8 @@ void ALCOPlayerCharacter::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	UpdateSprint();
+	UpdateCameraFOV(DeltaSeconds);
+	UpdateCameraHeight(DeltaSeconds);
 }
 
 void ALCOPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -102,7 +117,19 @@ void ALCOPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 	{
 		EIC->BindAction(ToggleViewAction, ETriggerEvent::Started, this, &ALCOPlayerCharacter::ToggleView);
 	}
+
+	if (CaptureAction)
+	{
+		EIC->BindAction(CaptureAction, ETriggerEvent::Started, this, &ALCOPlayerCharacter::TakePhoto);
+	}
+	if (CrouchAction)
+	{
+		EIC->BindAction(CrouchAction, ETriggerEvent::Started, this, &ALCOPlayerCharacter::CrouchPressed);
+		EIC->BindAction(CrouchAction, ETriggerEvent::Completed, this, &ALCOPlayerCharacter::CrouchReleased);
+	}
 }
+
+// ---------- 이동 / 시점 입력 ----------
 
 void ALCOPlayerCharacter::Move(const FInputActionValue& Value)
 {
@@ -125,8 +152,8 @@ void ALCOPlayerCharacter::Move(const FInputActionValue& Value)
 void ALCOPlayerCharacter::Look(const FInputActionValue& Value)
 {
 	const FVector2D Input = Value.Get<FVector2D>();
-	AddControllerYawInput(Input.X);
-	AddControllerPitchInput(Input.Y);
+	AddControllerYawInput(Input.X * LookSensitivity);
+	AddControllerPitchInput(Input.Y * LookSensitivity * (bInvertLookY ? -1.f : 1.f));
 }
 
 void ALCOPlayerCharacter::StartSprint()
@@ -144,7 +171,7 @@ void ALCOPlayerCharacter::UpdateSprint()
 	const bool bMoving = GetVelocity().SizeSquared2D() > FMath::Square(MinSprintVelocity);
 	const bool bOnGround = GetCharacterMovement()->IsMovingOnGround();
 
-	SetSprinting(bWantsToSprint && bMoving && bOnGround && StaminaComponent->CanSprint());
+	SetSprinting(bWantsToSprint && bMoving && bOnGround && !bIsCrouched && StaminaComponent->CanSprint());
 }
 
 void ALCOPlayerCharacter::SetSprinting(bool bNewSprinting)
@@ -172,6 +199,7 @@ void ALCOPlayerCharacter::SetSprinting(bool bNewSprinting)
 		OnWalkStarted.Broadcast();
 	}
 }
+
 void ALCOPlayerCharacter::Interact()
 {
 	// 메뉴(아이템, 수첩, 옵션)가 열려 있으면 상호작용 막기
@@ -189,16 +217,22 @@ void ALCOPlayerCharacter::ToggleView()
 	SetViewMode(ViewMode == ELCOViewMode::FirstPerson ? ELCOViewMode::ThirdPerson : ELCOViewMode::FirstPerson);
 }
 
+// ---------- 카메라 ----------
+
 void ALCOPlayerCharacter::SetViewMode(ELCOViewMode NewMode)
 {
 	ViewMode = NewMode;
 	const bool bFirstPerson = (NewMode == ELCOViewMode::FirstPerson);
 
 	// BP에서 바꾼 카메라 높이 반영
-	SpringArm->SetRelativeLocation(FVector(0.f, 0.f, CameraPivotHeight));
+	ApplyCameraHeight();
 	SpringArm->TargetArmLength = bFirstPerson ? 0.f : ThirdPersonArmLength;
 	SpringArm->SocketOffset = bFirstPerson ? FVector::ZeroVector : ThirdPersonSocketOffset;
 	SpringArm->bDoCollisionTest = !bFirstPerson;
+
+	// 3인칭에서만 카메라가 살짝 늦게 따라오도록 (1인칭은 머리에 고정)
+	SpringArm->bEnableCameraLag = !bFirstPerson;
+	SpringArm->CameraLagSpeed = ThirdPersonCameraLagSpeed;
 
 	// 1인칭: 몸이 카메라 방향으로 즉시 회전
 	// 3인칭: 몸이 카메라 방향으로 부드럽게 회전 (배그 방식, 회전 속도는 RotationRate)
@@ -209,6 +243,23 @@ void ALCOPlayerCharacter::SetViewMode(ELCOViewMode NewMode)
 	// 1인칭에서는 내 화면에서 내 메시 숨김 (카메라가 머리 안에 들어가는 문제 방지)
 	GetMesh()->SetOwnerNoSee(bFirstPerson);
 }
+
+void ALCOPlayerCharacter::UpdateCameraFOV(float DeltaSeconds)
+{
+	const float TargetFOV = bIsSprinting ? SprintFOV : DefaultFOV;
+	Camera->SetFieldOfView(FMath::FInterpTo(Camera->FieldOfView, TargetFOV, DeltaSeconds, FOVInterpSpeed));
+}
+
+void ALCOPlayerCharacter::SetLookSensitivity(float NewSensitivity)
+{
+	LookSensitivity = FMath::Clamp(NewSensitivity, 0.1f, 5.f);
+}
+
+void ALCOPlayerCharacter::SetInvertLookY(bool bInvert)
+{
+	bInvertLookY = bInvert;
+}
+
 // ---------- 스태미나 ----------
 
 void ALCOPlayerCharacter::SetStamina(int32 NewStamina)
@@ -256,6 +307,9 @@ int32 ALCOPlayerCharacter::GetStaminaPercentInt() const
 void ALCOPlayerCharacter::UpdateMoveSpeed()
 {
 	GetCharacterMovement()->MaxWalkSpeed = (bIsSprinting ? SprintSpeed : WalkSpeed) + MoveSpeedBonus;
+
+	// 웅크렸을 때도 이동속도 버프 적용
+	GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchSpeed + MoveSpeedBonus;
 }
 
 bool ALCOPlayerCharacter::ApplyMoveSpeedBuff(float Amount, float Duration)
@@ -336,4 +390,89 @@ float ALCOPlayerCharacter::GetMoveSpeedBuffRemainingTime() const
 float ALCOPlayerCharacter::GetMaxStaminaBuffRemainingTime() const
 {
 	return FMath::Max(0.f, GetWorldTimerManager().GetTimerRemaining(MaxStaminaBuffTimer));
+}
+
+// ---------- 카메라 촬영 ----------
+
+void ALCOPlayerCharacter::TakePhoto()
+{
+	// 메뉴(인벤토리, 수첩, 옵션)가 열려 있으면 촬영 막기 (UI 클릭이 촬영으로 이어지지 않도록)
+	const ALCOPlayerController* PC = Cast<ALCOPlayerController>(Controller);
+	if (PC && PC->IsInUIMode())
+	{
+		return;
+	}
+
+	if (!CameraCaptureComponent->Capture())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Capture failed (대상 없음 / 필름 없음 / 이미 촬영)"));
+	}
+}
+
+// ---------- 웅크리기 ----------
+
+void ALCOPlayerCharacter::CrouchPressed()
+{
+	// 메뉴가 열려 있으면 막기
+	const ALCOPlayerController* PC = Cast<ALCOPlayerController>(Controller);
+	if (PC && PC->IsInUIMode())
+	{
+		return;
+	}
+
+	// 토글: 웅크리려는 중이면 일어서기, 아니면 웅크리기
+	// (bWantsToCrouch 기준이라 천장에 막혀 못 일어서는 중에 누르면 다시 웅크림으로 취소됨)
+	if (bToggleCrouch && GetCharacterMovement()->bWantsToCrouch)
+	{
+		UnCrouch();
+	}
+	else
+	{
+		Crouch();
+	}
+}
+
+void ALCOPlayerCharacter::CrouchReleased()
+{
+	// 누르고 있는 동안만 웅크리는 방식일 때만 뗄 때 일어섬
+	if (!bToggleCrouch)
+	{
+		UnCrouch();
+	}
+}
+
+void ALCOPlayerCharacter::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+
+	// 캡슐이 줄면서 중심이 아래로 내려가므로, 카메라가 뚝 떨어지지 않게 보정 → 이후 Tick에서 부드럽게 내려감
+	CurrentCameraHeight += ScaledHalfHeightAdjust;
+	ApplyCameraHeight();
+
+	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Crouch"));
+	OnCrouchStateChanged.Broadcast(true);
+}
+
+void ALCOPlayerCharacter::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+
+	// 캡슐이 커지면서 중심이 위로 올라가므로, 카메라가 뚝 튀지 않게 보정 → 이후 Tick에서 부드럽게 올라감
+	CurrentCameraHeight -= ScaledHalfHeightAdjust;
+	ApplyCameraHeight();
+
+	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] UnCrouch"));
+	OnCrouchStateChanged.Broadcast(false);
+}
+
+void ALCOPlayerCharacter::UpdateCameraHeight(float DeltaSeconds)
+{
+	const float TargetHeight = bIsCrouched ? CrouchedCameraPivotHeight : CameraPivotHeight;
+	CurrentCameraHeight = FMath::FInterpTo(CurrentCameraHeight, TargetHeight, DeltaSeconds, CameraHeightInterpSpeed);
+	ApplyCameraHeight();
+}
+
+void ALCOPlayerCharacter::ApplyCameraHeight()
+{
+	SpringArm->SetRelativeLocation(FVector(0.f, 0.f, CurrentCameraHeight));
 }

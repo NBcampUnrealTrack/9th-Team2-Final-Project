@@ -1,38 +1,100 @@
-#include "UI/LCOMainMenuWidget.h"
+#include "LCOMainMenuWidget.h"
 
 #include "Components/Button.h"
-#include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "Core/LCOGameInstance.h"
-#include "Localization/LCOLocalizationSubsystem.h"
+#include "LastCheckOut/Core/LCOGameInstance.h"
 
 void ULCOMainMenuWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
-	// 위젯 생성 시 1회만 호출 → 중복 바인딩 없음
-	if (Btn_Start)    Btn_Start->OnClicked.AddDynamic(this, &ThisClass::HandleStartClicked);
-	if (Btn_Settings) Btn_Settings->OnClicked.AddDynamic(this, &ThisClass::HandleSettingsClicked);
-	if (Btn_Quit)     Btn_Quit->OnClicked.AddDynamic(this, &ThisClass::HandleQuitClicked);
+	// 버튼 클릭 바인딩 (NativeOnInitialized는 위젯 생성 시 1회만 호출 → 중복 바인딩 없음)
+	if (Btn_NewGame)      Btn_NewGame->OnClicked.AddDynamic(this, &ThisClass::HandleNewGameClicked);
+	if (Btn_Continue)     Btn_Continue->OnClicked.AddDynamic(this, &ThisClass::HandleContinueClicked);
+	if (Btn_Settings)     Btn_Settings->OnClicked.AddDynamic(this, &ThisClass::HandleSettingsClicked);
+	if (Btn_Quit)         Btn_Quit->OnClicked.AddDynamic(this, &ThisClass::HandleQuitClicked);
+	if (Btn_SettingsBack) Btn_SettingsBack->OnClicked.AddDynamic(this, &ThisClass::HandleSettingsBackClicked);
 }
 
 void ULCOMainMenuWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	BindLocalizationEvents();
-	RefreshLocalizedTexts();
+	bIsTransitioning = false;
+
+	// 세이브가 없으면 이어하기 비활성화
+	if (Btn_Continue)
+	{
+		Btn_Continue->SetIsEnabled(CanContinue());
+	}
+
+	// 처음엔 설정 패널 닫힌 상태
+	CloseSettings();
+
+	// 키보드/패드 포커스를 새 게임 버튼에
+	if (Btn_NewGame)
+	{
+		Btn_NewGame->SetKeyboardFocus();
+	}
 }
 
-void ULCOMainMenuWidget::NativeDestruct()
+bool ULCOMainMenuWidget::CanContinue() const
 {
-	UnbindLocalizationEvents();
-
-	Super::NativeDestruct();
+	return UGameplayStatics::DoesSaveGameExist(SaveSlotName, 0);
 }
 
-void ULCOMainMenuWidget::HandleStartClicked()
+void ULCOMainMenuWidget::OpenSettings()
+{
+	if (MenuPanel)     MenuPanel->SetVisibility(ESlateVisibility::Collapsed);
+	if (SettingsPanel) SettingsPanel->SetVisibility(ESlateVisibility::Visible);
+
+	if (Btn_SettingsBack)
+	{
+		Btn_SettingsBack->SetKeyboardFocus();
+	}
+
+	BP_OnSettingsOpened();
+}
+
+void ULCOMainMenuWidget::CloseSettings()
+{
+	if (SettingsPanel) SettingsPanel->SetVisibility(ESlateVisibility::Collapsed);
+	if (MenuPanel)     MenuPanel->SetVisibility(ESlateVisibility::Visible);
+
+	BP_OnSettingsClosed();
+}
+
+void ULCOMainMenuWidget::HandleNewGameClicked()
+{
+	StartGameWithMode(ELCOGameStartMode::NewGame);
+}
+
+void ULCOMainMenuWidget::HandleContinueClicked()
+{
+	if (!CanContinue())
+	{
+		return;
+	}
+	StartGameWithMode(ELCOGameStartMode::Continue);
+}
+
+void ULCOMainMenuWidget::HandleSettingsClicked()
+{
+	OpenSettings();
+}
+
+void ULCOMainMenuWidget::HandleSettingsBackClicked()
+{
+	CloseSettings();
+}
+
+void ULCOMainMenuWidget::HandleQuitClicked()
+{
+	UKismetSystemLibrary::QuitGame(this, GetOwningPlayer(), EQuitPreference::Quit, false);
+}
+
+void ULCOMainMenuWidget::StartGameWithMode(ELCOGameStartMode InStartMode)
 {
 	if (bIsTransitioning)
 	{
@@ -45,85 +107,19 @@ void ULCOMainMenuWidget::HandleStartClicked()
 		return;
 	}
 
-	// GameMode::StartGame에서 읽을 시작 방식 저장
-	if (ULCOGameInstance* LCOGameInstance = Cast<ULCOGameInstance>(GetGameInstance()))
+	ULCOGameInstance* LCOGameInstance = Cast<ULCOGameInstance>(GetGameInstance());
+	if (!LCOGameInstance)
 	{
-		LCOGameInstance->SetStartMode(ELCOGameStartMode::NewGame);
+		UE_LOG(LogTemp, Warning, TEXT("[LCOMainMenu] LCOGameInstance not found"));
+		return;
 	}
 
 	bIsTransitioning = true;
+
+	// GameMode::StartGame에서 이 값을 읽어 새 게임/이어하기 분기
+	LCOGameInstance->SetStartMode(InStartMode);
+
+	BP_OnStartTransition();
+
 	UGameplayStatics::OpenLevelBySoftObjectPtr(this, GameLevel);
-}
-
-void ULCOMainMenuWidget::HandleSettingsClicked()
-{
-	if (!SettingsWidgetClass)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[LCOMainMenu] SettingsWidgetClass가 비어 있음 - 설정 위젯 완성 후 지정 필요"));
-		return;
-	}
-
-	// 이미 떠 있으면 다시 만들지 않음
-	if (SettingsWidget && SettingsWidget->IsInViewport())
-	{
-		return;
-	}
-
-	SettingsWidget = CreateWidget<UUserWidget>(GetOwningPlayer(), SettingsWidgetClass);
-	if (SettingsWidget)
-	{
-		// 메인 메뉴보다 위에 표시 (닫기는 설정 위젯이 RemoveFromParent로 처리)
-		SettingsWidget->AddToViewport(10);
-	}
-}
-
-void ULCOMainMenuWidget::HandleQuitClicked()
-{
-	UKismetSystemLibrary::QuitGame(this, GetOwningPlayer(), EQuitPreference::Quit, false);
-}
-
-void ULCOMainMenuWidget::HandleLanguageChanged(FName NewLanguage)
-{
-	RefreshLocalizedTexts();
-}
-
-void ULCOMainMenuWidget::BindLocalizationEvents()
-{
-	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
-	{
-		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
-		LocalizationSubsystem->OnLanguageChanged.AddDynamic(this, &ThisClass::HandleLanguageChanged);
-	}
-}
-
-void ULCOMainMenuWidget::UnbindLocalizationEvents()
-{
-	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
-	{
-		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
-	}
-}
-
-void ULCOMainMenuWidget::RefreshLocalizedTexts()
-{
-	const ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>();
-	if (!LocalizationSubsystem)
-	{
-		return;
-	}
-
-	if (Txt_Start)
-	{
-		Txt_Start->SetText(LocalizationSubsystem->GetUIText(TEXT("MENU_NEW_GAME")));
-	}
-
-	if (Txt_Settings)
-	{
-		Txt_Settings->SetText(LocalizationSubsystem->GetUIText(TEXT("MENU_SETTINGS")));
-	}
-
-	if (Txt_Quit)
-	{
-		Txt_Quit->SetText(LocalizationSubsystem->GetUIText(TEXT("MENU_QUIT")));
-	}
 }

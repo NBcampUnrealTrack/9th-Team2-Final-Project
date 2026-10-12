@@ -11,6 +11,8 @@ class UPanelWidget;
 class UTextBlock;
 class UTexture2D;
 class ULCOInventoryItemWidget;
+class ULCOQuickSlotComponent;
+class ULCOQuickSlotWidget;
 
 UCLASS(Abstract)
 class LASTCHECKOUT_API ULCOInventoryWidget : public UUserWidget
@@ -60,6 +62,11 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> EmptyText;
 
+	// 인벤토리 창 안의 퀵슬롯 4칸 (LCOQuickSlotWidget 자식 WBP를 이 이름으로 배치)
+	// 소비 아이템을 끌어다 놓으면 등록, 칸끼리 끌면 교체, 바깥에 놓거나 우클릭하면 해제
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<ULCOQuickSlotWidget> QuickSlotPanel;
+
 private:
 	UFUNCTION()
 	void HandleInventoryRequested();
@@ -73,6 +80,17 @@ private:
 	FText ResolveItemName(FName ItemID, const UInventoryComponent* Inventory) const;
 	UTexture2D* ResolveItemIcon(FName ItemID, const UInventoryComponent* Inventory) const;
 	void RefreshLocalizedTexts();
+
+	// 퀵슬롯 패널 갱신 / 슬롯 변경 이벤트 연결
+	UFUNCTION()
+	void HandleQuickSlotsChanged();
+
+	void RefreshQuickSlotPanel();
+	void BindQuickSlotEvents();
+	void UnbindQuickSlotEvents();
+	ULCOQuickSlotComponent* GetPlayerQuickSlot() const;
+
+	TWeakObjectPtr<ULCOQuickSlotComponent> BoundQuickSlot;
 
 	UPROPERTY(Transient)
 	bool bInventoryInputModeApplied = false;

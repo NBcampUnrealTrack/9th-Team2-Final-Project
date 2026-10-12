@@ -101,11 +101,6 @@ void ULCOQuickSlotComponent::HandleInventoryChanged()
 
 bool ULCOQuickSlotComponent::AutoAssignFromInventory()
 {
-	if (!bAutoAssignConsumables)
-	{
-		return false;
-	}
-
 	const UInventoryComponent* Inventory = GetInventory();
 	if (!Inventory)
 	{
@@ -114,26 +109,31 @@ bool ULCOQuickSlotComponent::AutoAssignFromInventory()
 
 	bool bChanged = false;
 
-	// 다 써서 수량이 0이 된 슬롯은 비움 (새 아이템이 들어갈 자리 확보)
+	// 다 써서 수량이 0이 된 슬롯, 퀵슬롯에 넣을 수 없는 아이템이 든 슬롯은 비움
 	for (int32 i = 0; i < NumSlots; ++i)
 	{
-		if (!SlotItemIDs[i].IsNone() && Inventory->GetItemCount(SlotItemIDs[i]) <= 0)
+		if (!SlotItemIDs[i].IsNone() && (Inventory->GetItemCount(SlotItemIDs[i]) <= 0 || !CanAssignItem(SlotItemIDs[i])))
 		{
 			SlotItemIDs[i] = NAME_None;
 			bChanged = true;
 		}
 	}
 
-	// 인벤토리 순서(획득 순)대로, 아직 등록 안 된 소비 아이템을 빈 슬롯에 등록
+	TSet<FName> CurrentItems;
 	for (const FInventorySlot& InvSlot : Inventory->InventorySlots)
 	{
-		if (InvSlot.ItemID.IsNone() || InvSlot.Quantity <= 0 || FindSlotOfItem(InvSlot.ItemID) != INDEX_NONE)
+		if (InvSlot.ItemID.IsNone() || InvSlot.Quantity <= 0)
 		{
 			continue;
 		}
 
-		const FItemData* ItemData = Inventory->GetItemData(InvSlot.ItemID);
-		if (!ItemData || ItemData->ItemType != EItemType::Consumable)
+		CurrentItems.Add(InvSlot.ItemID);
+
+		// 이번에 새로 들어온 소비 아이템만 자동 등록 (직접 뺀 아이템은 다시 채우지 않음)
+		if (!bAutoAssignConsumables
+			|| KnownInventoryItems.Contains(InvSlot.ItemID)
+			|| FindSlotOfItem(InvSlot.ItemID) != INDEX_NONE
+			|| !CanAssignItem(InvSlot.ItemID))
 		{
 			continue;
 		}
@@ -141,7 +141,7 @@ bool ULCOQuickSlotComponent::AutoAssignFromInventory()
 		const int32 EmptyIndex = SlotItemIDs.IndexOfByKey(NAME_None);
 		if (EmptyIndex == INDEX_NONE)
 		{
-			break; // 4칸 모두 사용 중
+			continue; // 4칸 모두 사용 중 (인벤토리에서 직접 교체 가능)
 		}
 
 		SlotItemIDs[EmptyIndex] = InvSlot.ItemID;
@@ -150,6 +150,7 @@ bool ULCOQuickSlotComponent::AutoAssignFromInventory()
 		UE_LOG(LogTemp, Log, TEXT("[LCOQuickSlot] 자동 등록: %d번 슬롯 = %s"), EmptyIndex + 1, *InvSlot.ItemID.ToString());
 	}
 
+	KnownInventoryItems = MoveTemp(CurrentItems);
 	return bChanged;
 }
 
@@ -292,11 +293,10 @@ bool ULCOQuickSlotComponent::AssignSlot(int32 SlotIndex, FName ItemID)
 		return true;
 	}
 
-	// DataTable에 없는 아이템은 등록 불가
-	const UInventoryComponent* Inventory = GetInventory();
-	if (!Inventory || !Inventory->GetItemData(ItemID))
+	// 소비 아이템만 등록 가능 (열쇠, 증거품, DataTable에 없는 아이템은 불가)
+	if (!CanAssignItem(ItemID))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[LCOQuickSlot] 등록 실패 - 존재하지 않는 아이템: %s"), *ItemID.ToString());
+		UE_LOG(LogTemp, Log, TEXT("[LCOQuickSlot] 등록 불가 - 소비 아이템이 아님: %s"), *ItemID.ToString());
 		return false;
 	}
 
@@ -354,6 +354,22 @@ int32 ULCOQuickSlotComponent::GetSlotItemCount(int32 SlotIndex) const
 	const FName ItemID = GetSlotItem(SlotIndex);
 	const UInventoryComponent* Inventory = GetInventory();
 	return (Inventory && !ItemID.IsNone()) ? Inventory->GetItemCount(ItemID) : 0;
+}
+
+bool ULCOQuickSlotComponent::CanAssignItem(FName ItemID) const
+{
+	if (ItemID.IsNone())
+	{
+		return false;
+	}
+
+	const UInventoryComponent* Inventory = GetInventory();
+	const FItemData* ItemData = Inventory ? Inventory->GetItemData(ItemID) : nullptr;
+
+	// 직접 사용할 수 있는 소비 아이템만 (BuffType이 None인 카메라 필름 등은 제외)
+	return ItemData
+		&& ItemData->ItemType == EItemType::Consumable
+		&& ItemData->BuffType != EBuffType::None;
 }
 
 UInventoryComponent* ULCOQuickSlotComponent::GetInventory() const

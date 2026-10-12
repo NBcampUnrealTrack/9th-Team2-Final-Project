@@ -7,7 +7,7 @@ USuspicionComponent::USuspicionComponent()
 
 void USuspicionComponent::AddSuspicion(float Amount)
 {
-	if (Amount <= 0.f || bMaxReached)
+	if (Amount <= 0.f || bMaxReached || bFrozen)
 	{
 		return;
 	}
@@ -18,7 +18,7 @@ void USuspicionComponent::AddSuspicion(float Amount)
 
 void USuspicionComponent::ReduceSuspicion(float Amount)
 {
-	if (Amount <= 0.f || bMaxReached)
+	if (Amount <= 0.f || bMaxReached || bFrozen)
 	{
 		return;
 	}
@@ -38,7 +38,7 @@ ELCOSuspicionLevel USuspicionComponent::GetSuspicionLevel() const
 {
 	if (Suspicion >= MaxSuspicion)
 	{
-		return ELCOSuspicionLevel::Chasing;
+		return ELCOSuspicionLevel::Max;
 	}
 	if (Suspicion >= 70.f)
 	{
@@ -60,7 +60,7 @@ void USuspicionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
-	if (Suspicion <= 0.f || bMaxReached)
+	/*if (Suspicion <= 0.f || bMaxReached || bFrozen)
 	{
 		return;
 	}
@@ -69,7 +69,7 @@ void USuspicionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	if (TimeSinceLastChange >= DecayDelay)
 	{
 		SetSuspicion(Suspicion - DecayRate * DeltaTime);
-	}
+	}*/
 }
 
 void USuspicionComponent::SetSuspicion(float NewValue)

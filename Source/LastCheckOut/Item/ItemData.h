@@ -12,6 +12,15 @@ enum class EItemType : uint8
 	Evidence   // 증거품
 };
 
+// 아이템 사용 시 적용되는 버프의 종류
+UENUM(BlueprintType)
+enum class EBuffType : uint8
+{
+	None,        // 버프 효과 없음
+	MoveSpeed,   // 이동속도 증가
+	MaxStamina   // 최대 스태미나 증가
+};
+
 USTRUCT(BlueprintType)
 struct FItemData : public FTableRowBase
 {
@@ -37,8 +46,23 @@ struct FItemData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 MaxStackCount = 20; 
 	
-	// 아이템의 종류를 구분하여 아이템 사용 방식 및 기능을 결정
+	// 아이템 종류
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EItemType ItemType = EItemType::Consumable;
+
+	// 아이템 사용 시 적용되는 버프 종류
+	// 버프가 없는 아이템은 None으로 설정
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EBuffType BuffType = EBuffType::None;
+	
+	// 버프 효과 수치
+	// MoveSpeed : 증가할 이동속도
+	// MaxStamina : 증가할 최대 스태미나
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float BuffAmount = 0.0f;
+
+	// 버프 지속 시간(초)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float BuffDuration = 0.0f;
 	
 };

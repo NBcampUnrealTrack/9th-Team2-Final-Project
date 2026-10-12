@@ -11,7 +11,7 @@ enum class ELCOSuspicionLevel : uint8
 	Suspicious, // 20~49
 	Alert,      // 50~69
 	Danger,     // 70~99
-	Chasing     // 100
+	Max         // 100 (체이싱 시작)
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSuspicionChanged, float, NewValue, ELCOSuspicionLevel, NewLevel);
@@ -48,6 +48,13 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Suspicion")
 	FOnSuspicionMax OnSuspicionMax;
+	
+	// 대화 중 등에 의심도 증가와 자연 감소를 모두 멈춘다.
+	UFUNCTION(BlueprintCallable, Category = "Suspicion")
+	void SetFrozen(bool bNewFrozen) { bFrozen = bNewFrozen; }
+
+	UFUNCTION(BlueprintPure, Category = "Suspicion")
+	bool IsFrozen() const { return bFrozen; }
 
 protected:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -64,6 +71,7 @@ protected:
 private:
 	void SetSuspicion(float NewValue);
 
+	bool bFrozen = false;
 	float Suspicion = 0.f;
 	float TimeSinceLastChange = 0.f;
 	bool bMaxReached = false;

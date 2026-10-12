@@ -24,6 +24,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOQuickSlotItemUsed, int32, Slo
  * - 평소엔 숨김, 달리는 동안만 HUD 표시 (캐릭터 OnSprintStarted / OnWalkStarted 자동 바인딩)
  * - 사용 시 InventoryComponent::UseItem 호출 (효과·소모는 인벤토리에서 처리), 성공하면 OnQuickSlotItemUsed
  * - 인벤토리 OnInventoryChanged 자동 바인딩 → 수량 즉시 갱신
+ * - 소비 아이템(Consumable)만 등록 가능
+ * - 소비 아이템을 새로 획득하면 빈 슬롯에 자동 등록 (bAutoAssignConsumables), 다 쓴 슬롯은 자동으로 비움
+ * - 인벤토리 창에서 드래그 앤 드롭으로 등록 / 순서 교체 / 해제 (LCOQuickSlotDragOperation)
  *
  * 슬롯 인덱스: 0~3 (화면 표시 1~4)
  * 휠 방향:     위=1번, 오른쪽=2번, 아래=3번, 왼쪽=4번 (시계방향)
@@ -40,7 +43,12 @@ public:
 
 	// ---------- 슬롯 등록 (인벤토리 UI에서 호출) ----------
 
-	// 슬롯에 아이템 등록. 다른 슬롯에 같은 아이템이 있으면 그 슬롯은 비움. ItemID가 None이면 비우기
+	// 퀵슬롯에 넣을 수 있는 아이템인지 (소비 아이템 + BuffType이 None이 아닌 것만 true)
+	// 카메라 필름처럼 직접 사용하지 않는 소비 아이템은 BuffType = None으로 두면 제외됨
+	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
+	bool CanAssignItem(FName ItemID) const;
+
+	// 슬롯에 아이템 등록 (소비 아이템만). 다른 슬롯에 같은 아이템이 있으면 그 슬롯은 비움. ItemID가 None이면 비우기
 	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
 	bool AssignSlot(int32 SlotIndex, FName ItemID);
 
@@ -146,6 +154,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Wheel", meta = (ClampMin = "1.0"))
 	float WheelCursorMaxRadius = 30.f;
 
+	// 소비 아이템을 "새로" 얻으면 비어 있는 슬롯(1번부터)에 자동 등록
+	// 직접 빼거나 옮긴 슬롯은 다시 자동으로 채우지 않음
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot")
+	bool bAutoAssignConsumables = true;
+
 	// 등록된 슬롯 아이템 (테스트용으로 디폴트 값 지정 가능)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LCO|QuickSlot")
 	TArray<FName> SlotItemIDs;
@@ -167,6 +180,9 @@ private:
 	// 인벤토리 OnInventoryChanged → 수량/아이콘 즉시 갱신
 	UFUNCTION()
 	void HandleInventoryChanged();
+
+	// 수량 0이 된 슬롯 비우기 + 새로 획득한 소비 아이템 자동 등록. 바뀐 게 있으면 true
+	bool AutoAssignFromInventory();
 
 	void BindOwnerEvents();
 	void UnbindOwnerEvents();
@@ -194,6 +210,9 @@ private:
 	TObjectPtr<ULCOQuickSlotWidget> WheelWidget;
 
 	TWeakObjectPtr<APlayerController> CachedPC;
+
+	// 직전에 인벤토리에 있던 아이템 (새로 획득한 아이템 판별용)
+	TSet<FName> KnownInventoryItems;
 
 	bool bInputBound = false;
 	bool bWheelOpen = false;

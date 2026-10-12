@@ -12,7 +12,8 @@ enum class ELCOCaretakerState : uint8
 	Search,
 	Chase,
 	LostPlayer,
-	Return
+	Return,
+	Interrogate
 };
 
 namespace LCOBlackboardKeys
@@ -21,4 +22,5 @@ namespace LCOBlackboardKeys
 	const FName TargetActor = TEXT("TargetActor");
 	const FName LastKnownLocation = TEXT("LastKnownLocation");
 	const FName PatrolLocation = TEXT("PatrolLocation");
+	const FName SearchLocation = TEXT("SearchLocation");
 }

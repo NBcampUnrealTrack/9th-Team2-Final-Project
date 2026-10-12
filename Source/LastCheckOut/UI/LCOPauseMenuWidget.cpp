@@ -10,6 +10,9 @@
 #include "Localization/LCOLocalizationSubsystem.h"
 #include "Player/LCOPlayerController.h"
 #include "UI/LCOInteractionPromptSubsystem.h"
+#include "UI/LCOContainerWidget.h"
+#include "UI/LCOInventoryWidget.h"
+#include "UI/LCONotebookWidget.h"
 
 void ULCOPauseMenuWidget::NativeOnInitialized()
 {
@@ -81,6 +84,9 @@ void ULCOPauseMenuWidget::OpenPauseMenu()
 		return;
 	}
 
+	// 수첩 / 인벤토리 / 수납장이 열려 있으면 먼저 닫음 (ZOrder가 더 높아서 일시정지 메뉴 위에 남는 문제 방지)
+	CloseOtherMenus();
+
 	AddToViewport(5);
 	if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
 	{
@@ -127,6 +133,50 @@ void ULCOPauseMenuWidget::TogglePauseMenu()
 	else
 	{
 		OpenPauseMenu();
+	}
+}
+
+void ULCOPauseMenuWidget::CloseOtherMenus()
+{
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC)
+	{
+		return;
+	}
+
+	// 각 메뉴의 Close 함수가 UI 모드 해제까지 처리 → 이후 일시정지 메뉴가 다시 UI 모드로 전환
+	TArray<UUserWidget*> FoundWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(PC, FoundWidgets, ULCONotebookWidget::StaticClass(), false);
+	for (UUserWidget* Widget : FoundWidgets)
+	{
+		ULCONotebookWidget* Notebook = Cast<ULCONotebookWidget>(Widget);
+		if (Notebook && Notebook->GetOwningPlayer() == PC && Notebook->IsNotebookOpen())
+		{
+			Notebook->CloseNotebook();
+		}
+	}
+
+	FoundWidgets.Reset();
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(PC, FoundWidgets, ULCOInventoryWidget::StaticClass(), false);
+	for (UUserWidget* Widget : FoundWidgets)
+	{
+		ULCOInventoryWidget* Inventory = Cast<ULCOInventoryWidget>(Widget);
+		if (Inventory && Inventory->GetOwningPlayer() == PC && Inventory->IsInViewport())
+		{
+			Inventory->CloseInventory();
+		}
+	}
+
+	// 수납장 UI: CloseContainer가 수납장 액터 닫기 + 입력 모드 복구까지 처리
+	FoundWidgets.Reset();
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(PC, FoundWidgets, ULCOContainerWidget::StaticClass(), false);
+	for (UUserWidget* Widget : FoundWidgets)
+	{
+		ULCOContainerWidget* ContainerWidget = Cast<ULCOContainerWidget>(Widget);
+		if (ContainerWidget && ContainerWidget->GetOwningPlayer() == PC && ContainerWidget->IsInViewport())
+		{
+			ContainerWidget->CloseContainer();
+		}
 	}
 }
 

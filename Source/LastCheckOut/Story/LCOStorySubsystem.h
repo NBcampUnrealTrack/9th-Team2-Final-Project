@@ -38,6 +38,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Story")
 	bool CompleteObjective(FName ObjectiveID);
 
+	// ---------- Save ----------
+
+	// 세이브 파일에서 읽은 진행 상태를 그대로 적용 (LCOSaveManager::ApplyLoadedData에서 호출)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Story")
+	void RestoreStoryState(FName ChapterID, FName ObjectiveID, const TArray<FName>& InCompletedObjectives);
+
 	// ---------- 조회 ----------
 
 	// 현재 챕터 ID (없으면 None)
@@ -48,6 +54,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "LCO|Story")
 	FName GetCurrentObjectiveID() const { return CurrentObjectiveID; }
 
+	// 해당 목표를 완료한 적이 있는지 (수첩 UI의 완료 표시 등에 사용)
+	UFUNCTION(BlueprintPure, Category = "LCO|Story")
+	bool IsObjectiveCompleted(FName ObjectiveID) const { return CompletedObjectives.Contains(ObjectiveID); }
+
+	// 완료한 목표 전체 (완료 순서)
+	UFUNCTION(BlueprintPure, Category = "LCO|Story")
+	const TArray<FName>& GetCompletedObjectives() const { return CompletedObjectives; }
+
 private:
 	// 현재 진행 중인 챕터 ID
 	UPROPERTY()
@@ -56,4 +70,8 @@ private:
 	// 현재 진행 중인 목표 ID
 	UPROPERTY()
 	FName CurrentObjectiveID = NAME_None;
+
+	// 완료한 목표 ID 목록 (새 게임 시 초기화)
+	UPROPERTY()
+	TArray<FName> CompletedObjectives;
 };

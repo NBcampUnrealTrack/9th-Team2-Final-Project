@@ -6,8 +6,78 @@
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NPC/LCONPCBase.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
+#include "HAL/IConsoleManager.h"
+
+#if !UE_BUILD_SHIPPING
+// 테스트용 콘솔 명령: 플레이어의 의심도를 직접 조절한다. (출시 빌드 제외)
+namespace
+{
+	USuspicionComponent* FindPlayerSuspicion(UWorld* World)
+	{
+		const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
+		return PlayerPawn ? PlayerPawn->FindComponentByClass<USuspicionComponent>() : nullptr;
+	}
+
+	float GetFirstArg(const TArray<FString>& Args, float DefaultValue)
+	{
+		return Args.IsEmpty() ? DefaultValue : FCString::Atof(*Args[0]);
+	}
+
+	FAutoConsoleCommandWithWorldAndArgs GAddSuspicionCommand(
+		TEXT("LCO.Suspicion.Add"), TEXT("LCO.Suspicion.Add <Amount> : 의심도를 올린다. (기본 15)"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (USuspicionComponent* Suspicion = FindPlayerSuspicion(World))
+			{
+				Suspicion->AddSuspicion(GetFirstArg(Args, 15.f));
+			}
+		}));
+
+	FAutoConsoleCommandWithWorldAndArgs GReduceSuspicionCommand(
+		TEXT("LCO.Suspicion.Reduce"), TEXT("LCO.Suspicion.Reduce <Amount> : 의심도를 내린다. (기본 20)"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (USuspicionComponent* Suspicion = FindPlayerSuspicion(World))
+			{
+				Suspicion->ReduceSuspicion(GetFirstArg(Args, 20.f));
+			}
+		}));
+
+	FAutoConsoleCommandWithWorldAndArgs GSetSuspicionCommand(
+		TEXT("LCO.Suspicion.Set"), TEXT("LCO.Suspicion.Set <Value> : 의심도를 지정한 값으로 맞춘다."),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			USuspicionComponent* Suspicion = FindPlayerSuspicion(World);
+			if (!Suspicion)
+			{
+				return;
+			}
+
+			const float Diff = GetFirstArg(Args, 0.f) - Suspicion->GetSuspicion();
+			if (Diff > 0.f)
+			{
+				Suspicion->AddSuspicion(Diff);
+			}
+			else
+			{
+				Suspicion->ReduceSuspicion(-Diff);
+			}
+		}));
+
+	FAutoConsoleCommandWithWorldAndArgs GResetSuspicionCommand(
+		TEXT("LCO.Suspicion.Reset"), TEXT("LCO.Suspicion.Reset : 의심도를 0으로 초기화한다."),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (USuspicionComponent* Suspicion = FindPlayerSuspicion(World))
+			{
+				Suspicion->ResetSuspicion();
+			}
+		}));
+}
+#endif
 
 ALCOCaretakerAIController::ALCOCaretakerAIController()
 {
@@ -148,6 +218,7 @@ void ALCOCaretakerAIController::HandlePlayerCaught(AActor* CaughtPlayer)
 	{
 		BoundSuspicion->ResetSuspicion();
 	}
+	WarningCount = 0;
 
 	// 플레이어를 Player Start 위치로 이동
 	APawn* PlayerPawn = Cast<APawn>(CaughtPlayer);
@@ -214,6 +285,9 @@ void ALCOCaretakerAIController::DrawDebugInfo() const
 	case ELCOCaretakerState::LostPlayer:
 		StateColor = FColor::Yellow;
 		break;
+	case ELCOCaretakerState::Interrogate:
+		StateColor = FColor::Orange;
+		break;
 	case ELCOCaretakerState::Chase:
 		StateColor = FColor::Red;
 		break;
@@ -229,6 +303,14 @@ void ALCOCaretakerAIController::DrawDebugInfo() const
 
 	// 상태 텍스트
 	DrawDebugString(World, Origin + FVector(0.f, 0.f, 120.f), UEnum::GetDisplayValueAsText(CurrentState).ToString(), nullptr, StateColor, 0.f, true, 1.5f);
+
+	// 플레이어 의심도 수치와 구간
+	if (BoundSuspicion.IsValid())
+	{
+		DrawDebugString(World, Origin + FVector(0.f, 0.f, 150.f),
+			FString::Printf(TEXT("Suspicion %.0f (%s)"), BoundSuspicion->GetSuspicion(), *UEnum::GetDisplayValueAsText(BoundSuspicion->GetSuspicionLevel()).ToString()),
+			nullptr, FColor::White, 0.f, true, 1.2f);
+	}
 
 	const UBlackboardComponent* BB = GetBlackboardComponent();
 	if (!BB)
@@ -280,29 +362,107 @@ void ALCOCaretakerAIController::HandleSuspicionChanged(float NewValue, ELCOSuspi
 	}
 
 	UBlackboardComponent* BB = GetBlackboardComponent();
-	if (!BB)
+	if (!BB || NewLevel == LastSuspicionLevel)
 	{
 		return;
 	}
+	LastSuspicionLevel = NewLevel;
 
-	// 의심도 구간에 따라 상태를 바꾼다.
+	// 경고 횟수를 넘겼으면 대화 없이 의심도를 100으로 올려 추격으로 넘긴다.
+	// 같은 Broadcast 안에서 다시 변경하면 구독자들이 순서가 뒤바뀐 알림을 받으므로 다음 틱에 처리한다.
+	if (NewLevel == ELCOSuspicionLevel::Danger && bEscalateAfterWarnings && WarningCount >= MaxWarnings)
+	{
+		GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			if (BoundSuspicion.IsValid())
+			{
+				BoundSuspicion->AddSuspicion(1000.f);
+			}
+		}));
+		return;
+	}
+
+	// 구간에 진입하는 순간의 플레이어 정보를 Blackboard에 기록한다. (계속 추적하지 않는다.)
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
 	switch (NewLevel)
 	{
 	case ELCOSuspicionLevel::Calm:
 		BB->ClearValue(LCOBlackboardKeys::TargetActor);
-		SetState(ELCOCaretakerState::Patrol);
 		break;
 	case ELCOSuspicionLevel::Suspicious:
-		SetState(ELCOCaretakerState::Suspicious);
-		break;
 	case ELCOSuspicionLevel::Alert:
-		SetState(ELCOCaretakerState::Search);
+		// 수색 기준점
+		if (PlayerPawn)
+		{
+			BB->SetValueAsVector(LCOBlackboardKeys::LastKnownLocation, PlayerPawn->GetActorLocation());
+		}
 		break;
 	case ELCOSuspicionLevel::Danger:
-	case ELCOSuspicionLevel::Chasing:
-		// 시야와 관계없이 플레이어를 추격한다.
-		BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, UGameplayStatics::GetPlayerPawn(this, 0));
-		SetState(ELCOCaretakerState::Chase);
+	case ELCOSuspicionLevel::Max:
+		// 시야와 관계없이 플레이어를 대상으로 한다.
+		BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, PlayerPawn);
 		break;
 	}
+
+	SetState(LevelToState(NewLevel));
+}
+
+ELCOCaretakerState ALCOCaretakerAIController::LevelToState(ELCOSuspicionLevel Level)
+{
+	switch (Level)
+	{
+	case ELCOSuspicionLevel::Suspicious:
+		return ELCOCaretakerState::Suspicious;
+	case ELCOSuspicionLevel::Alert:
+		return ELCOCaretakerState::Search;
+	case ELCOSuspicionLevel::Danger:
+		return ELCOCaretakerState::Interrogate;
+	case ELCOSuspicionLevel::Max:
+		return ELCOCaretakerState::Chase;
+	case ELCOSuspicionLevel::Calm:
+	default:
+		return ELCOCaretakerState::Patrol;
+	}
+}
+
+bool ALCOCaretakerAIController::BeginInterrogation(APawn* Player)
+{
+	ALCONPCBase* NPC = Cast<ALCONPCBase>(GetPawn());
+	if (!NPC || !Player || NPC->IsInConversation())
+	{
+		return false;
+	}
+
+	++WarningCount;
+
+	// 대화 중에는 의심도가 오르거나 내려가지 않도록 고정한다.
+	if (BoundSuspicion.IsValid())
+	{
+		BoundSuspicion->SetFrozen(true);
+	}
+
+	NPC->BeginConversation(Player);
+	return true;
+}
+
+void ALCOCaretakerAIController::EndInterrogation(bool bContinueSearch)
+{
+	if (BoundSuspicion.IsValid())
+	{
+		BoundSuspicion->SetFrozen(false);
+	}
+
+	if (!bContinueSearch)
+	{
+		return;
+	}
+
+	// 경고가 끝나면 플레이어 주변에 머물며 수색한다. (의심도 100을 기다리는 상태)
+	UBlackboardComponent* BB = GetBlackboardComponent();
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (BB && PlayerPawn)
+	{
+		BB->SetValueAsVector(LCOBlackboardKeys::LastKnownLocation, PlayerPawn->GetActorLocation());
+	}
+	SetState(ELCOCaretakerState::Search);
 }

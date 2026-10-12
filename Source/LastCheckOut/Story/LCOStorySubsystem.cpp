@@ -18,6 +18,7 @@ void ULCOStorySubsystem::StartNewStory()
 	// 기존 진행 상태 초기화
 	CurrentChapterID = NAME_None;
 	CurrentObjectiveID = NAME_None;
+	CompletedObjectives.Empty();
 
 	// 첫 챕터 시작
 	// 첫 챕터 ID는 DataTable(DataManager)이 생기기 전까지 임시로 여기에서 지정
@@ -88,7 +89,21 @@ bool ULCOStorySubsystem::CompleteObjective(FName ObjectiveID)
 	// Log Test
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] CompleteObjective: %s"), *ObjectiveID.ToString());
 
+	// 완료 목록에 기록 (중복 없이)
+	CompletedObjectives.AddUnique(ObjectiveID);
+
 	// 다음 목표는 호출하는 쪽에서 StartObjective로 지정
 	CurrentObjectiveID = NAME_None;
 	return true;
+}
+
+void ULCOStorySubsystem::RestoreStoryState(FName ChapterID, FName ObjectiveID, const TArray<FName>& InCompletedObjectives)
+{
+	CurrentChapterID = ChapterID;
+	CurrentObjectiveID = ObjectiveID;
+	CompletedObjectives = InCompletedObjectives;
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] RestoreStoryState: Chapter = %s, Objective = %s, Completed = %d"),
+		*CurrentChapterID.ToString(), *CurrentObjectiveID.ToString(), CompletedObjectives.Num());
 }

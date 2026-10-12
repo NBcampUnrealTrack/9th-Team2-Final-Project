@@ -15,6 +15,8 @@
 #include "Player/LCOPlayerController.h"
 #include "UI/LCOInteractionPromptSubsystem.h"
 #include "UI/LCOInventoryItemWidget.h"
+#include "UI/LCOQuickSlotWidget.h"
+#include "QuickSlot/LCOQuickSlotComponent.h"
 
 void ULCOInventoryWidget::NativeOnInitialized()
 {
@@ -37,6 +39,8 @@ void ULCOInventoryWidget::NativeOnInitialized()
 
 void ULCOInventoryWidget::NativeDestruct()
 {
+	UnbindQuickSlotEvents();
+
 	if (bInventoryInputModeApplied && bRestoreGameInputOnClose)
 	{
 		RestoreGameInputMode();
@@ -63,10 +67,15 @@ void ULCOInventoryWidget::OpenInventory()
 	ApplyInventoryInputMode();
 	RefreshLocalizedTexts();
 	RefreshItems();
+
+	BindQuickSlotEvents();
+	RefreshQuickSlotPanel();
 }
 
 void ULCOInventoryWidget::CloseInventory()
 {
+	UnbindQuickSlotEvents();
+
 	if (bInventoryInputModeApplied && bRestoreGameInputOnClose)
 	{
 		RestoreGameInputMode();
@@ -205,6 +214,66 @@ void ULCOInventoryWidget::RestoreGameInputMode()
 	}
 
 	bInventoryInputModeApplied = false;
+}
+
+ULCOQuickSlotComponent* ULCOInventoryWidget::GetPlayerQuickSlot() const
+{
+	const APlayerController* PC = GetOwningPlayer();
+	const APawn* Pawn = PC ? PC->GetPawn() : nullptr;
+	return IsValid(Pawn) ? Pawn->FindComponentByClass<ULCOQuickSlotComponent>() : nullptr;
+}
+
+void ULCOInventoryWidget::BindQuickSlotEvents()
+{
+	ULCOQuickSlotComponent* QuickSlot = GetPlayerQuickSlot();
+	if (BoundQuickSlot.Get() == QuickSlot)
+	{
+		return;
+	}
+
+	UnbindQuickSlotEvents();
+
+	if (QuickSlot)
+	{
+		QuickSlot->OnQuickSlotsChanged.AddUniqueDynamic(this, &ThisClass::HandleQuickSlotsChanged);
+		BoundQuickSlot = QuickSlot;
+	}
+}
+
+void ULCOInventoryWidget::UnbindQuickSlotEvents()
+{
+	if (ULCOQuickSlotComponent* QuickSlot = BoundQuickSlot.Get())
+	{
+		QuickSlot->OnQuickSlotsChanged.RemoveDynamic(this, &ThisClass::HandleQuickSlotsChanged);
+	}
+
+	BoundQuickSlot.Reset();
+}
+
+void ULCOInventoryWidget::HandleQuickSlotsChanged()
+{
+	RefreshQuickSlotPanel();
+}
+
+void ULCOInventoryWidget::RefreshQuickSlotPanel()
+{
+	if (!QuickSlotPanel)
+	{
+		return;
+	}
+
+	ULCOQuickSlotComponent* QuickSlot = GetPlayerQuickSlot();
+	if (!QuickSlot)
+	{
+		QuickSlotPanel->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	// HUD용 WBP를 재사용해도 항상 보이고, 칸은 드래그 앤 드롭 가능하게
+	QuickSlotPanel->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	QuickSlotPanel->SetEntriesInteractive(true);
+	QuickSlotPanel->SetSelectedIndex(INDEX_NONE);
+	QuickSlotPanel->RefreshSlots(QuickSlot);
 }
 
 UInventoryComponent* ULCOInventoryWidget::GetPlayerInventory() const

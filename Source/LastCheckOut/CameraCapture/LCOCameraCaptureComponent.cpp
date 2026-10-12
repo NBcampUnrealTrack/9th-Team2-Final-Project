@@ -146,16 +146,29 @@ bool ULCOCameraCaptureComponent::ConsumeFilm()
 }
 
 
-bool ULCOCameraCaptureComponent::ProcessCapture(
+ELCOCameraCaptureResult
+ULCOCameraCaptureComponent::ProcessCapture(
     ULCOCameraCapturePointComponent* CapturePoint)
 {
-    // 1. 촬영 대상과 촬영 가능 상태 확인
-    if (!CapturePoint || !CapturePoint->CanCapture())
+    // 1. 촬영 대상 확인
+    if (!CapturePoint)
     {
-        return false;
+        return ELCOCameraCaptureResult::NoTarget;
     }
 
-    // 2. 수첩 DataTable 확인
+    // 2. 이미 촬영한 대상인지 확인
+    if (CapturePoint->bHasBeenCaptured)
+    {
+        return ELCOCameraCaptureResult::AlreadyCaptured;
+    }
+
+    // 3. 촬영 가능 상태 확인
+    if (!CapturePoint->CanCapture())
+    {
+        return ELCOCameraCaptureResult::InvalidData;
+    }
+
+    // 4. 수첩 DataTable 확인
     if (!NotebookTable)
     {
         UE_LOG(
@@ -164,10 +177,10 @@ bool ULCOCameraCaptureComponent::ProcessCapture(
             TEXT("[Camera] NotebookTable이 설정되지 않았습니다.")
         );
 
-        return false;
+        return ELCOCameraCaptureResult::SystemError;
     }
 
-    // 3. 촬영 ID로 수첩 데이터 검색
+    // 5. 촬영 ID 확인
     const FName EntryID = CapturePoint->CaptureID;
 
     if (EntryID.IsNone())
@@ -178,9 +191,10 @@ bool ULCOCameraCaptureComponent::ProcessCapture(
             TEXT("[Camera] CaptureID가 설정되지 않았습니다.")
         );
 
-        return false;
+        return ELCOCameraCaptureResult::InvalidData;
     }
 
+    // 6. 촬영 ID에 해당하는 수첩 데이터 검색
     const FLCONotebookEntry* NotebookRow =
         NotebookTable->FindRow<FLCONotebookEntry>(
             EntryID,
@@ -196,11 +210,11 @@ bool ULCOCameraCaptureComponent::ProcessCapture(
             *EntryID.ToString()
         );
 
-        return false;
+        return ELCOCameraCaptureResult::InvalidData;
     }
 
-    // 4. 촬영 지점과 수첩 데이터의 이미지 확인
-    if (!CapturePoint->PhotoImage || !NotebookRow->Image)
+    // 7. 사진 이미지 확인
+    if (!NotebookRow->Image)
     {
         UE_LOG(
             LogTemp,
@@ -209,51 +223,49 @@ bool ULCOCameraCaptureComponent::ProcessCapture(
             *EntryID.ToString()
         );
 
-        return false;
+        return ELCOCameraCaptureResult::InvalidData;
     }
 
-    // 5. GameInstance에서 수첩 Subsystem 가져오기
+    // 8. GameInstance 가져오기
     UWorld* World = GetWorld();
+
     UGameInstance* GameInstance =
         World ? World->GetGameInstance() : nullptr;
 
     if (!GameInstance)
     {
-        return false;
+        return ELCOCameraCaptureResult::SystemError;
     }
 
+    // 9. 수첩 Subsystem 가져오기
     ULCONotebookSubsystem* NotebookSubsystem =
         GameInstance->GetSubsystem<ULCONotebookSubsystem>();
 
     if (!NotebookSubsystem)
     {
-        return false;
+        return ELCOCameraCaptureResult::SystemError;
     }
 
-    // 6. 이미 수첩에 등록된 사진인지 확인
+    // 10. 이미 수첩에 등록된 사진인지 확인
     const bool bAlreadyRegistered =
         NotebookSubsystem->HasEntry(EntryID);
 
-    // 7. 새 사진이라면 수첩에 등록할 수 있는지 확인
-    // 기존 항목은 중복 등록하지 않는다.
-    if (!bAlreadyRegistered)
+    // 11. 신규 사진의 EntryID 검증
+    if (!bAlreadyRegistered &&
+        !NotebookRow->EntryID.IsNone() &&
+        NotebookRow->EntryID != EntryID)
     {
-        // 촬영 지점 ID와 DataTable 행의 ID가 다르면 등록하지 않는다.
-        if (!NotebookRow->EntryID.IsNone() &&
-            NotebookRow->EntryID != EntryID)
-        {
-            UE_LOG(
-                LogTemp,
-                Warning,
-                TEXT("[Camera] EntryID가 일치하지 않습니다: %s"),
-                *EntryID.ToString()
-            );
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("[Camera] EntryID가 일치하지 않습니다: %s"),
+            *EntryID.ToString()
+        );
 
-            return false;
-        }
+        return ELCOCameraCaptureResult::InvalidData;
     }
 
-    // 8. 필름 1개 소모
+    // 12. 필름 1개 소모
     if (!ConsumeFilm())
     {
         UE_LOG(
@@ -262,10 +274,10 @@ bool ULCOCameraCaptureComponent::ProcessCapture(
             TEXT("[Camera] 필름이 부족하거나 소모에 실패했습니다.")
         );
 
-        return false;
+        return ELCOCameraCaptureResult::NoFilm;
     }
 
-    // 9. 신규 사진만 수첩에 등록
+    // 13. 신규 사진만 수첩에 등록
     if (!bAlreadyRegistered)
     {
         if (!NotebookSubsystem->AddEntryFromTable(
@@ -279,21 +291,23 @@ bool ULCOCameraCaptureComponent::ProcessCapture(
                 *EntryID.ToString()
             );
 
-            return false;
+            return ELCOCameraCaptureResult::SystemError;
         }
     }
 
-    // 10. 촬영 완료 상태 기록
+    // 14. 촬영 완료 상태 기록
     CapturePoint->MarkCaptured();
 
-    // 11. UI에 촬영 결과 전달
+    // 15. UI에 사진 정보 전달
     OnPhotoCaptured.Broadcast(
         EntryID,
-        CapturePoint->PhotoImage,
-        CapturePoint->PhotoTitle
+        NotebookRow->Image,
+        NotebookRow->Title,
+        NotebookRow->Description
     );
 
-    return true;
+    // 16. 촬영 성공
+    return ELCOCameraCaptureResult::Success;
 }
 
 
@@ -318,5 +332,6 @@ bool ULCOCameraCaptureComponent::Capture()
 
     // 대상의 촬영 가능 여부 확인, 필름 소모,
     // 촬영 완료 처리 및 이벤트 전달을 수행한다.
-    return ProcessCapture(CapturePoint);
+    return ProcessCapture(CapturePoint)
+        == ELCOCameraCaptureResult::Success;
 }

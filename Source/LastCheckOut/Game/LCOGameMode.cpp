@@ -7,6 +7,7 @@
 #include "Inventory/InventoryComponent.h"
 #include "QuickSlot/LCOQuickSlotComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Save/LCOSaveManager.h"
 
 ALCOGameMode::ALCOGameMode()
 {
@@ -66,10 +67,36 @@ void ALCOGameMode::StartGame()
 		break;
 
 	case ELCOGameStartMode::Continue:
-		// 이어하기: SaveManager 구현 전까지 미지원
-		// Log Test
-		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] StartGame: Continue is not supported yet"));
+	{
+		// 이어하기: SaveManager가 읽어 둔 세이브 데이터를 적용
+		// (플레이어 데이터는 보관함에 들어가고, HandleMatchHasStarted에서 캐릭터에 복원됨)
+		ULCOSaveManager* SaveManager = LCOGameInstance->GetSubsystem<ULCOSaveManager>();
+
+		// StartContinue를 거치지 않고 Continue로 들어온 경우(메뉴에서 StartMode만 설정 후 이동 등)
+		// 세이브 파일을 아직 읽지 않았으므로 여기서 먼저 읽음
+		if (SaveManager && !SaveManager->HasLoadedData())
+		{
+			// Log Test
+			UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartGame: Continue without loaded data -> LoadSaveFile"));
+			SaveManager->LoadSaveFile();
+		}
+
+		if (SaveManager && SaveManager->ApplyLoadedData())
+		{
+			// Log Test
+			UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartGame: Continue -> save data applied"));
+		}
+		else
+		{
+			// 세이브 적용 실패 시 새 게임으로 시작 (빈 상태로 멈추지 않도록)
+			UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] StartGame: Continue failed -> StartNewGameProgress"));
+			StartNewGameProgress(LCOGameInstance);
+		}
+
+		// 다음 맵 이동 시 다시 이어하기로 처리되지 않도록 None으로 되돌림
+		LCOGameInstance->ResetStartMode();
 		break;
+	}
 
 	case ELCOGameStartMode::None:
 	default:
@@ -141,23 +168,20 @@ void ALCOGameMode::HandleMatchHasStarted()
 	RestorePlayerCarryData();
 }
 
-void ALCOGameMode::StorePlayerCarryData()
+bool ALCOGameMode::CapturePlayerCarryData(FLCOPlayerCarryData& OutData) const
 {
-	ULCOGameInstance* LCOGameInstance = GetGameInstance<ULCOGameInstance>();
 	ALCOPlayerCharacter* Player = Cast<ALCOPlayerCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
-	if (!LCOGameInstance || !Player)
+	if (!Player)
 	{
-		// Log Test
-		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] StorePlayerCarryData: GameInstance or Player not found"));
-		return;
+		return false;
 	}
 
-	FLCOPlayerCarryData Data;
+	OutData = FLCOPlayerCarryData();
 
 	// 인벤토리
 	if (UInventoryComponent* Inventory = Player->GetInventory())
 	{
-		Data.InventorySlots = Inventory->InventorySlots;
+		OutData.InventorySlots = Inventory->InventorySlots;
 	}
 
 	// 퀵슬롯 (슬롯 순서대로)
@@ -165,12 +189,27 @@ void ALCOGameMode::StorePlayerCarryData()
 	{
 		for (int32 i = 0; i < ULCOQuickSlotComponent::NumSlots; ++i)
 		{
-			Data.QuickSlotItemIDs.Add(QuickSlot->GetSlotItem(i));
+			OutData.QuickSlotItemIDs.Add(QuickSlot->GetSlotItem(i));
 		}
 	}
 
 	// 시점
-	Data.ViewMode = Player->GetViewMode();
+	OutData.ViewMode = Player->GetViewMode();
+
+	return true;
+}
+
+void ALCOGameMode::StorePlayerCarryData()
+{
+	ULCOGameInstance* LCOGameInstance = GetGameInstance<ULCOGameInstance>();
+
+	FLCOPlayerCarryData Data;
+	if (!LCOGameInstance || !CapturePlayerCarryData(Data))
+	{
+		// Log Test
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] StorePlayerCarryData: GameInstance or Player not found"));
+		return;
+	}
 
 	LCOGameInstance->StoreCarryData(Data);
 }

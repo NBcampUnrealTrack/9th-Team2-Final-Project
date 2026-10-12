@@ -96,3 +96,14 @@ bool ULCOStorySubsystem::CompleteObjective(FName ObjectiveID)
 	CurrentObjectiveID = NAME_None;
 	return true;
 }
+
+void ULCOStorySubsystem::RestoreStoryState(FName ChapterID, FName ObjectiveID, const TArray<FName>& InCompletedObjectives)
+{
+	CurrentChapterID = ChapterID;
+	CurrentObjectiveID = ObjectiveID;
+	CompletedObjectives = InCompletedObjectives;
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] RestoreStoryState: Chapter = %s, Objective = %s, Completed = %d"),
+		*CurrentChapterID.ToString(), *CurrentObjectiveID.ToString(), CompletedObjectives.Num());
+}

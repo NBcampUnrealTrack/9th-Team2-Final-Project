@@ -50,7 +50,9 @@ private:
 	static const FName FinnishLanguage;
 
 	void LoadLocalizationFiles();
+	void LoadDialogueCsvFiles();
 	void LoadCsvFile(const FString& RelativePath, TMap<FName, FLCOLocalizedTextRow>& OutRows);
+	void LoadCsvFileByFullPath(const FString& FullPath, TMap<FName, FLCOLocalizedTextRow>& OutRows, TMap<FName, FString>* LoadedKeySources = nullptr);
 	FText GetLocalizedText(const TMap<FName, FLCOLocalizedTextRow>& Rows, FName Key) const;
 	FText GetLocalizedText(const TMap<FName, FLCOLocalizedTextRow>& Rows, FName Key, bool bFallbackToKey) const;
 	bool IsSupportedLanguage(FName LanguageCode) const;

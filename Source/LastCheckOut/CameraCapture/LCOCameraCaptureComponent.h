@@ -6,13 +6,28 @@
 
 class UTexture2D;
 class ULCOCameraCapturePointComponent;
+class UDataTable;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(
 	FOnCameraPhotoCaptured,
 	FName, CaptureID,
 	UTexture2D*, PhotoImage,
-	FText, PhotoTitle
+	FText, PhotoTitle,
+	FText, PhotoDescription
 );
+
+UENUM(BlueprintType)
+enum class ELCOCameraCaptureResult : uint8
+{
+	Success         UMETA(DisplayName = "촬영 성공"),
+	NoTarget        UMETA(DisplayName = "촬영 대상 없음"),
+	AlreadyCaptured UMETA(DisplayName = "이미 촬영한 대상"),
+	NoFilm          UMETA(DisplayName = "필름 부족"),
+	InvalidData     UMETA(DisplayName = "촬영 데이터 오류"),
+	SystemError     UMETA(DisplayName = "시스템 오류")
+};
+
 
 UCLASS(ClassGroup=(LCO), meta=(BlueprintSpawnableComponent))
 class LASTCHECKOUT_API ULCOCameraCaptureComponent
@@ -43,6 +58,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LCO|Camera",
 		meta=(ClampMin="100.0"))
 	float CaptureDistance = 500.0f;
+	
+	// 촬영한 사진을 등록할 수첩 DataTable
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LCO|Camera")
+	TObjectPtr<UDataTable> NotebookTable = nullptr;
 
 protected:
 	// 필름이 충분한지 확인
@@ -51,8 +70,7 @@ protected:
 	// 필름 1개 소모
 	bool ConsumeFilm();
 
-	// 촬영 대상에 실제 촬영 처리를 수행
-	bool ProcessCapture(
+	ELCOCameraCaptureResult ProcessCapture(
 		ULCOCameraCapturePointComponent* CapturePoint
 	);
 };

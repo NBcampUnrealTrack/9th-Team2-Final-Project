@@ -66,7 +66,7 @@ private:
 	void RefreshStaminaBar();
 	void UpdateStaminaBar(int32 CurrentStamina, int32 MaxStamina, float Percent);
 	UProgressBar* FindExistingStaminaBar(APlayerController* PlayerController) const;
-	FText GetPromptText(ULCOInteractComponent* FocusedComponent) const;
+	FText GetPromptText(ULCOInteractComponent* FocusedComponent, AActor* Interactor) const;
 	ULCOLocalizationSubsystem* GetLocalizationSubsystem() const;
 	bool ShouldCreateInteractionPromptForWorld(const UWorld* World) const;
 	bool IsInteractionPromptSuppressed() const;

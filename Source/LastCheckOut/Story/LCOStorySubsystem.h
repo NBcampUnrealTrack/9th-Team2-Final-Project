@@ -38,6 +38,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Story")
 	bool CompleteObjective(FName ObjectiveID);
 
+	// ---------- Save ----------
+
+	// 세이브 파일에서 읽은 진행 상태를 그대로 적용 (LCOSaveManager::ApplyLoadedData에서 호출)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Story")
+	void RestoreStoryState(FName ChapterID, FName ObjectiveID, const TArray<FName>& InCompletedObjectives);
+
 	// ---------- 조회 ----------
 
 	// 현재 챕터 ID (없으면 None)

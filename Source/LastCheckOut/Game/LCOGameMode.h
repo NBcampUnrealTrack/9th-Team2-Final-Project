@@ -5,6 +5,7 @@
 #include "LCOGameMode.generated.h"
 
 class ULCOGameInstance;
+struct FLCOPlayerCarryData;
 
 UCLASS()
 class LASTCHECKOUT_API ALCOGameMode : public AGameMode
@@ -17,6 +18,10 @@ public:
 	// 게임 중 맵 이동은 Open Level 대신 이 함수를 사용 (인벤토리 / 퀵슬롯 / 시점 유지)
 	UFUNCTION(BlueprintCallable, Category = "LCO|Travel")
 	void TravelToLevel(TSoftObjectPtr<UWorld> Level);
+
+	// 현재 플레이어의 인벤토리 / 퀵슬롯 / 시점을 OutData에 복사. 플레이어가 없으면 false
+	// (맵 이동 보관 / 세이브 저장에서 공용으로 사용)
+	bool CapturePlayerCarryData(FLCOPlayerCarryData& OutData) const;
 	
 protected:
 	virtual void BeginPlay() override;

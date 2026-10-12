@@ -11,7 +11,7 @@ class USoundBase;
 class UTextBlock;
 class ULCODialogueChoiceWidget;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCODialogueWidgetClosed, ALCONPCBase*, NPC);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnLCODialogueWidgetClosed, ALCONPCBase*, NPC, FName, DialogueID, bool, bCompletedNormally, bool, bCompletedFirstConversation);
 
 USTRUCT(BlueprintType)
 struct LASTCHECKOUT_API FLCODialogueVoiceSettings
@@ -77,6 +77,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
 	void CloseDialogue(bool bEndNPCConversation = true);
 
+	void UnbindFromOptionsInput();
+
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
 	FOnLCODialogueWidgetClosed OnDialogueWidgetClosed;
 
@@ -134,12 +136,16 @@ private:
 	void HandleLanguageChanged(FName NewLanguage);
 
 	UFUNCTION()
+	void HandleOptionsRequested();
+
+	UFUNCTION()
 	void HandleChoiceSelected(FName ChoiceID);
 
 	bool LoadFlowForDialogueID(FName DialogueID);
 	void StartNode(FName NodeID);
 	void ShowCurrentLine();
 	void AdvanceDialogue();
+	void CompleteActiveConversation();
 	void EndActiveConversation();
 	void StartTypewriter(const FText& FullText);
 	void RevealNextTypewriterCharacter();
@@ -153,6 +159,7 @@ private:
 	bool IsEndNode(FName NodeID) const;
 	bool IsConditionMet(FName Condition) const;
 	bool ValidateDialogueTextKey(FName TextKey, const FString& Context) const;
+	bool ValidateSpeakerNameKey(FName SpeakerID, const FString& Context) const;
 	void PlayDialogueCharacterSound(const FString& RevealedCharacter);
 	bool ShouldPlayDialogueCharacterSound(const FString& RevealedCharacter) const;
 	const FLCODialogueVoiceSettings* GetActiveVoiceSettings() const;
@@ -204,4 +211,16 @@ private:
 
 	UPROPERTY(Transient)
 	bool bLookInputBlockedByThisWidget = false;
+
+	UPROPERTY(Transient)
+	bool bClosingFromOptionsRequest = false;
+
+	UPROPERTY(Transient)
+	bool bIsClosingDialogue = false;
+
+	UPROPERTY(Transient)
+	bool bActiveDialogueStartedAsFirstConversation = false;
+
+	UPROPERTY(Transient)
+	bool bActiveDialogueCompletedNormally = false;
 };

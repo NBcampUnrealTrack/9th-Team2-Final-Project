@@ -13,6 +13,7 @@
 #include "Misc/Paths.h"
 #include "Notebook/NotebookComponent.h"
 #include "NPC/LCONPCBase.h"
+#include "Player/LCOPlayerController.h"
 #include "Serialization/Csv/CsvParser.h"
 #include "TimerManager.h"
 #include "UI/LCODialogueChoiceWidget.h"
@@ -113,6 +114,12 @@ void ULCODialogueWidget::NativeOnInitialized()
 
 	SetIsFocusable(true);
 	SetChoicesVisible(false);
+
+	if (ALCOPlayerController* LCOPC = Cast<ALCOPlayerController>(GetOwningPlayer()))
+	{
+		LCOPC->OnOptionsRequested.RemoveDynamic(this, &ThisClass::HandleOptionsRequested);
+		LCOPC->OnOptionsRequested.AddDynamic(this, &ThisClass::HandleOptionsRequested);
+	}
 }
 
 void ULCODialogueWidget::NativeConstruct()
@@ -130,7 +137,15 @@ void ULCODialogueWidget::NativeDestruct()
 
 	if (bDialogueInputModeApplied && bRestoreGameInputOnClose)
 	{
-		RestoreGameInputMode();
+		if (bClosingFromOptionsRequest && UGameplayStatics::IsGamePaused(this))
+		{
+			bDialogueInputModeApplied = false;
+			bLookInputBlockedByThisWidget = false;
+		}
+		else
+		{
+			RestoreGameInputMode();
+		}
 	}
 
 	ActiveNPC.Reset();
@@ -151,12 +166,6 @@ FReply ULCODialogueWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FK
 		{
 			AdvanceDialogue();
 		}
-		return FReply::Handled();
-	}
-
-	if (IsInViewport() && InKeyEvent.GetKey() == EKeys::Escape)
-	{
-		CloseDialogue(true);
 		return FReply::Handled();
 	}
 
@@ -191,6 +200,8 @@ bool ULCODialogueWidget::OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, 
 	ActiveNPC = InNPC;
 	Interactor = InInteractor;
 	ActiveDialogueID = InNPC->GetNPCId();
+	bActiveDialogueStartedAsFirstConversation = bPlayFirstConversation;
+	bActiveDialogueCompletedNormally = false;
 	LastVoicePlaybackTime = -FLT_MAX;
 
 	if (ActiveDialogueID.IsNone())
@@ -198,6 +209,7 @@ bool ULCODialogueWidget::OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, 
 		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] NPC %s has no DialogueID/NPCId."), *GetNameSafe(InNPC));
 		ActiveNPC.Reset();
 		Interactor.Reset();
+		bActiveDialogueStartedAsFirstConversation = false;
 		return false;
 	}
 
@@ -206,6 +218,7 @@ bool ULCODialogueWidget::OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, 
 		ActiveNPC.Reset();
 		Interactor.Reset();
 		ActiveDialogueID = NAME_None;
+		bActiveDialogueStartedAsFirstConversation = false;
 		return false;
 	}
 
@@ -220,6 +233,7 @@ bool ULCODialogueWidget::OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, 
 		Interactor.Reset();
 		ActiveDialogueID = NAME_None;
 		ActiveFlow = FLCODialogueFlow();
+		bActiveDialogueStartedAsFirstConversation = false;
 		return false;
 	}
 
@@ -244,7 +258,17 @@ bool ULCODialogueWidget::OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, 
 
 void ULCODialogueWidget::CloseDialogue(bool bEndNPCConversation)
 {
+	if (bIsClosingDialogue)
+	{
+		return;
+	}
+
+	TGuardValue<bool> ClosingGuard(bIsClosingDialogue, true);
+
 	ALCONPCBase* NPC = ActiveNPC.Get();
+	const FName ClosingDialogueID = ActiveDialogueID;
+	const bool bCompletedNormally = bActiveDialogueCompletedNormally;
+	const bool bCompletedFirstConversation = bActiveDialogueStartedAsFirstConversation && bCompletedNormally;
 
 	ClearTypewriterTimer();
 
@@ -261,6 +285,8 @@ void ULCODialogueWidget::CloseDialogue(bool bEndNPCConversation)
 	LastVoicePlaybackTime = -FLT_MAX;
 	ActiveFlow = FLCODialogueFlow();
 	VisibleChoiceTargets.Empty();
+	bActiveDialogueStartedAsFirstConversation = false;
+	bActiveDialogueCompletedNormally = false;
 	SetChoicesVisible(false);
 
 	if (IsInViewport())
@@ -283,12 +309,29 @@ void ULCODialogueWidget::CloseDialogue(bool bEndNPCConversation)
 
 	ActiveNPC.Reset();
 	Interactor.Reset();
-	OnDialogueWidgetClosed.Broadcast(NPC);
+	OnDialogueWidgetClosed.Broadcast(NPC, ClosingDialogueID, bCompletedNormally, bCompletedFirstConversation);
+}
+
+void ULCODialogueWidget::UnbindFromOptionsInput()
+{
+	if (ALCOPlayerController* LCOPC = Cast<ALCOPlayerController>(GetOwningPlayer()))
+	{
+		LCOPC->OnOptionsRequested.RemoveDynamic(this, &ThisClass::HandleOptionsRequested);
+	}
 }
 
 void ULCODialogueWidget::HandleLanguageChanged(FName NewLanguage)
 {
 	RefreshVisibleText();
+}
+
+void ULCODialogueWidget::HandleOptionsRequested()
+{
+	if (IsInViewport())
+	{
+		TGuardValue<bool> ClosingFromOptionsGuard(bClosingFromOptionsRequest, true);
+		CloseDialogue(true);
+	}
 }
 
 void ULCODialogueWidget::HandleChoiceSelected(FName ChoiceID)
@@ -305,7 +348,7 @@ void ULCODialogueWidget::HandleChoiceSelected(FName ChoiceID)
 
 	if (IsEndNode(*TargetNodeID))
 	{
-		EndActiveConversation();
+		CompleteActiveConversation();
 		return;
 	}
 
@@ -471,9 +514,16 @@ bool ULCODialogueWidget::LoadFlowForDialogueID(FName DialogueID)
 		}
 	}
 
+	TSet<FName> ValidatedSpeakerIDs;
 	for (const TPair<FName, FLCODialogueNode>& NodePair : ActiveFlow.Nodes)
 	{
 		const FLCODialogueNode& Node = NodePair.Value;
+		if (!ValidatedSpeakerIDs.Contains(Node.SpeakerID))
+		{
+			ValidateSpeakerNameKey(Node.SpeakerID, FString::Printf(TEXT("%s node '%s'"), *FlowPath, *Node.NodeID.ToString()));
+			ValidatedSpeakerIDs.Add(Node.SpeakerID);
+		}
+
 		if (Node.RowType == RowTypeLine && !Node.bEndConversation && !Node.NextNodeID.IsNone() && !IsEndNode(Node.NextNodeID) && !ActiveFlow.Nodes.Contains(Node.NextNodeID))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] Line node '%s' points to missing NextNodeID '%s': %s"),
@@ -511,11 +561,36 @@ bool ULCODialogueWidget::LoadFlowForDialogueID(FName DialogueID)
 	return true;
 }
 
+bool ULCODialogueWidget::ValidateSpeakerNameKey(FName SpeakerID, const FString& Context) const
+{
+	if (SpeakerID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] Missing SpeakerID in %s"), *Context);
+		return false;
+	}
+
+	const FName LocalSpeakerNameKey = FName(*(SpeakerID.ToString() + TEXT("_NAME")));
+	if (const ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		const FText LocalizedName = LocalizationSubsystem->GetDialogueText(LocalSpeakerNameKey);
+		if (!LocalizedName.IsEmpty() && LocalizedName.ToString() != LocalSpeakerNameKey.ToString())
+		{
+			return true;
+		}
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] SpeakerID '%s' expects localized name key '%s', but it is missing or unresolved in %s"),
+		*SpeakerID.ToString(),
+		*LocalSpeakerNameKey.ToString(),
+		*Context);
+	return false;
+}
+
 void ULCODialogueWidget::StartNode(FName NodeID)
 {
 	if (IsEndNode(NodeID))
 	{
-		EndActiveConversation();
+		CompleteActiveConversation();
 		return;
 	}
 
@@ -603,7 +678,7 @@ void ULCODialogueWidget::AdvanceDialogue()
 
 	if (Node->bEndConversation || IsEndNode(Node->NextNodeID))
 	{
-		EndActiveConversation();
+		CompleteActiveConversation();
 		return;
 	}
 
@@ -617,6 +692,12 @@ void ULCODialogueWidget::AdvanceDialogue()
 	}
 
 	StartNode(Node->NextNodeID);
+}
+
+void ULCODialogueWidget::CompleteActiveConversation()
+{
+	bActiveDialogueCompletedNormally = true;
+	CloseDialogue(true);
 }
 
 void ULCODialogueWidget::EndActiveConversation()

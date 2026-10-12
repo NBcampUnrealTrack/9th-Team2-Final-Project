@@ -84,8 +84,10 @@ void ULCODialogueSubsystem::HandleNPCConversationEnded()
 	ActiveNPC.Reset();
 }
 
-void ULCODialogueSubsystem::HandleDialogueClosed(ALCONPCBase* NPC)
+void ULCODialogueSubsystem::HandleDialogueClosed(ALCONPCBase* NPC, FName DialogueID, bool bCompletedNormally, bool bCompletedFirstConversation)
 {
+	CommitDialogueProgressTransaction(DialogueID, bCompletedNormally, bCompletedFirstConversation);
+
 	if (IsValid(NPC))
 	{
 		NPC->OnConversationEnded.RemoveDynamic(this, &ThisClass::HandleNPCConversationEnded);
@@ -184,6 +186,7 @@ void ULCODialogueSubsystem::CleanupDialogue()
 		NPC->OnConversationEnded.RemoveDynamic(this, &ThisClass::HandleNPCConversationEnded);
 	}
 	ActiveNPC.Reset();
+	PendingProgressTransaction.Reset();
 
 	if (!DialogueWidget)
 	{
@@ -191,6 +194,7 @@ void ULCODialogueSubsystem::CleanupDialogue()
 	}
 
 	DialogueWidget->OnDialogueWidgetClosed.RemoveDynamic(this, &ThisClass::HandleDialogueClosed);
+	DialogueWidget->UnbindFromOptionsInput();
 	if (DialogueWidget->IsInViewport())
 	{
 		DialogueWidget->CloseDialogue(true);
@@ -201,6 +205,36 @@ void ULCODialogueSubsystem::CleanupDialogue()
 	}
 
 	DialogueWidget = nullptr;
+}
+
+void ULCODialogueSubsystem::BeginDialogueProgressTransaction(FName DialogueID, bool bStartedFirstConversation)
+{
+	PendingProgressTransaction.DialogueID = DialogueID;
+	PendingProgressTransaction.bStartedFirstConversation = bStartedFirstConversation;
+}
+
+void ULCODialogueSubsystem::CommitDialogueProgressTransaction(FName DialogueID, bool bCompletedNormally, bool bCompletedFirstConversation)
+{
+	if (PendingProgressTransaction.DialogueID != DialogueID)
+	{
+		PendingProgressTransaction.Reset();
+		return;
+	}
+
+	if (bCompletedNormally && bCompletedFirstConversation && PendingProgressTransaction.bStartedFirstConversation)
+	{
+		CompletedFirstConversationNPCIds.Add(DialogueID);
+	}
+
+	PendingProgressTransaction.Reset();
+}
+
+void ULCODialogueSubsystem::DiscardDialogueProgressTransaction(FName DialogueID)
+{
+	if (PendingProgressTransaction.DialogueID == DialogueID || DialogueID.IsNone())
+	{
+		PendingProgressTransaction.Reset();
+	}
 }
 
 void ULCODialogueSubsystem::BindToPlayerController(APlayerController* PlayerController)
@@ -319,6 +353,7 @@ void ULCODialogueSubsystem::TryStartDialogueForInteraction(ULCOInteractComponent
 	if (ALCONPCBase* PreviousNPC = ActiveNPC.Get())
 	{
 		PreviousNPC->OnConversationEnded.RemoveDynamic(this, &ThisClass::HandleNPCConversationEnded);
+		DiscardDialogueProgressTransaction(PreviousNPC->GetNPCId());
 	}
 
 	ActiveNPC = NPC;
@@ -328,20 +363,18 @@ void ULCODialogueSubsystem::TryStartDialogueForInteraction(ULCOInteractComponent
 	const FName NPCId = NPC->GetNPCId();
 	const bool bPlayFirstConversation = !CompletedFirstConversationNPCIds.Contains(NPCId);
 
+	BeginDialogueProgressTransaction(NPCId, bPlayFirstConversation);
+
 	if (!DialogueWidget->OpenDialogue(NPC, Interactor, bPlayFirstConversation))
 	{
 		NPC->OnConversationEnded.RemoveDynamic(this, &ThisClass::HandleNPCConversationEnded);
 		ActiveNPC.Reset();
+		DiscardDialogueProgressTransaction(NPCId);
 		if (NPC->IsInConversation())
 		{
 			NPC->EndConversation();
 		}
 		return;
-	}
-
-	if (bPlayFirstConversation)
-	{
-		CompletedFirstConversationNPCIds.Add(NPCId);
 	}
 }
 

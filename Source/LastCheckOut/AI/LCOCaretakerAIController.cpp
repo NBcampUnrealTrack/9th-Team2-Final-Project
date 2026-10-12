@@ -1,5 +1,7 @@
 #include "AI/LCOCaretakerAIController.h"
 
+#include "AI/Chasing/LCOChasingManager.h"
+
 #include "BehaviorTree/BehaviorTree.h"
 #include "DrawDebugHelpers.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -114,6 +116,9 @@ void ALCOCaretakerAIController::BeginPlay()
 
 	GetWorldTimerManager().SetTimer(CatchCheckTimer, this, &ALCOCaretakerAIController::CheckCatch, CatchCheckInterval, true);
 
+	// 레벨에 배치된 체이싱 매니저를 찾는다. 없으면 안전지대 판정 없이 동작한다.
+	ChasingManager = Cast<ALCOChasingManager>(UGameplayStatics::GetActorOfClass(this, ALCOChasingManager::StaticClass()));
+
 	// 플레이어가 아직 생성되지 않았을 수 있어 바인딩될 때까지 재시도한다.
 	TryBindSuspicion();
 	if (!BoundSuspicion.IsValid())
@@ -198,6 +203,12 @@ void ALCOCaretakerAIController::CheckCatch()
 		return;
 	}
 
+	// 안전지대(로비) 안에서는 잡을 수 없다.
+	if (ChasingManager.IsValid() && ChasingManager->IsPlayerInSafeZone())
+	{
+		return;
+	}
+
 	const UBlackboardComponent* BB = GetBlackboardComponent();
 	AActor* Target = BB ? Cast<AActor>(BB->GetValueAsObject(LCOBlackboardKeys::TargetActor)) : nullptr;
 	if (!Target)
@@ -241,6 +252,25 @@ void ALCOCaretakerAIController::HandlePlayerCaught(AActor* CaughtPlayer)
 	GetWorldTimerManager().ClearTimer(LostGraceTimer);
 	StopMovement();
 	GetPawn()->TeleportTo(InitialTransform.GetLocation(), InitialTransform.GetRotation().Rotator());
+	AIPerception->ForgetAll();
+
+	if (UBlackboardComponent* BB = GetBlackboardComponent())
+	{
+		BB->ClearValue(LCOBlackboardKeys::TargetActor);
+	}
+	SetState(ELCOCaretakerState::Patrol);
+
+	// 체이싱 중이었다면 실패로 종료한다. (시골청년 제거, 의심도 초기화)
+	if (ChasingManager.IsValid())
+	{
+		ChasingManager->EndChasing(ELCOChasingEndReason::Caught);
+	}
+}
+
+void ALCOCaretakerAIController::StopChase()
+{
+	GetWorldTimerManager().ClearTimer(LostGraceTimer);
+	StopMovement();
 	AIPerception->ForgetAll();
 
 	if (UBlackboardComponent* BB = GetBlackboardComponent())

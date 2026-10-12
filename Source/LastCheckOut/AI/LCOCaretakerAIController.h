@@ -10,6 +10,7 @@
 class UAIPerceptionComponent;
 class UAISenseConfig_Sight;
 class UBehaviorTree;
+class ALCOChasingManager;
 
 // 관리인 AI 컨트롤러. 감지와 상태 전환을 담당하고, 행동은 Behavior Tree가 실행한다.
 UCLASS()
@@ -28,6 +29,9 @@ public:
 	
 	bool BeginInterrogation(APawn* Player);
 	void EndInterrogation(bool bContinueSearch);
+
+	// 추격을 멈추고 순찰로 되돌린다. (체이싱이 끝났을 때 매니저가 호출)
+	void StopChase();
 
 protected:
 	virtual void BeginPlay() override;
@@ -99,6 +103,7 @@ private:
 	static ELCOCaretakerState LevelToState(ELCOSuspicionLevel Level);
 
 	TWeakObjectPtr<USuspicionComponent> BoundSuspicion;
+	TWeakObjectPtr<ALCOChasingManager> ChasingManager;
 
 	// 직전에 처리한 의심도 구간. 구간이 바뀔 때만 상태를 갱신한다.
 	ELCOSuspicionLevel LastSuspicionLevel = ELCOSuspicionLevel::Calm;

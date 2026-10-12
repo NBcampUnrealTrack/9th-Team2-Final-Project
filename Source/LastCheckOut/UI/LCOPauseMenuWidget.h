@@ -96,6 +96,9 @@ private:
 
 	// UI 모드 전환 (LCOPlayerController면 SetUIMode 사용, 아니면 직접 처리)
 	void SetPlayerUIMode(bool bEnable);
+
+	// 일시정지 메뉴를 열기 전에 수첩 / 인벤토리 닫기
+	void CloseOtherMenus();
 	void BindLocalizationEvents();
 	void UnbindLocalizationEvents();
 	void RefreshLocalizedTexts();

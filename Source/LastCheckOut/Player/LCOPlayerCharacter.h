@@ -4,20 +4,22 @@
 #include "GameFramework/Character.h"
 #include "LCOPlayerCharacter.generated.h"
 
-
-class USuspicionComponent;
-class UNotebookComponent;
-class ULCOQuickSlotComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
 class UInventoryComponent;
 class ULCOPlayerInteractionComponent;
 class ULCOStaminaComponent;
+class USuspicionComponent;
+class UNotebookComponent;
+class ULCOQuickSlotComponent;
+class ULCOCameraCaptureComponent;
+class ULCOCameraOcclusionComponent;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLCOMoveStateChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOSprintStateChanged, bool, bIsSprinting);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOCrouchStateChanged, bool, bIsCrouching);
 
 UENUM(BlueprintType)
 enum class ELCOViewMode : uint8
@@ -27,8 +29,8 @@ enum class ELCOViewMode : uint8
 };
 
 // 플레이어 캐릭터
-// 이동(WASD), 시점(마우스), 달리기(Shift, 스태미나 소모), 상호작용(F), 1인칭/3인칭 전환(V) 담당
-// 메뉴 입력(아이템, 수첩, 옵션, 퀵슬롯)은 ALCOPlayerController에서 처리
+// 이동(WASD), 시점(마우스), 달리기(Shift, 스태미나 소모), 상호작용(F), 1인칭/3인칭 전환(V), 촬영(좌클릭) 담당
+// 메뉴 입력(아이템, 수첩, 옵션)은 ALCOPlayerController에서 처리
 UCLASS()
 class LASTCHECKOUT_API ALCOPlayerCharacter : public ACharacter
 {
@@ -40,12 +42,30 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
+	// ---------- 시점 ----------
+
 	// 시점 변경 (컷신, 특정 구역에서 강제 전환할 때도 사용)
 	UFUNCTION(BlueprintCallable, Category = "LCO|Camera")
 	void SetViewMode(ELCOViewMode NewMode);
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Camera")
 	ELCOViewMode GetViewMode() const { return ViewMode; }
+
+	// 마우스 감도 배율 (1 = 기본, 0.1 ~ 5). 설정 UI에서 호출
+	UFUNCTION(BlueprintCallable, Category = "LCO|Camera")
+	void SetLookSensitivity(float NewSensitivity);
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Camera")
+	float GetLookSensitivity() const { return LookSensitivity; }
+
+	// 마우스 상하 반전. 설정 UI에서 호출
+	UFUNCTION(BlueprintCallable, Category = "LCO|Camera")
+	void SetInvertLookY(bool bInvert);
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Camera")
+	bool IsInvertLookY() const { return bInvertLookY; }
+
+	// ---------- 컴포넌트 접근 ----------
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Inventory")
 	UInventoryComponent* GetInventory() const { return InventoryComponent; }
@@ -55,7 +75,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Stamina")
 	ULCOStaminaComponent* GetStamina() const { return StaminaComponent; }
-	
+
 	UFUNCTION(BlueprintPure, Category = "LCO|Suspicion")
 	USuspicionComponent* GetSuspicion() const { return SuspicionComponent; }
 
@@ -65,9 +85,23 @@ public:
 	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
 	ULCOQuickSlotComponent* GetQuickSlot() const { return QuickSlotComponent; }
 
+	UFUNCTION(BlueprintPure, Category = "LCO|Camera")
+	ULCOCameraCaptureComponent* GetCameraCapture() const { return CameraCaptureComponent; }
+
+	// ---------- 이동 ----------
+
 	UFUNCTION(BlueprintPure, Category = "LCO|Movement")
 	bool IsSprinting() const { return bIsSprinting; }
 	
+	UFUNCTION(BlueprintPure, Category = "LCO|Movement")
+	bool IsCrouching() const { return bIsCrouched; }
+
+	// ACharacter: 실제로 웅크리기 / 일어서기가 끝났을 때 엔진이 호출
+	virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+	virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+
+	// ---------- 스태미나 (UI / 아이템에서 캐릭터를 통해 바로 사용) ----------
+
 	// 현재 스태미나 직접 설정
 	UFUNCTION(BlueprintCallable, Category = "LCO|Stamina")
 	void SetStamina(int32 NewStamina);
@@ -97,7 +131,9 @@ public:
 	// 0 ~ 100 (텍스트 "75%" 표시용)
 	UFUNCTION(BlueprintPure, Category = "LCO|Stamina")
 	int32 GetStaminaPercentInt() const;
-	
+
+	// ---------- 버프 (아이템 사용 시 InventoryComponent::UseItem에서 호출) ----------
+
 	// 일정 시간 이동속도 증가 (걷기 / 달리기 모두 +Amount)
 	// 이미 적용 중이면 수치와 시간을 새로 덮어씀 (중첩 X). Amount, Duration이 0 이하면 실패
 	UFUNCTION(BlueprintCallable, Category = "LCO|Buff")
@@ -121,6 +157,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "LCO|Buff")
 	float GetMaxStaminaBuffRemainingTime() const;
 
+	// ---------- 이벤트 ----------
+
 	// 걷기 → 달리기로 바뀔 때 (발소리, 숨소리, UI 등)
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Movement")
 	FOnLCOMoveStateChanged OnSprintStarted;
@@ -128,9 +166,14 @@ public:
 	// 달리기 → 걷기로 바뀔 때 (Shift 뗌, 스태미나 소진, 멈춤)
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Movement")
 	FOnLCOMoveStateChanged OnWalkStarted;
-	
+
+	// 달리기 상태가 바뀔 때 (true: 달리기 시작, false: 걷기로 복귀)
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Movement")
 	FOnLCOSprintStateChanged OnSprintStateChanged;
+	
+	// 웅크리기 상태가 바뀔 때 (true: 웅크림, false: 일어섬) - AI 감지, UI, 사운드 등
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Movement")
+	FOnLCOCrouchStateChanged OnCrouchStateChanged;
 
 protected:
 	virtual void BeginPlay() override;
@@ -143,14 +186,29 @@ protected:
 	void Interact();
 	void ToggleView();
 
+	// 카메라 촬영 (CameraCapture 컴포넌트로 전달)
+	void TakePhoto();
+	
+	// 웅크리기 입력
+	void CrouchPressed();
+	void CrouchReleased();
+
+	// 웅크리기 / 일어서기에 맞춰 카메라 높이를 부드럽게 변경
+	void UpdateCameraHeight(float DeltaSeconds);
+	void ApplyCameraHeight();
+
 	// 달리기 조건(Shift, 이동 중, 지면, 스태미나)을 확인해서 상태 갱신
 	void UpdateSprint();
 	void SetSprinting(bool bNewSprinting);
-	
-	// 퀵슬롯에서 아이템 사용 시 (효과는 OnUseItem, 소비 아이템이면 1개 소모)
+
+	// 현재 상태(걷기 / 달리기 + 이동속도 버프)에 맞게 MaxWalkSpeed 갱신
 	void UpdateMoveSpeed();
+
 	void EndMoveSpeedBuff();
 	void EndMaxStaminaBuff();
+
+	// 달리기 상태에 맞춰 시야각을 부드럽게 변경
+	void UpdateCameraFOV(float DeltaSeconds);
 
 	// ---------- 컴포넌트 ----------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -158,6 +216,14 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> Camera;
+
+	// 3인칭 카메라 가림 처리 (벽에 붙으면 내 몸 숨김, 카메라를 가리는 NPC 숨김)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	TObjectPtr<ULCOCameraOcclusionComponent> CameraOcclusionComponent;
+
+	// 카메라 촬영 (필름 소모, 사진 획득 이벤트)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	TObjectPtr<ULCOCameraCaptureComponent> CameraCaptureComponent;
 
 	// LCODoor가 FindComponentByClass로 열쇠를 확인하므로 반드시 필요
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
@@ -168,7 +234,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stamina")
 	TObjectPtr<ULCOStaminaComponent> StaminaComponent;
-	
+
 	// 의심도 (AI 담당). FindComponentByClass로도 찾을 수 있음
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Suspicion")
 	TObjectPtr<USuspicionComponent> SuspicionComponent;
@@ -197,6 +263,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> ToggleViewAction;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	TObjectPtr<UInputAction> CaptureAction;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	TObjectPtr<UInputAction> CrouchAction;
+
 	// ---------- 카메라 설정 ----------
 	// 시작 시점
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -205,6 +277,14 @@ protected:
 	// 캡슐 중심 기준 카메라 높이 (눈 높이)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
 	float CameraPivotHeight = 64.f;
+	
+	// 웅크렸을 때 카메라 높이 (캡슐 중심 기준)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+	float CrouchedCameraPivotHeight = 40.f;
+
+	// 웅크리기 / 일어서기 시 카메라 높이가 바뀌는 속도
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+	float CameraHeightInterpSpeed = 10.f;
 
 	// 3인칭 카메라 거리
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -213,6 +293,30 @@ protected:
 	// 3인칭 어깨 너머 오프셋 (Y: 오른쪽, Z: 위)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
 	FVector ThirdPersonSocketOffset = FVector(0.f, 55.f, 65.f);
+
+	// 3인칭 카메라 위치 지연 속도 (클수록 빠르게 따라옴)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+	float ThirdPersonCameraLagSpeed = 12.f;
+
+	// 마우스 감도 배율
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Look", meta = (ClampMin = "0.1", ClampMax = "5.0"))
+	float LookSensitivity = 1.f;
+
+	// 마우스 상하 반전
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Look")
+	bool bInvertLookY = false;
+
+	// 기본 시야각
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FOV")
+	float DefaultFOV = 90.f;
+
+	// 달릴 때 시야각 (속도감)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FOV")
+	float SprintFOV = 100.f;
+
+	// 시야각이 바뀌는 속도
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FOV")
+	float FOVInterpSpeed = 8.f;
 
 	// ---------- 이동 설정 ----------
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
@@ -224,6 +328,19 @@ protected:
 	// 이 속도 이상으로 움직이고 있어야 달리기로 판정 (제자리 Shift는 스태미나 소모 안 함)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
 	float MinSprintVelocity = 10.f;
+	
+	// 웅크렸을 때 이동 속도
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crouch")
+	float CrouchSpeed = 150.f;
+
+	// 웅크렸을 때 캡슐 절반 높이 (서 있을 때 96)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crouch")
+	float CrouchedHalfHeight = 60.f;
+
+	// true: 한 번 누르면 웅크림 / 다시 누르면 일어섬
+	// false: 누르고 있는 동안만 웅크림
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crouch")
+	bool bToggleCrouch = true;
 
 private:
 	ELCOViewMode ViewMode = ELCOViewMode::FirstPerson;
@@ -234,6 +351,9 @@ private:
 	// 실제로 달리는 중인지
 	bool bIsSprinting = false;
 	
+	// 현재 카메라 높이 (부드럽게 바뀌는 중간값)
+	float CurrentCameraHeight = 0.f;
+
 	// 이동속도 버프 증가량 (버프 없으면 0)
 	float MoveSpeedBonus = 0.f;
 

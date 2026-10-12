@@ -6,6 +6,8 @@
 #include "Engine/Texture2D.h"
 #include "GameFramework/Actor.h"
 #include "Inventory/InventoryComponent.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
 #include "Notebook/LCONotebookSubsystem.h"
 #include "Notebook/LCONotebookTypes.h"
 #include "Engine/DataTable.h"
@@ -31,13 +33,16 @@ ULCOCameraCaptureComponent::FindCaptureTarget() const
         return nullptr;
     }
 
-    // 소유자에게 부착된 카메라 컴포넌트를 찾는다.
-    // 카메라의 위치와 정면 방향을 기준으로 촬영 대상을 탐색한다.
-    UCameraComponent* Camera =
-        Owner->FindComponentByClass<UCameraComponent>();
+    // 소유자의 플레이어 컨트롤러를 가져온다.
+    const APawn* OwnerPawn = Cast<APawn>(Owner);
 
-    // 카메라가 없으면 탐색을 중단한다.
-    if (!Camera)
+    const APlayerController* PC =
+        OwnerPawn
+            ? Cast<APlayerController>(OwnerPawn->GetController())
+            : nullptr;
+
+    // 컨트롤러가 없으면 탐색을 중단한다.
+    if (!PC)
     {
         return nullptr;
     }
@@ -50,12 +55,26 @@ ULCOCameraCaptureComponent::FindCaptureTarget() const
         return nullptr;
     }
 
-    // 탐색 시작점은 카메라의 현재 위치다.
-    const FVector Start = Camera->GetComponentLocation();
+    // 현재 화면의 카메라 위치와 방향을 가져온다.
+    FVector ViewLocation;
+    FRotator ViewRotation;
 
-    // 카메라가 바라보는 정면 방향으로 CaptureDistance만큼 탐색한다.
+    PC->GetPlayerViewPoint(ViewLocation, ViewRotation);
+
+    // 카메라와 캐릭터 사이의 거리를 계산한다.
+    const float CameraToPawn =
+        FVector::Dist(
+            ViewLocation,
+            OwnerPawn->GetPawnViewLocation()
+        );
+
+    // 현재 화면의 카메라 위치에서 탐색을 시작한다.
+    const FVector Start = ViewLocation;
+
+    // 화면이 바라보는 방향으로 탐색한다.
     const FVector End =
-        Start + Camera->GetForwardVector() * CaptureDistance;
+        Start + ViewRotation.Vector()
+            * (CameraToPawn + CaptureDistance);
 
     // 충돌한 대상의 정보가 저장될 변수다.
     FHitResult HitResult;

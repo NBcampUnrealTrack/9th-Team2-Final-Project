@@ -34,6 +34,9 @@ void ULCOQuickSlotComponent::BeginPlay()
 
 	BindOwnerEvents();
 
+	// 시작 시 이미 들고 있는 소비 아이템도 등록
+	AutoAssignFromInventory();
+
 	// 빙의가 BeginPlay보다 늦을 수 있으므로 컨트롤러 변경도 감시
 	OwnerPawn->ReceiveControllerChangedDelegate.AddUniqueDynamic(this, &ThisClass::HandleControllerChanged);
 	TrySetupForController(OwnerPawn->GetController());
@@ -86,7 +89,68 @@ void ULCOQuickSlotComponent::HandleWalkStarted()
 
 void ULCOQuickSlotComponent::HandleInventoryChanged()
 {
+	// 슬롯 구성이 바뀌면 NotifySlotsChanged 안에서 위젯도 갱신됨
+	if (AutoAssignFromInventory())
+	{
+		NotifySlotsChanged();
+		return;
+	}
+
 	RefreshWidgets();
+}
+
+bool ULCOQuickSlotComponent::AutoAssignFromInventory()
+{
+	if (!bAutoAssignConsumables)
+	{
+		return false;
+	}
+
+	const UInventoryComponent* Inventory = GetInventory();
+	if (!Inventory)
+	{
+		return false;
+	}
+
+	bool bChanged = false;
+
+	// 다 써서 수량이 0이 된 슬롯은 비움 (새 아이템이 들어갈 자리 확보)
+	for (int32 i = 0; i < NumSlots; ++i)
+	{
+		if (!SlotItemIDs[i].IsNone() && Inventory->GetItemCount(SlotItemIDs[i]) <= 0)
+		{
+			SlotItemIDs[i] = NAME_None;
+			bChanged = true;
+		}
+	}
+
+	// 인벤토리 순서(획득 순)대로, 아직 등록 안 된 소비 아이템을 빈 슬롯에 등록
+	for (const FInventorySlot& InvSlot : Inventory->InventorySlots)
+	{
+		if (InvSlot.ItemID.IsNone() || InvSlot.Quantity <= 0 || FindSlotOfItem(InvSlot.ItemID) != INDEX_NONE)
+		{
+			continue;
+		}
+
+		const FItemData* ItemData = Inventory->GetItemData(InvSlot.ItemID);
+		if (!ItemData || ItemData->ItemType != EItemType::Consumable)
+		{
+			continue;
+		}
+
+		const int32 EmptyIndex = SlotItemIDs.IndexOfByKey(NAME_None);
+		if (EmptyIndex == INDEX_NONE)
+		{
+			break; // 4칸 모두 사용 중
+		}
+
+		SlotItemIDs[EmptyIndex] = InvSlot.ItemID;
+		bChanged = true;
+
+		UE_LOG(LogTemp, Log, TEXT("[LCOQuickSlot] 자동 등록: %d번 슬롯 = %s"), EmptyIndex + 1, *InvSlot.ItemID.ToString());
+	}
+
+	return bChanged;
 }
 
 void ULCOQuickSlotComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)

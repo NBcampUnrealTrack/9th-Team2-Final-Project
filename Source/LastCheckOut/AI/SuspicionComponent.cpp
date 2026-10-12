@@ -38,7 +38,7 @@ ELCOSuspicionLevel USuspicionComponent::GetSuspicionLevel() const
 {
 	if (Suspicion >= MaxSuspicion)
 	{
-		return ELCOSuspicionLevel::Chasing;
+		return ELCOSuspicionLevel::Max;
 	}
 	if (Suspicion >= 70.f)
 	{

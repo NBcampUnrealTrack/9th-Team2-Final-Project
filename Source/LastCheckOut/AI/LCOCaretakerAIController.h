@@ -90,6 +90,14 @@ private:
 	UFUNCTION()
 	void HandleSuspicionChanged(float NewValue, ELCOSuspicionLevel NewLevel);
 
+	// 의심도 구간에 대응하는 관리인 상태. 구간과 상태의 대응은 이 함수에서만 정한다.
+	//   Calm       (0~19)   -> Patrol      순찰
+	//   Suspicious (20~49)  -> Suspicious  주변 확인
+	//   Alert      (50~69)  -> Search      수색
+	//   Danger     (70~99)  -> Interrogate 플레이어에게 다가가 경고 대화 (잡지 않는다)
+	//   Max        (100)    -> Chase       추격 (잡으면 잡기 처리)
+	static ELCOCaretakerState LevelToState(ELCOSuspicionLevel Level);
+
 	TWeakObjectPtr<USuspicionComponent> BoundSuspicion;
 
 	// 직전에 처리한 의심도 구간. 구간이 바뀔 때만 상태를 갱신한다.

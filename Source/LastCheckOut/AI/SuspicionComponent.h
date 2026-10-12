@@ -11,7 +11,7 @@ enum class ELCOSuspicionLevel : uint8
 	Suspicious, // 20~49
 	Alert,      // 50~69
 	Danger,     // 70~99
-	Chasing     // 100
+	Max         // 100 (체이싱 시작)
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSuspicionChanged, float, NewValue, ELCOSuspicionLevel, NewLevel);

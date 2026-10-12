@@ -368,52 +368,60 @@ void ALCOCaretakerAIController::HandleSuspicionChanged(float NewValue, ELCOSuspi
 	}
 	LastSuspicionLevel = NewLevel;
 
-	// 의심 구간에 진입하는 순간의 플레이어 위치를 수색 기준점으로 기록한다. (계속 추적하지 않는다.)
-	if (NewLevel == ELCOSuspicionLevel::Suspicious || NewLevel == ELCOSuspicionLevel::Alert)
+	// 경고 횟수를 넘겼으면 대화 없이 의심도를 100으로 올려 추격으로 넘긴다.
+	// 같은 Broadcast 안에서 다시 변경하면 구독자들이 순서가 뒤바뀐 알림을 받으므로 다음 틱에 처리한다.
+	if (NewLevel == ELCOSuspicionLevel::Danger && bEscalateAfterWarnings && WarningCount >= MaxWarnings)
 	{
-		if (const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0))
+		GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
 		{
-			BB->SetValueAsVector(LCOBlackboardKeys::LastKnownLocation, PlayerPawn->GetActorLocation());
-		}
+			if (BoundSuspicion.IsValid())
+			{
+				BoundSuspicion->AddSuspicion(1000.f);
+			}
+		}));
+		return;
 	}
 
-	// 의심도 구간에 따라 상태를 바꾼다.
+	// 구간에 진입하는 순간의 플레이어 정보를 Blackboard에 기록한다. (계속 추적하지 않는다.)
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
 	switch (NewLevel)
 	{
 	case ELCOSuspicionLevel::Calm:
 		BB->ClearValue(LCOBlackboardKeys::TargetActor);
-		SetState(ELCOCaretakerState::Patrol);
 		break;
 	case ELCOSuspicionLevel::Suspicious:
-		SetState(ELCOCaretakerState::Suspicious);
-		break;
 	case ELCOSuspicionLevel::Alert:
-		SetState(ELCOCaretakerState::Search);
+		// 수색 기준점
+		if (PlayerPawn)
+		{
+			BB->SetValueAsVector(LCOBlackboardKeys::LastKnownLocation, PlayerPawn->GetActorLocation());
+		}
 		break;
 	case ELCOSuspicionLevel::Danger:
-		// 경고 횟수를 넘겼으면 대화 없이 의심도를 100으로 올려 추격으로 넘긴다.
-		// 같은 Broadcast 안에서 다시 변경하면 구독자들이 순서가 뒤바뀐 알림을 받으므로 다음 틱에 처리한다.
-		if (bEscalateAfterWarnings && WarningCount >= MaxWarnings)
-		{
-			GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
-			{
-				if (BoundSuspicion.IsValid())
-				{
-					BoundSuspicion->AddSuspicion(1000.f);
-				}
-			}));
-			break;
-		}
+	case ELCOSuspicionLevel::Max:
+		// 시야와 관계없이 플레이어를 대상으로 한다.
+		BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, PlayerPawn);
+		break;
+	}
 
-		// 플레이어에게 다가가 경고 대화를 건다. (잡지 않는다.)
-		BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, UGameplayStatics::GetPlayerPawn(this, 0));
-		SetState(ELCOCaretakerState::Interrogate);
-		break;
-	case ELCOSuspicionLevel::Chasing:
-		// 시야와 관계없이 플레이어를 추격한다. 대화 없이 바로 시작한다.
-		BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, UGameplayStatics::GetPlayerPawn(this, 0));
-		SetState(ELCOCaretakerState::Chase);
-		break;
+	SetState(LevelToState(NewLevel));
+}
+
+ELCOCaretakerState ALCOCaretakerAIController::LevelToState(ELCOSuspicionLevel Level)
+{
+	switch (Level)
+	{
+	case ELCOSuspicionLevel::Suspicious:
+		return ELCOCaretakerState::Suspicious;
+	case ELCOSuspicionLevel::Alert:
+		return ELCOCaretakerState::Search;
+	case ELCOSuspicionLevel::Danger:
+		return ELCOCaretakerState::Interrogate;
+	case ELCOSuspicionLevel::Max:
+		return ELCOCaretakerState::Chase;
+	case ELCOSuspicionLevel::Calm:
+	default:
+		return ELCOCaretakerState::Patrol;
 	}
 }
 

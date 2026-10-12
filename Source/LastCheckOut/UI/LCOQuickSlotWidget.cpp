@@ -44,6 +44,17 @@ void ULCOQuickSlotWidget::RefreshSlots(const ULCOQuickSlotComponent* QuickSlot)
 	UpdateSelectedName();
 }
 
+void ULCOQuickSlotWidget::SetEntriesInteractive(bool bInteractive)
+{
+	for (int32 i = 0; i < ULCOQuickSlotComponent::NumSlots; ++i)
+	{
+		if (ULCOQuickSlotEntryWidget* Entry = GetEntry(i))
+		{
+			Entry->SetInteractive(bInteractive);
+		}
+	}
+}
+
 void ULCOQuickSlotWidget::SetSelectedIndex(int32 NewIndex)
 {
 	SelectedIndex = NewIndex;

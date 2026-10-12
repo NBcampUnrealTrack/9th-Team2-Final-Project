@@ -10,6 +10,7 @@
 #include "Localization/LCOLocalizationSubsystem.h"
 #include "Player/LCOPlayerController.h"
 #include "UI/LCOInteractionPromptSubsystem.h"
+#include "UI/LCOContainerWidget.h"
 #include "UI/LCOInventoryWidget.h"
 #include "UI/LCONotebookWidget.h"
 
@@ -83,7 +84,7 @@ void ULCOPauseMenuWidget::OpenPauseMenu()
 		return;
 	}
 
-	// 수첩 / 인벤토리가 열려 있으면 먼저 닫음 (ZOrder가 더 높아서 일시정지 메뉴 위에 남는 문제 방지)
+	// 수첩 / 인벤토리 / 수납장이 열려 있으면 먼저 닫음 (ZOrder가 더 높아서 일시정지 메뉴 위에 남는 문제 방지)
 	CloseOtherMenus();
 
 	AddToViewport(5);
@@ -163,6 +164,18 @@ void ULCOPauseMenuWidget::CloseOtherMenus()
 		if (Inventory && Inventory->GetOwningPlayer() == PC && Inventory->IsInViewport())
 		{
 			Inventory->CloseInventory();
+		}
+	}
+
+	// 수납장 UI: CloseContainer가 수납장 액터 닫기 + 입력 모드 복구까지 처리
+	FoundWidgets.Reset();
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(PC, FoundWidgets, ULCOContainerWidget::StaticClass(), false);
+	for (UUserWidget* Widget : FoundWidgets)
+	{
+		ULCOContainerWidget* ContainerWidget = Cast<ULCOContainerWidget>(Widget);
+		if (ContainerWidget && ContainerWidget->GetOwningPlayer() == PC && ContainerWidget->IsInViewport())
+		{
+			ContainerWidget->CloseContainer();
 		}
 	}
 }

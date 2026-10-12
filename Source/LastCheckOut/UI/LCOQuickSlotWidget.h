@@ -36,6 +36,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
 	int32 GetSelectedIndex() const { return SelectedIndex; }
 
+	// 인벤토리 창 안에 배치한 경우: 4칸 모두 드래그 앤 드롭 / 우클릭 해제 가능하게
+	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
+	void SetEntriesInteractive(bool bInteractive);
+
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "LCO|QuickSlot")
 	void ShowQuickSlot();
 

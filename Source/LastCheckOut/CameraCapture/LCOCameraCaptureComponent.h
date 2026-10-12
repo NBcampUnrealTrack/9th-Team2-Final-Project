@@ -6,6 +6,7 @@
 
 class UTexture2D;
 class ULCOCameraCapturePointComponent;
+class UDataTable;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
 	FOnCameraPhotoCaptured,
@@ -43,6 +44,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LCO|Camera",
 		meta=(ClampMin="100.0"))
 	float CaptureDistance = 500.0f;
+	
+	// 촬영한 사진을 등록할 수첩 DataTable
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LCO|Camera")
+	TObjectPtr<UDataTable> NotebookTable = nullptr;
 
 protected:
 	// 필름이 충분한지 확인

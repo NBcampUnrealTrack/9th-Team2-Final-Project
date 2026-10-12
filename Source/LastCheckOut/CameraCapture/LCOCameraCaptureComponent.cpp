@@ -6,6 +6,10 @@
 #include "Engine/Texture2D.h"
 #include "GameFramework/Actor.h"
 #include "Inventory/InventoryComponent.h"
+#include "Notebook/LCONotebookSubsystem.h"
+#include "Notebook/LCONotebookTypes.h"
+#include "Engine/DataTable.h"
+#include "Engine/GameInstance.h"
 
 
 ULCOCameraCaptureComponent::ULCOCameraCaptureComponent()
@@ -141,38 +145,157 @@ bool ULCOCameraCaptureComponent::ConsumeFilm()
     return Inventory->RemoveItem(CameraFilmItemID, 1);
 }
 
-// 지정된 촬영 대상의 촬영을 처리한다.
+
 bool ULCOCameraCaptureComponent::ProcessCapture(
     ULCOCameraCapturePointComponent* CapturePoint)
 {
-    // 대상이 없거나 이미 촬영했거나 사진 이미지가 없다면 중단한다.
+    // 1. 촬영 대상과 촬영 가능 상태 확인
     if (!CapturePoint || !CapturePoint->CanCapture())
     {
         return false;
     }
 
-    // 필름 소모에 성공한 경우에만 촬영을 진행한다.
-    // 필름이 부족하면 사진을 획득할 수 없다.
-    if (!ConsumeFilm())
+    // 2. 수첩 DataTable 확인
+    if (!NotebookTable)
+    {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("[Camera] NotebookTable이 설정되지 않았습니다.")
+        );
+
+        return false;
+    }
+
+    // 3. 촬영 ID로 수첩 데이터 검색
+    const FName EntryID = CapturePoint->CaptureID;
+
+    if (EntryID.IsNone())
+    {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("[Camera] CaptureID가 설정되지 않았습니다.")
+        );
+
+        return false;
+    }
+
+    const FLCONotebookEntry* NotebookRow =
+        NotebookTable->FindRow<FLCONotebookEntry>(
+            EntryID,
+            TEXT("CameraCapture")
+        );
+
+    if (!NotebookRow)
+    {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("[Camera] 수첩 데이터를 찾을 수 없습니다: %s"),
+            *EntryID.ToString()
+        );
+
+        return false;
+    }
+
+    // 4. 촬영 지점과 수첩 데이터의 이미지 확인
+    if (!CapturePoint->PhotoImage || !NotebookRow->Image)
+    {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("[Camera] 사진 이미지가 설정되지 않았습니다: %s"),
+            *EntryID.ToString()
+        );
+
+        return false;
+    }
+
+    // 5. GameInstance에서 수첩 Subsystem 가져오기
+    UWorld* World = GetWorld();
+    UGameInstance* GameInstance =
+        World ? World->GetGameInstance() : nullptr;
+
+    if (!GameInstance)
     {
         return false;
     }
 
-    // 촬영 성공 상태를 기록한다.
-    // 동일한 대상의 중복 획득을 방지한다.
+    ULCONotebookSubsystem* NotebookSubsystem =
+        GameInstance->GetSubsystem<ULCONotebookSubsystem>();
+
+    if (!NotebookSubsystem)
+    {
+        return false;
+    }
+
+    // 6. 이미 수첩에 등록된 사진인지 확인
+    const bool bAlreadyRegistered =
+        NotebookSubsystem->HasEntry(EntryID);
+
+    // 7. 새 사진이라면 수첩에 등록할 수 있는지 확인
+    // 기존 항목은 중복 등록하지 않는다.
+    if (!bAlreadyRegistered)
+    {
+        // 촬영 지점 ID와 DataTable 행의 ID가 다르면 등록하지 않는다.
+        if (!NotebookRow->EntryID.IsNone() &&
+            NotebookRow->EntryID != EntryID)
+        {
+            UE_LOG(
+                LogTemp,
+                Warning,
+                TEXT("[Camera] EntryID가 일치하지 않습니다: %s"),
+                *EntryID.ToString()
+            );
+
+            return false;
+        }
+    }
+
+    // 8. 필름 1개 소모
+    if (!ConsumeFilm())
+    {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("[Camera] 필름이 부족하거나 소모에 실패했습니다.")
+        );
+
+        return false;
+    }
+
+    // 9. 신규 사진만 수첩에 등록
+    if (!bAlreadyRegistered)
+    {
+        if (!NotebookSubsystem->AddEntryFromTable(
+                NotebookTable,
+                EntryID))
+        {
+            UE_LOG(
+                LogTemp,
+                Warning,
+                TEXT("[Camera] 수첩 등록에 실패했습니다: %s"),
+                *EntryID.ToString()
+            );
+
+            return false;
+        }
+    }
+
+    // 10. 촬영 완료 상태 기록
     CapturePoint->MarkCaptured();
 
-    // 사진 획득 이벤트를 전달한다.
-    // UI는 사진 표시, 수첩 시스템은 사진 등록에 활용할 수 있다.
+    // 11. UI에 촬영 결과 전달
     OnPhotoCaptured.Broadcast(
-        CapturePoint->CaptureID,
+        EntryID,
         CapturePoint->PhotoImage,
         CapturePoint->PhotoTitle
     );
 
-    // 촬영 처리가 정상적으로 완료되었음을 반환한다.
     return true;
 }
+
 
 // 플레이어가 촬영 버튼을 눌렀을 때 호출되는 진입 함수다.
 bool ULCOCameraCaptureComponent::Capture()

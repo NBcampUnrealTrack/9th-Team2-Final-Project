@@ -4,8 +4,8 @@
 
 ALCOContainer::ALCOContainer()
 {
-	// 아이템 정보 DataTable 기본 경로 (Content/Data/DT_ItemData)
-	ItemDataTable = TSoftObjectPtr<UDataTable>(FSoftObjectPath(TEXT("/Game/Data/DT_ItemData/DT_ItemData.DT_ItemData")));
+	// 아이템 정보 DataTable 기본 경로 (Content/Data/DT/DT_ItemData)
+	ItemDataTable = TSoftObjectPtr<UDataTable>(FSoftObjectPath(TEXT("/Game/Data/DT/DT_ItemData.DT_ItemData")));
 }
 
 bool ALCOContainer::IsInteractionLocked_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const

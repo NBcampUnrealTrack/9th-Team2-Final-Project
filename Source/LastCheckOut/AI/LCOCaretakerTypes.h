@@ -12,7 +12,8 @@ enum class ELCOCaretakerState : uint8
 	Search,
 	Chase,
 	LostPlayer,
-	Return
+	Return,
+	Interrogate
 };
 
 namespace LCOBlackboardKeys

@@ -6,6 +6,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NPC/LCONPCBase.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "HAL/IConsoleManager.h"
@@ -217,6 +218,7 @@ void ALCOCaretakerAIController::HandlePlayerCaught(AActor* CaughtPlayer)
 	{
 		BoundSuspicion->ResetSuspicion();
 	}
+	WarningCount = 0;
 
 	// 플레이어를 Player Start 위치로 이동
 	APawn* PlayerPawn = Cast<APawn>(CaughtPlayer);
@@ -282,6 +284,9 @@ void ALCOCaretakerAIController::DrawDebugInfo() const
 	case ELCOCaretakerState::Search:
 	case ELCOCaretakerState::LostPlayer:
 		StateColor = FColor::Yellow;
+		break;
+	case ELCOCaretakerState::Interrogate:
+		StateColor = FColor::Orange;
 		break;
 	case ELCOCaretakerState::Chase:
 		StateColor = FColor::Red;
@@ -386,10 +391,70 @@ void ALCOCaretakerAIController::HandleSuspicionChanged(float NewValue, ELCOSuspi
 		SetState(ELCOCaretakerState::Search);
 		break;
 	case ELCOSuspicionLevel::Danger:
+		// 경고 횟수를 넘겼으면 대화 없이 의심도를 100으로 올려 추격으로 넘긴다.
+		// 같은 Broadcast 안에서 다시 변경하면 구독자들이 순서가 뒤바뀐 알림을 받으므로 다음 틱에 처리한다.
+		if (bEscalateAfterWarnings && WarningCount >= MaxWarnings)
+		{
+			GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
+			{
+				if (BoundSuspicion.IsValid())
+				{
+					BoundSuspicion->AddSuspicion(1000.f);
+				}
+			}));
+			break;
+		}
+
+		// 플레이어에게 다가가 경고 대화를 건다. (잡지 않는다.)
+		BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, UGameplayStatics::GetPlayerPawn(this, 0));
+		SetState(ELCOCaretakerState::Interrogate);
+		break;
 	case ELCOSuspicionLevel::Chasing:
-		// 시야와 관계없이 플레이어를 추격한다.
+		// 시야와 관계없이 플레이어를 추격한다. 대화 없이 바로 시작한다.
 		BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, UGameplayStatics::GetPlayerPawn(this, 0));
 		SetState(ELCOCaretakerState::Chase);
 		break;
 	}
+}
+
+bool ALCOCaretakerAIController::BeginInterrogation(APawn* Player)
+{
+	ALCONPCBase* NPC = Cast<ALCONPCBase>(GetPawn());
+	if (!NPC || !Player || NPC->IsInConversation())
+	{
+		return false;
+	}
+
+	++WarningCount;
+
+	// 대화 중에는 의심도가 오르거나 내려가지 않도록 고정한다.
+	if (BoundSuspicion.IsValid())
+	{
+		BoundSuspicion->SetFrozen(true);
+	}
+
+	NPC->BeginConversation(Player);
+	return true;
+}
+
+void ALCOCaretakerAIController::EndInterrogation(bool bContinueSearch)
+{
+	if (BoundSuspicion.IsValid())
+	{
+		BoundSuspicion->SetFrozen(false);
+	}
+
+	if (!bContinueSearch)
+	{
+		return;
+	}
+
+	// 경고가 끝나면 플레이어 주변에 머물며 수색한다. (의심도 100을 기다리는 상태)
+	UBlackboardComponent* BB = GetBlackboardComponent();
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (BB && PlayerPawn)
+	{
+		BB->SetValueAsVector(LCOBlackboardKeys::LastKnownLocation, PlayerPawn->GetActorLocation());
+	}
+	SetState(ELCOCaretakerState::Search);
 }

@@ -25,6 +25,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "AI")
 	ELCOCaretakerState GetState() const { return CurrentState; }
+	
+	bool BeginInterrogation(APawn* Player);
+	void EndInterrogation(bool bContinueSearch);
 
 protected:
 	virtual void BeginPlay() override;
@@ -63,6 +66,15 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Suspicion")
 	bool bUseSightForChase = true;
 
+	// true면 고위험 구간에서 경고 대화를 MaxWarnings번 한 뒤, 다시 고위험에 진입하면 대화 없이 의심도를 100으로 올려 추격한다.
+	// false면 고위험 구간에 진입할 때마다 경고 대화를 한다.
+	UPROPERTY(EditDefaultsOnly, Category = "AI|Suspicion")
+	bool bEscalateAfterWarnings = true;
+
+	// 추격으로 넘어가기 전까지 허용하는 경고 대화 횟수
+	UPROPERTY(EditDefaultsOnly, Category = "AI|Suspicion", meta = (EditCondition = "bEscalateAfterWarnings", ClampMin = "1"))
+	int32 MaxWarnings = 2;
+
 	// 감지가 끊겨도 이 시간(초) 동안은 추격을 유지한다. 시야 경계에서 감지가 깜빡이는 것을 막는다.
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Sight")
 	float LostGraceTime = 1.0f;
@@ -82,6 +94,9 @@ private:
 
 	// 직전에 처리한 의심도 구간. 구간이 바뀔 때만 상태를 갱신한다.
 	ELCOSuspicionLevel LastSuspicionLevel = ELCOSuspicionLevel::Calm;
+
+	// 지금까지 한 경고 대화 횟수. 잡히면 초기화한다.
+	int32 WarningCount = 0;
 	FTimerHandle SuspicionBindTimer;
 
 	void DrawDebugInfo() const;

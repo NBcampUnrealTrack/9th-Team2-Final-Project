@@ -7,6 +7,8 @@
 #include "Inventory/InventoryComponent.h"
 #include "QuickSlot/LCOQuickSlotComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerStart.h"
+#include "EngineUtils.h"
 #include "Save/LCOSaveManager.h"
 
 ALCOGameMode::ALCOGameMode()
@@ -142,7 +144,7 @@ void ALCOGameMode::StartNewGameProgress(ULCOGameInstance* LCOGameInstance)
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartNewGameProgress: Notebook / Carry / Story reset"));
 }
 
-void ALCOGameMode::TravelToLevel(TSoftObjectPtr<UWorld> Level)
+void ALCOGameMode::TravelToLevel(TSoftObjectPtr<UWorld> Level, FName PlayerStartTag)
 {
 	if (Level.IsNull())
 	{
@@ -154,9 +156,12 @@ void ALCOGameMode::TravelToLevel(TSoftObjectPtr<UWorld> Level)
 	// 캐릭터가 사라지기 전에 먼저 보관
 	StorePlayerCarryData();
 
+	// 도착 위치는 URL 옵션으로 전달 → 새 맵 GameMode의 ChoosePlayerStart에서 읽음
+	const FString Options = PlayerStartTag.IsNone() ? FString() : FString::Printf(TEXT("Entry=%s"), *PlayerStartTag.ToString());
+
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] TravelToLevel: %s"), *Level.ToString());
-	UGameplayStatics::OpenLevelBySoftObjectPtr(this, Level);
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] TravelToLevel: %s (Entry = %s)"), *Level.ToString(), *PlayerStartTag.ToString());
+	UGameplayStatics::OpenLevelBySoftObjectPtr(this, Level, true, Options);
 }
 
 void ALCOGameMode::HandleMatchHasStarted()
@@ -253,4 +258,28 @@ void ALCOGameMode::RestorePlayerCarryData()
 
 	// Log Test
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] RestorePlayerCarryData: Items = %d"), Data.InventorySlots.Num());
+}
+
+AActor* ALCOGameMode::ChoosePlayerStart_Implementation(AController* Player)
+{
+	// 맵 이동 시 전달된 도착 태그 (예: ?Entry=FromMain)
+	const FString EntryTag = UGameplayStatics::ParseOption(OptionsString, TEXT("Entry"));
+
+	if (!EntryTag.IsEmpty())
+	{
+		for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
+		{
+			if (It->PlayerStartTag == FName(*EntryTag))
+			{
+				// Log Test
+				UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ChoosePlayerStart: Entry = %s"), *EntryTag);
+				return *It;
+			}
+		}
+
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] ChoosePlayerStart: no PlayerStart with tag %s -> default"), *EntryTag);
+	}
+
+	// 태그가 없거나 못 찾으면 엔진 기본 방식
+	return Super::ChoosePlayerStart_Implementation(Player);
 }

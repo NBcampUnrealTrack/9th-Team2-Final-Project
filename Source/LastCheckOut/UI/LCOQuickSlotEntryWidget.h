@@ -21,6 +21,7 @@ class UTexture2D;
  *   - 인벤토리 아이템을 끌어다 놓기 : 등록 (소비 아이템만)
  *   - 칸끼리 끌어다 놓기           : 순서 교체
  *   - 칸을 바깥에 놓기 / 우클릭     : 해제
+ *   - 고정 칸(1번 카메라)은 드래그 / 해제 / 놓기 모두 불가
  *   - 드래그 중 칸 위에 올리면 Img_Highlight 표시
  */
 UCLASS(Abstract)
@@ -67,6 +68,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LCO|QuickSlot")
 	float UnusableOpacity = 0.35f;
 
+	// 드래그할 때 마우스를 따라다니는 이미지 (인벤토리 아이템 위젯과 같은 WBP를 지정하면 모양 통일)
+	// 비워두면 이 칸 WBP를 그대로 복사해서 사용
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot")
+	TSubclassOf<ULCOQuickSlotEntryWidget> DragVisualClass;
+
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UImage> Img_Icon;
 
@@ -78,6 +84,9 @@ protected:
 
 private:
 	ULCOQuickSlotComponent* GetQuickSlotComponent() const;
+
+	// 고정 칸(카메라)인지
+	bool IsPinned() const;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTexture2D> Icon;

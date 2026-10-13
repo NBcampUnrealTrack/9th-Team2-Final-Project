@@ -4,6 +4,16 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 
+namespace
+{
+	// 메인 패스만 끄면 깊이는 계속 그려져서 뒤쪽이 가려진 검은 실루엣이 남음 → 깊이 패스도 같이 끔 (그림자 패스는 별개라 유지)
+	void SetRenderHidden(UPrimitiveComponent* Comp, bool bHide)
+	{
+		Comp->SetRenderInMainPass(!bHide);
+		Comp->SetRenderInDepthPass(!bHide);
+	}
+}
+
 ULCOCameraOcclusionComponent::ULCOCameraOcclusionComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -26,7 +36,7 @@ void ULCOCameraOcclusionComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	const FVector CameraLocation = PC->PlayerCameraManager->GetCameraLocation();
 	const FVector PawnEyeLocation = Pawn->GetPawnViewLocation();
 
-	UpdateSelf(CameraLocation, PawnEyeLocation);
+	UpdateSelf(CameraLocation, PawnEyeLocation, DeltaTime);
 
 	if (bHideOccludingPawns)
 	{
@@ -38,6 +48,7 @@ void ULCOCameraOcclusionComponent::EndPlay(const EEndPlayReason::Type EndPlayRea
 {
 	// 숨긴 상태로 남지 않도록 전부 복구
 	SetSelfHidden(false);
+	SetSelfOpacity(1.f);
 	RestoreAllOccluders();
 
 	Super::EndPlay(EndPlayReason);
@@ -45,10 +56,26 @@ void ULCOCameraOcclusionComponent::EndPlay(const EEndPlayReason::Type EndPlayRea
 
 // ---------- 내 몸 ----------
 
-void ULCOCameraOcclusionComponent::UpdateSelf(const FVector& CameraLocation, const FVector& PawnEyeLocation)
+void ULCOCameraOcclusionComponent::UpdateSelf(const FVector& CameraLocation, const FVector& PawnEyeLocation, float DeltaTime)
 {
-	const bool bShouldHide = FVector::DistSquared(CameraLocation, PawnEyeLocation) < FMath::Square(SelfHideDistance);
-	SetSelfHidden(bShouldHide);
+	const float Distance = FVector::Dist(CameraLocation, PawnEyeLocation);
+
+	// 카메라가 몸 안까지 들어오면 완전히 숨김
+	SetSelfHidden(Distance < SelfHideDistance);
+
+	// SelfFadeStartDistance → SelfHideDistance 구간에서 1 → SelfMinOpacity로 점점 투명
+	const float FadeRange = FMath::Max(SelfFadeStartDistance - SelfHideDistance, 1.f);
+	const float FadeAlpha = FMath::Clamp((Distance - SelfHideDistance) / FadeRange, 0.f, 1.f);
+	const float TargetOpacity = FMath::Lerp(SelfMinOpacity, 1.f, FadeAlpha);
+
+	// 목표에 거의 도달하면 딱 맞춰서 1.0에서 디더 구멍이 남지 않게
+	float NewOpacity = FMath::FInterpTo(SelfOpacity, TargetOpacity, DeltaTime, SelfFadeSpeed);
+	if (FMath::IsNearlyEqual(NewOpacity, TargetOpacity, 0.01f))
+	{
+		NewOpacity = TargetOpacity;
+	}
+
+	SetSelfOpacity(NewOpacity);
 }
 
 void ULCOCameraOcclusionComponent::SetSelfHidden(bool bHide)
@@ -65,7 +92,25 @@ void ULCOCameraOcclusionComponent::SetSelfHidden(bool bHide)
 	GetOwner()->GetComponents<UMeshComponent>(Meshes);
 	for (UMeshComponent* Mesh : Meshes)
 	{
-		Mesh->SetRenderInMainPass(!bHide);
+		SetRenderHidden(Mesh, bHide);
+	}
+}
+
+void ULCOCameraOcclusionComponent::SetSelfOpacity(float Opacity)
+{
+	if (SelfOpacity == Opacity || !GetOwner())
+	{
+		return;
+	}
+
+	SelfOpacity = Opacity;
+
+	// 캐릭터 메시 + 붙어 있는 메시(손 카메라 등) 전부. CameraFade 파라미터가 없는 머티리얼은 영향 없음
+	TArray<UMeshComponent*> Meshes;
+	GetOwner()->GetComponents<UMeshComponent>(Meshes);
+	for (UMeshComponent* Mesh : Meshes)
+	{
+		Mesh->SetScalarParameterValueOnMaterials(FadeParamName, SelfOpacity);
 	}
 }
 
@@ -109,7 +154,7 @@ void ULCOCameraOcclusionComponent::UpdateOccluders(const FVector& CameraLocation
 	{
 		if (Weak.IsValid() && !NewHidden.Contains(Weak.Get()))
 		{
-			Weak->SetRenderInMainPass(true);
+			SetRenderHidden(Weak.Get(), false);
 		}
 	}
 
@@ -117,7 +162,7 @@ void ULCOCameraOcclusionComponent::UpdateOccluders(const FVector& CameraLocation
 	TArray<TWeakObjectPtr<UPrimitiveComponent>> NewHiddenWeak;
 	for (UPrimitiveComponent* Comp : NewHidden)
 	{
-		Comp->SetRenderInMainPass(false);
+		SetRenderHidden(Comp, true);
 		NewHiddenWeak.Add(Comp);
 	}
 
@@ -130,7 +175,7 @@ void ULCOCameraOcclusionComponent::RestoreAllOccluders()
 	{
 		if (Weak.IsValid())
 		{
-			Weak->SetRenderInMainPass(true);
+			SetRenderHidden(Weak.Get(), false);
 		}
 	}
 

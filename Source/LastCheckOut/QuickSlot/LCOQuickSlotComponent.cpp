@@ -5,12 +5,17 @@
 #include "Item/ItemData.h"
 #include "Player/LCOPlayerController.h"
 #include "Player/LCOPlayerCharacter.h"
+#include "CameraCapture/LCOCameraCaptureComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "TimerManager.h"
+#include "UI/LCOInventoryWidget.h"
+#include "UI/LCODialogueWidget.h"
 
 ULCOQuickSlotComponent::ULCOQuickSlotComponent()
 {
@@ -24,6 +29,9 @@ void ULCOQuickSlotComponent::BeginPlay()
 
 	// BP에서 배열 크기를 바꿨어도 항상 4칸 유지
 	SlotItemIDs.SetNum(NumSlots);
+
+	// 1번 칸 카메라 고정
+	ApplyPinnedSlot();
 
 	APawn* OwnerPawn = Cast<APawn>(GetOwner());
 	if (!OwnerPawn)
@@ -112,6 +120,12 @@ bool ULCOQuickSlotComponent::AutoAssignFromInventory()
 	// 다 써서 수량이 0이 된 슬롯, 퀵슬롯에 넣을 수 없는 아이템이 든 슬롯은 비움
 	for (int32 i = 0; i < NumSlots; ++i)
 	{
+		// 고정 칸(카메라)은 인벤토리 수량과 무관
+		if (IsPinnedSlot(i))
+		{
+			continue;
+		}
+
 		if (!SlotItemIDs[i].IsNone() && (Inventory->GetItemCount(SlotItemIDs[i]) <= 0 || !CanAssignItem(SlotItemIDs[i])))
 		{
 			SlotItemIDs[i] = NAME_None;
@@ -222,6 +236,16 @@ void ULCOQuickSlotComponent::TrySetupForController(AController* NewController)
 		UE_LOG(LogTemp, Warning, TEXT("[LCOQuickSlot] QuickSlotAction 미지정 또는 EnhancedInputComponent 없음 - Q 휠 비활성"));
 	}
 
+	// 카메라를 든 상태에서만 동작하는 촬영 키
+	if (EIC && CaptureAction)
+	{
+		EIC->BindAction(CaptureAction, ETriggerEvent::Started, this, &ThisClass::HandleCapturePressed);
+	}
+	else if (bPinCameraToFirstSlot)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOQuickSlot] CaptureAction 미지정 - 카메라를 들어도 촬영 키 없음"));
+	}
+
 	CreateWidgets(PC);
 }
 
@@ -258,11 +282,24 @@ void ULCOQuickSlotComponent::CreateWidgets(APlayerController* PC)
 	}
 
 	RefreshWidgets();
+	bHUDShown = false;
 	UpdateHUDVisibility();
+
+	// 인벤토리 / 대화창 열림은 따로 알려주는 이벤트가 없어서 주기적으로 확인
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(HUDCheckTimerHandle, this, &ThisClass::UpdateHUDVisibility, 0.1f, true);
+	}
 }
 
 void ULCOQuickSlotComponent::RemoveWidgets()
 {
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(HUDCheckTimerHandle);
+	}
+	bHUDShown = false;
+
 	if (HUDWidget)
 	{
 		HUDWidget->RemoveFromParent();
@@ -283,6 +320,12 @@ void ULCOQuickSlotComponent::RemoveWidgets()
 bool ULCOQuickSlotComponent::AssignSlot(int32 SlotIndex, FName ItemID)
 {
 	if (!IsValidSlotIndex(SlotIndex))
+	{
+		return false;
+	}
+
+	// 고정 칸(카메라)은 변경 불가
+	if (IsPinnedSlot(SlotIndex))
 	{
 		return false;
 	}
@@ -314,7 +357,7 @@ bool ULCOQuickSlotComponent::AssignSlot(int32 SlotIndex, FName ItemID)
 
 void ULCOQuickSlotComponent::ClearSlot(int32 SlotIndex)
 {
-	if (!IsValidSlotIndex(SlotIndex) || SlotItemIDs[SlotIndex].IsNone())
+	if (!IsValidSlotIndex(SlotIndex) || SlotItemIDs[SlotIndex].IsNone() || IsPinnedSlot(SlotIndex))
 	{
 		return;
 	}
@@ -325,7 +368,7 @@ void ULCOQuickSlotComponent::ClearSlot(int32 SlotIndex)
 
 void ULCOQuickSlotComponent::SwapSlots(int32 SlotA, int32 SlotB)
 {
-	if (!IsValidSlotIndex(SlotA) || !IsValidSlotIndex(SlotB) || SlotA == SlotB)
+	if (!IsValidSlotIndex(SlotA) || !IsValidSlotIndex(SlotB) || SlotA == SlotB || IsPinnedSlot(SlotA) || IsPinnedSlot(SlotB))
 	{
 		return;
 	}
@@ -351,6 +394,12 @@ int32 ULCOQuickSlotComponent::FindSlotOfItem(FName ItemID) const
 
 int32 ULCOQuickSlotComponent::GetSlotItemCount(int32 SlotIndex) const
 {
+	// 카메라는 인벤토리에 없지만 항상 사용 가능
+	if (IsPinnedSlot(SlotIndex))
+	{
+		return 1;
+	}
+
 	const FName ItemID = GetSlotItem(SlotIndex);
 	const UInventoryComponent* Inventory = GetInventory();
 	return (Inventory && !ItemID.IsNone()) ? Inventory->GetItemCount(ItemID) : 0;
@@ -369,7 +418,31 @@ bool ULCOQuickSlotComponent::CanAssignItem(FName ItemID) const
 	// 직접 사용할 수 있는 소비 아이템만 (BuffType이 None인 카메라 필름 등은 제외)
 	return ItemData
 		&& ItemData->ItemType == EItemType::Consumable
-		&& ItemData->BuffType != EBuffType::None;
+		&& !ItemData->BuffEffects.IsEmpty();
+}
+
+bool ULCOQuickSlotComponent::IsPinnedSlot(int32 SlotIndex) const
+{
+	return bPinCameraToFirstSlot && SlotIndex == 0 && !CameraItemID.IsNone();
+}
+
+void ULCOQuickSlotComponent::ApplyPinnedSlot()
+{
+	if (!bPinCameraToFirstSlot || CameraItemID.IsNone())
+	{
+		return;
+	}
+
+	// 다른 칸에 카메라가 들어 있으면 비우고, 1번 칸에 고정 (1번 칸에 있던 소비 아이템은 자동 등록으로 다시 채워짐)
+	for (int32 i = 1; i < NumSlots; ++i)
+	{
+		if (SlotItemIDs[i] == CameraItemID)
+		{
+			SlotItemIDs[i] = NAME_None;
+		}
+	}
+
+	SlotItemIDs[0] = CameraItemID;
 }
 
 UInventoryComponent* ULCOQuickSlotComponent::GetInventory() const
@@ -409,6 +482,13 @@ void ULCOQuickSlotComponent::RefreshWidgets()
 
 bool ULCOQuickSlotComponent::UseSlot(int32 SlotIndex)
 {
+	// 1번 고정 칸: 카메라 들기 (이미 들고 있으면 그대로)
+	if (IsPinnedSlot(SlotIndex))
+	{
+		SetCameraEquipped(true);
+		return true;
+	}
+
 	const FName ItemID = GetSlotItem(SlotIndex);
 	if (ItemID.IsNone())
 	{
@@ -454,8 +534,22 @@ void ULCOQuickSlotComponent::UpdateHUDVisibility()
 		return;
 	}
 
-	// 휠이 열려 있을 땐 휠이 대신 보이므로 HUD는 숨김
-	if (bIsSprinting && !bWheelOpen)
+	// 평소엔 HUD 표시, 아래 경우엔 숨김
+	// - 달리는 동안
+	// - 휠이 열려 있을 때 (휠이 대신 보임)
+	// - 인벤토리 / 대화창이 열려 있을 때
+	// 카메라를 든 상태(촬영 모드)에서도 숨김 - 뷰파인더 화면을 가리지 않도록
+	const bool bShouldShow = !bIsSprinting && !bWheelOpen && !bCameraEquipped && !IsHUDBlockingMenuOpen();
+
+	// 상태가 바뀔 때만 처리 (타이머로 자주 불리므로)
+	if (bShouldShow == bHUDShown)
+	{
+		return;
+	}
+
+	bHUDShown = bShouldShow;
+
+	if (bShouldShow)
 	{
 		HUDWidget->RefreshSlots(this);
 		HUDWidget->ShowQuickSlot();
@@ -464,6 +558,21 @@ void ULCOQuickSlotComponent::UpdateHUDVisibility()
 	{
 		HUDWidget->HideQuickSlot();
 	}
+}
+
+bool ULCOQuickSlotComponent::IsHUDBlockingMenuOpen()
+{
+	// TopLevelOnly = true: 화면(뷰포트)에 올라가 있는 위젯만 찾음 = 열려 있는 창
+	TArray<UUserWidget*> FoundWidgets;
+
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, FoundWidgets, ULCOInventoryWidget::StaticClass(), true);
+	if (FoundWidgets.Num() > 0)
+	{
+		return true;
+	}
+
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, FoundWidgets, ULCODialogueWidget::StaticClass(), true);
+	return FoundWidgets.Num() > 0;
 }
 
 // ======================================================================
@@ -596,6 +705,63 @@ void ULCOQuickSlotComponent::CloseWheel(bool bUseSelected)
 	{
 		UseSlot(IndexToUse);
 	}
+	else if (bUseSelected)
+	{
+		// 휠 가운데(선택 없음)에서 떼면 맨손으로
+		SetCameraEquipped(false);
+	}
 
 	UpdateHUDVisibility();
+}
+
+// ======================================================================
+// 카메라 (1번 고정 칸)
+// ======================================================================
+
+void ULCOQuickSlotComponent::SetCameraEquipped(bool bEquip)
+{
+	if (bEquip && !bPinCameraToFirstSlot)
+	{
+		return;
+	}
+
+	if (bCameraEquipped == bEquip)
+	{
+		return;
+	}
+
+	bCameraEquipped = bEquip;
+	UE_LOG(LogTemp, Log, TEXT("[LCOQuickSlot] %s"), bCameraEquipped ? TEXT("카메라 들기 (촬영 모드)") : TEXT("맨손"));
+
+	OnCameraEquipChanged.Broadcast(bCameraEquipped);
+	RefreshWidgets();
+	UpdateHUDVisibility();
+}
+
+void ULCOQuickSlotComponent::HandleCapturePressed()
+{
+	// 맨손 / 휠 열림 / 메뉴 열림 / 일시정지 중에는 무시
+	if (!bCameraEquipped || bWheelOpen)
+	{
+		return;
+	}
+
+	if (const ALCOPlayerController* LCOPC = Cast<ALCOPlayerController>(CachedPC.Get()))
+	{
+		if (LCOPC->IsInUIMode())
+		{
+			return;
+		}
+	}
+
+	if (UGameplayStatics::IsGamePaused(this))
+	{
+		return;
+	}
+
+	// 결과(성공 팝업 / 실패 문구)는 카메라 컴포넌트 델리게이트 → LCOCameraUISubsystem이 처리
+	if (ULCOCameraCaptureComponent* CameraCapture = GetOwner() ? GetOwner()->FindComponentByClass<ULCOCameraCaptureComponent>() : nullptr)
+	{
+		CameraCapture->Capture();
+	}
 }

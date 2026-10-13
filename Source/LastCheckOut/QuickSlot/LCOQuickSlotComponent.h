@@ -15,18 +15,23 @@ struct FItemData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLCOQuickSlotsChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOQuickSlotItemUsed, int32, SlotIndex, FName, ItemID);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOCameraEquipChanged, bool, bEquipped);
 
 /**
  * 퀵슬롯(1~4) 컴포넌트
  * - BP_PlayerCharacter에 Add Component로 붙여서 사용 (캐릭터 / 컨트롤러 C++ 수정 없음)
  * - 슬롯 순서 등록: 인벤토리 UI에서 AssignSlot / SwapSlots / ClearSlot 호출
  * - Q 꾹 누르기: 원형 휠 표시 + 시간 느려짐 → 마우스 방향으로 선택 → 떼면 사용
- * - 평소엔 숨김, 달리는 동안만 HUD 표시 (캐릭터 OnSprintStarted / OnWalkStarted 자동 바인딩)
+ * - 평소엔 HUD 표시, 달리는 동안엔 숨김 (캐릭터 OnSprintStarted / OnWalkStarted 자동 바인딩)
+ * - 인벤토리 / 대화창이 열려 있는 동안에도 HUD 숨김 (0.1초마다 확인)
  * - 사용 시 InventoryComponent::UseItem 호출 (효과·소모는 인벤토리에서 처리), 성공하면 OnQuickSlotItemUsed
  * - 인벤토리 OnInventoryChanged 자동 바인딩 → 수량 즉시 갱신
  * - 소비 아이템(Consumable)만 등록 가능
  * - 소비 아이템을 새로 획득하면 빈 슬롯에 자동 등록 (bAutoAssignConsumables), 다 쓴 슬롯은 자동으로 비움
  * - 인벤토리 창에서 드래그 앤 드롭으로 등록 / 순서 교체 / 해제 (LCOQuickSlotDragOperation)
+ * - 1번 칸은 카메라 고정 (bPinCameraToFirstSlot): 등록 / 해제 / 교체 / 드래그 불가
+ *   휠에서 1번 선택 = 카메라 들기(촬영 모드), 휠 가운데에서 떼기 = 맨손
+ *   카메라를 든 상태에서만 CaptureAction(예: 좌클릭)으로 촬영
  *
  * 슬롯 인덱스: 0~3 (화면 표시 1~4)
  * 휠 방향:     위=1번, 오른쪽=2번, 아래=3번, 왼쪽=4번 (시계방향)
@@ -47,6 +52,10 @@ public:
 	// 카메라 필름처럼 직접 사용하지 않는 소비 아이템은 BuffType = None으로 두면 제외됨
 	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
 	bool CanAssignItem(FName ItemID) const;
+
+	// 고정 칸인지 (카메라 고정 시 인덱스 0 = 화면 1번). 등록 / 해제 / 교체 / 드래그 불가
+	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
+	bool IsPinnedSlot(int32 SlotIndex) const;
 
 	// 슬롯에 아이템 등록 (소비 아이템만). 다른 슬롯에 같은 아이템이 있으면 그 슬롯은 비움. ItemID가 None이면 비우기
 	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
@@ -84,8 +93,18 @@ public:
 	// ---------- 사용 ----------
 
 	// 보유 수량이 있을 때만 성공 → OnQuickSlotItemUsed 브로드캐스트
+	// 고정 칸(카메라)이면 카메라 들기
 	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
 	bool UseSlot(int32 SlotIndex);
+
+	// ---------- 카메라 (1번 고정 칸) ----------
+
+	// 카메라 들기 / 내리기 (휠에서 1번 선택 = 들기, 휠 가운데에서 떼기 = 맨손)
+	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot|Camera")
+	void SetCameraEquipped(bool bEquip);
+
+	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot|Camera")
+	bool IsCameraEquipped() const { return bCameraEquipped; }
 
 	// ---------- 달리기 상태 ----------
 
@@ -107,6 +126,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "LCO|QuickSlot")
 	FOnLCOQuickSlotItemUsed OnQuickSlotItemUsed;
 
+	// 카메라 들기 / 내리기 시 (카메라 UI 뷰파인더, 캐릭터 애니메이션 등에서 구독)
+	UPROPERTY(BlueprintAssignable, Category = "LCO|QuickSlot|Camera")
+	FOnLCOCameraEquipChanged OnCameraEquipChanged;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -124,9 +147,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Input")
 	int32 MappingContextPriority = 1;
 
+	// 카메라를 든 상태에서 촬영 키 (예: 마우스 좌클릭). 맨손일 때는 무시
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Input")
+	TObjectPtr<UInputAction> CaptureAction;
+
+	// ---------- 카메라 고정 칸 ----------
+
+	// 1번 칸에 카메라 고정
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Camera")
+	bool bPinCameraToFirstSlot = true;
+
+	// 카메라 아이콘 / 이름용 DT_ItemData 행 이름 (인벤토리에는 넣지 않음)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Camera")
+	FName CameraItemID = TEXT("Camera");
+
 	// ---------- 위젯 ----------
 
-	// 달릴 때 보이는 1~4 HUD (WBP_QuickSlotHUD)
+	// 평소에 보이는 1~4 HUD, 달리는 동안엔 숨김 (WBP_QuickSlotHUD)
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Widget")
 	TSubclassOf<ULCOQuickSlotWidget> HUDWidgetClass;
 
@@ -167,6 +204,12 @@ private:
 	// 컨트롤러 확보 → 입력 바인딩 + 위젯 생성
 	void TrySetupForController(AController* NewController);
 
+	// 1번 칸에 카메라 고정 (BeginPlay에서 1회)
+	void ApplyPinnedSlot();
+
+	// 카메라를 든 상태에서 촬영 키 입력
+	void HandleCapturePressed();
+
 	UFUNCTION()
 	void HandleControllerChanged(APawn* Pawn, AController* OldController, AController* NewController);
 
@@ -200,6 +243,9 @@ private:
 	void CloseWheel(bool bUseSelected);
 	void UpdateHUDVisibility();
 
+	// 인벤토리 / 대화창이 화면에 열려 있는지 (열려 있으면 HUD 숨김)
+	bool IsHUDBlockingMenuOpen();
+
 	bool IsValidSlotIndex(int32 SlotIndex) const { return SlotIndex >= 0 && SlotIndex < NumSlots; }
 	void NotifySlotsChanged();
 
@@ -217,6 +263,13 @@ private:
 	bool bInputBound = false;
 	bool bWheelOpen = false;
 	bool bIsSprinting = false;
+
+	// HUD가 지금 보이는 상태인지 (바뀔 때만 Show / Hide 호출해서 BP 애니메이션이 반복 재생되지 않게)
+	bool bHUDShown = false;
+
+	// 인벤토리 / 대화창 열림 확인용 타이머
+	FTimerHandle HUDCheckTimerHandle;
+	bool bCameraEquipped = false;
 
 	// 휠이 열린 동안 누적한 마우스 이동량 (위 = +Y)
 	FVector2D WheelCursor = FVector2D::ZeroVector;

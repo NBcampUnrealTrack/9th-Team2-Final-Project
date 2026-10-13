@@ -13,6 +13,7 @@
 #include "Localization/LCOLocalizationSubsystem.h"
 #include "UI/LCOContainerItemWidget.h"
 #include "UI/LCOInteractionPromptSubsystem.h"
+#include "UI/LCONotificationSubsystem.h"
 
 void ULCOContainerWidget::NativeOnInitialized()
 {
@@ -190,7 +191,35 @@ bool ULCOContainerWidget::TakeContainerItem(FName ItemID, int32 Quantity)
 
 	if (!ContainerActor->TakeItem(InteractorActor, ItemID, Quantity))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCONotification] TakeContainerItem failed before notification. ItemID=%s Quantity=%d"),
+			*ItemID.ToString(),
+			Quantity);
 		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LCONotification] TakeContainerItem succeeded. Requesting item notification. ItemID=%s Quantity=%d"),
+		*ItemID.ToString(),
+		Quantity);
+
+	if (ULocalPlayer* LocalPlayer = GetOwningLocalPlayer())
+	{
+		if (ULCONotificationSubsystem* NotificationSubsystem = LocalPlayer->GetSubsystem<ULCONotificationSubsystem>())
+		{
+			const bool bNotificationShown = NotificationSubsystem->ShowItemAcquiredNotification(ItemID);
+			UE_LOG(LogTemp, Log, TEXT("[LCONotification] ShowItemAcquiredNotification returned %s. ItemID=%s"),
+				bNotificationShown ? TEXT("true") : TEXT("false"),
+				*ItemID.ToString());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[LCONotification] NotificationSubsystem not found on local player. ItemID=%s"),
+				*ItemID.ToString());
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCONotification] OwningLocalPlayer not found. ItemID=%s"),
+			*ItemID.ToString());
 	}
 
 	OnContainerWidgetItemTaken.Broadcast(ContainerActor, ItemID, Quantity);

@@ -56,8 +56,10 @@ struct FLCOPhoneCallEntry
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FOnPhoneCallStartedSignature, ALCOPhone*, Phone, AActor*, Caller, int32, EntryIndex, FName, DialogueID, FName, StartNodeID);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnPhoneCallFinishedSignature, ALCOPhone*, Phone, AActor*, Caller, bool, bCompletedNormally);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPhoneMenuRequestedSignature, ALCOPhone*, Phone, AActor*, User);
 
-// 상호작용하면 진행도에 맞는 통화를 재생하고, 통화가 끝나면 진행 결과를 적용한 뒤 게임을 저장하는 전화기
+// 전화 걸기 / 저장하기 메뉴를 제공하는 전화기
+// 상호작용 → 메뉴 열기 이벤트(OnMenuRequested) → 메뉴 UI에서 StartCall() / SaveAtPhone() / CloseMenu() 호출
 // 통화 선택: CallEntries를 위에서부터 검사해서 조건을 만족하는 첫 항목 사용 (진행이 늦은 항목을 위에 둘 것)
 // 대사 출력: DialogueID가 있으면 ULCODialogueSubsystem::StartDialogue로 대화창을 열고, 대화창이 닫히면 자동으로 FinishCall() 호출
 UCLASS(Blueprintable)
@@ -69,16 +71,43 @@ public:
 	ALCOPhone();
 
 	// ILCOInteractionReceiver
-	// 조건에 맞는 통화를 찾아 시작. 없으면 OnNoCallAvailable 호출
+	// 메뉴 열기 이벤트만 호출 (통화 / 저장은 메뉴에서 선택)
 	virtual void HandleInteraction_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) override;
 
-	// 통화 중이거나 저장 중이면 잠금
+	// 메뉴가 열려 있거나, 통화 중이거나, 저장 중이면 잠금
 	virtual bool IsInteractionLocked_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const override;
 
 	virtual FText GetInteractionPrompt_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const override;
 
+	// ---------- 메뉴 버튼 ----------
+
+	// [전화 걸기] 메뉴를 닫고 조건에 맞는 통화 시작. 걸 수 있는 통화가 없으면 OnNoCallAvailable 호출 후 false
+	UFUNCTION(BlueprintCallable, Category = "Phone")
+	bool StartCall();
+
+	// [저장하기] 메뉴를 닫고 게임 저장. 저장 요청에 실패하면 false (결과는 OnGameSaved)
+	UFUNCTION(BlueprintCallable, Category = "Phone")
+	bool SaveAtPhone();
+
+	// [취소] 메뉴만 닫기
+	UFUNCTION(BlueprintCallable, Category = "Phone")
+	void CloseMenu();
+
+	// 지금 걸 수 있는 통화가 있는지 (메뉴의 전화 걸기 버튼 활성화용)
+	UFUNCTION(BlueprintPure, Category = "Phone")
+	bool CanCall() const { return FindAvailableCallIndex() != INDEX_NONE; }
+
+	// 지금 저장할 수 있는지 (다른 저장이 진행 중이면 false)
+	UFUNCTION(BlueprintPure, Category = "Phone")
+	bool CanSave() const;
+
+	UFUNCTION(BlueprintPure, Category = "Phone")
+	bool IsMenuOpen() const { return MenuUser.IsValid(); }
+
+	// ---------- 통화 ----------
+
 	// 통화가 끝났을 때 호출 (대화창이 닫히면 자동 호출. DialogueID가 없는 통화는 BP에서 호출)
-	// bCompletedNormally가 true면 진행 결과를 적용하고 저장. false(ESC 등으로 중단)면 아무것도 적용하지 않음
+	// bCompletedNormally가 true면 진행 결과를 적용 (bSaveOnCallFinished면 저장까지). false(ESC 등으로 중단)면 아무것도 적용하지 않음
 	UFUNCTION(BlueprintCallable, Category = "Phone")
 	void FinishCall(bool bCompletedNormally = true);
 
@@ -88,6 +117,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Phone")
 	bool IsInCall() const { return ActiveEntryIndex != INDEX_NONE; }
+
+	// 메뉴를 열어야 할 때 (UI 바인딩용)
+	UPROPERTY(BlueprintAssignable, Category = "Phone")
+	FOnPhoneMenuRequestedSignature OnMenuRequestedDelegate;
 
 	// 통화가 시작될 때 (대화 시스템 연결용)
 	UPROPERTY(BlueprintAssignable, Category = "Phone")
@@ -101,6 +134,14 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	// ---------- BP 이벤트 ----------
+
+	// 메뉴 열기. 여기서 전화 걸기 / 저장하기 메뉴 UI를 띄운다
+	UFUNCTION(BlueprintImplementableEvent, Category = "Phone")
+	void OnMenuRequested(AActor* User);
+
+	// 메뉴가 닫혔을 때 (버튼 선택 / 취소 공통. 메뉴 UI 정리용)
+	UFUNCTION(BlueprintImplementableEvent, Category = "Phone")
+	void OnMenuClosed();
 
 	// 통화 시작 (수화기 드는 소리 등). 대화창은 이 이벤트 다음에 열림
 	// DialogueID가 없는 통화는 여기서 직접 연출하고 끝나면 FinishCall() 호출
@@ -125,15 +166,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Phone")
 	TArray<FLCOPhoneCallEntry> CallEntries;
 
-	// 통화를 끝까지 들었을 때 게임 저장
+	// 통화를 끝까지 들었을 때 자동 저장 (기본은 끔. 저장은 메뉴의 저장하기로)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Phone")
-	bool bSaveOnCallFinished = true;
+	bool bSaveOnCallFinished = false;
 
 	// 상호작용 문구
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Phone|Prompt")
-	FText CallPrompt;
+	FText UsePrompt;
 
 private:
+	// 메뉴 상태 해제 + OnMenuClosed 호출. 메뉴를 연 액터 반환
+	AActor* ConsumeMenuUser();
+
 	// 진행도가 Entry의 조건을 모두 만족하는지
 	bool IsEntryAvailable(const FLCOPhoneCallEntry& Entry) const;
 
@@ -148,7 +192,8 @@ private:
 	UFUNCTION()
 	void HandleDialogueFinished(FName DialogueID, bool bCompletedNormally);
 
-	void RequestSave();
+	// SaveManager에 저장 요청. 요청에 실패하면 OnGameSaved(false) 호출 후 false
+	bool RequestSave();
 
 	UFUNCTION()
 	void HandleSaveFinished(bool bSuccess);
@@ -160,6 +205,9 @@ private:
 	int32 ActiveEntryIndex = INDEX_NONE;
 
 	TWeakObjectPtr<AActor> ActiveCaller;
+
+	// 메뉴를 연 액터 (메뉴가 닫혀 있으면 nullptr)
+	TWeakObjectPtr<AActor> MenuUser;
 
 	// 이 전화기가 요청한 저장이 진행 중인지 (SaveManager 델리게이트 바인딩 여부)
 	bool bWaitingForSave = false;

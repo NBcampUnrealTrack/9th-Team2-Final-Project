@@ -12,47 +12,112 @@ ALCOPhone::ALCOPhone()
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
-	CallPrompt = NSLOCTEXT("LCOInteraction", "PhoneCallPrompt", "전화 걸기");
+	UsePrompt = NSLOCTEXT("LCOInteraction", "PhoneUsePrompt", "전화기 사용");
 }
 
 void ALCOPhone::HandleInteraction_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor)
 {
-	if (IsInCall())
+	if (IsMenuOpen() || IsInCall())
 	{
 		return;
+	}
+
+	MenuUser = Interactor;
+
+	UE_LOG(LogTemp, Log, TEXT("[LCOPhone] %s MenuRequested by %s"), *GetName(), *GetNameSafe(Interactor));
+
+	OnMenuRequested(Interactor);
+	OnMenuRequestedDelegate.Broadcast(this, Interactor);
+}
+
+bool ALCOPhone::StartCall()
+{
+	AActor* Caller = ConsumeMenuUser();
+	if (!IsValid(Caller) || IsInCall())
+	{
+		return false;
 	}
 
 	const int32 EntryIndex = FindAvailableCallIndex();
 	if (EntryIndex == INDEX_NONE)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[LCOPhone] %s: No call available"), *GetName());
-		OnNoCallAvailable(Interactor);
-		return;
+		OnNoCallAvailable(Caller);
+		return false;
 	}
 
 	ActiveEntryIndex = EntryIndex;
-	ActiveCaller = Interactor;
+	ActiveCaller = Caller;
 
 	const FLCOPhoneCallEntry& Entry = CallEntries[EntryIndex];
 
 	UE_LOG(LogTemp, Log, TEXT("[LCOPhone] %s CallStarted: Entry %d (Dialogue: %s, StartNode: %s)"),
 		*GetName(), EntryIndex, *Entry.DialogueID.ToString(), *Entry.StartNodeID.ToString());
 
-	OnCallStarted(Interactor, EntryIndex, Entry.DialogueID, Entry.StartNodeID);
-	OnCallStartedDelegate.Broadcast(this, Interactor, EntryIndex, Entry.DialogueID, Entry.StartNodeID);
+	OnCallStarted(Caller, EntryIndex, Entry.DialogueID, Entry.StartNodeID);
+	OnCallStartedDelegate.Broadcast(this, Caller, EntryIndex, Entry.DialogueID, Entry.StartNodeID);
 
 	// BP 이벤트에서 이미 통화를 끝냈거나, 대화 없이 BP가 직접 처리하는 통화
 	if (!IsInCall() || Entry.DialogueID.IsNone())
 	{
-		return;
+		return true;
 	}
 
-	if (!StartCallDialogue(Interactor, Entry))
+	if (!StartCallDialogue(Caller, Entry))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LCOPhone] %s: Failed to open dialogue %s (StartNode: %s)"),
 			*GetName(), *Entry.DialogueID.ToString(), *Entry.StartNodeID.ToString());
 		FinishCall(false);
+		return false;
 	}
+
+	return true;
+}
+
+bool ALCOPhone::SaveAtPhone()
+{
+	ConsumeMenuUser();
+
+	if (!CanSave())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOPhone] %s: Cannot save now (already saving)"), *GetName());
+		OnGameSaved(false);
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LCOPhone] %s SaveRequested"), *GetName());
+	return RequestSave();
+}
+
+void ALCOPhone::CloseMenu()
+{
+	ConsumeMenuUser();
+}
+
+bool ALCOPhone::CanSave() const
+{
+	if (bWaitingForSave)
+	{
+		return false;
+	}
+
+	const UGameInstance* GameInstance = GetGameInstance();
+	const ULCOSaveManager* SaveManager = GameInstance ? GameInstance->GetSubsystem<ULCOSaveManager>() : nullptr;
+	return SaveManager && !SaveManager->IsSaving();
+}
+
+AActor* ALCOPhone::ConsumeMenuUser()
+{
+	if (!IsMenuOpen())
+	{
+		return nullptr;
+	}
+
+	AActor* User = MenuUser.Get();
+	MenuUser.Reset();
+
+	OnMenuClosed();
+	return User;
 }
 
 bool ALCOPhone::StartCallDialogue(AActor* Caller, const FLCOPhoneCallEntry& Entry)
@@ -101,19 +166,12 @@ void ALCOPhone::HandleDialogueFinished(FName DialogueID, bool bCompletedNormally
 
 bool ALCOPhone::IsInteractionLocked_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const
 {
-	if (IsInCall() || bWaitingForSave)
-	{
-		return true;
-	}
-
-	const UGameInstance* GameInstance = GetGameInstance();
-	const ULCOSaveManager* SaveManager = GameInstance ? GameInstance->GetSubsystem<ULCOSaveManager>() : nullptr;
-	return SaveManager && SaveManager->IsSaving();
+	return IsMenuOpen() || IsInCall() || !CanSave();
 }
 
 FText ALCOPhone::GetInteractionPrompt_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const
 {
-	return CallPrompt;
+	return UsePrompt;
 }
 
 void ALCOPhone::FinishCall(bool bCompletedNormally)
@@ -217,14 +275,15 @@ void ALCOPhone::ApplyCallResult(const FLCOPhoneCallEntry& Entry) const
 	}
 }
 
-void ALCOPhone::RequestSave()
+bool ALCOPhone::RequestSave()
 {
 	UGameInstance* GameInstance = GetGameInstance();
 	ULCOSaveManager* SaveManager = GameInstance ? GameInstance->GetSubsystem<ULCOSaveManager>() : nullptr;
 	if (!SaveManager)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LCOPhone] %s: SaveManager not found"), *GetName());
-		return;
+		OnGameSaved(false);
+		return false;
 	}
 
 	SaveManager->OnSaveFinished.AddUniqueDynamic(this, &ALCOPhone::HandleSaveFinished);
@@ -237,7 +296,10 @@ void ALCOPhone::RequestSave()
 		SaveManager->OnSaveFinished.RemoveDynamic(this, &ALCOPhone::HandleSaveFinished);
 		bWaitingForSave = false;
 		OnGameSaved(false);
+		return false;
 	}
+
+	return true;
 }
 
 void ALCOPhone::HandleSaveFinished(bool bSuccess)

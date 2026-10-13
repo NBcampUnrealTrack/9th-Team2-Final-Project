@@ -4,6 +4,7 @@
 #include "Interaction/LCOHidingSpot.h"
 
 #include "BehaviorTree/BehaviorTree.h"
+#include "BrainComponent.h"
 #include "DrawDebugHelpers.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/GameModeBase.h"
@@ -159,6 +160,12 @@ void ALCOCaretakerAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStim
 		return;
 	}
 
+	// 숨은 플레이어를 끌어내는 중에는 감지 결과로 타겟/상태를 바꾸지 않는다.
+	if (ExtractSpot.IsValid())
+	{
+		return;
+	}
+
 	// 플레이어만 대상으로 한다.
 	const APawn* SensedPawn = Cast<APawn>(Actor);
 	if (!SensedPawn || !SensedPawn->IsPlayerControlled())
@@ -199,13 +206,7 @@ void ALCOCaretakerAIController::FinishLostGrace()
 
 void ALCOCaretakerAIController::CheckCatch()
 {
-	if (CurrentState != ELCOCaretakerState::Chase || !GetPawn())
-	{
-		return;
-	}
-
-	// 안전지대(로비) 안에서는 잡을 수 없다.
-	if (ChasingManager.IsValid() && ChasingManager->IsPlayerInSafeZone())
+	if (!GetPawn())
 	{
 		return;
 	}
@@ -218,11 +219,25 @@ void ALCOCaretakerAIController::CheckCatch()
 			// 스스로 나왔거나 이미 끌려나온 경우
 			FinishExtract();
 		}
-		else if (FVector::Dist(GetPawn()->GetActorLocation(), Spot->GetActorLocation()) <= ExtractDistance)
+		else if (FVector::Dist(GetPawn()->GetActorLocation(), Spot->GetExitTransform().GetLocation()) <= ExtractArriveDistance
+			|| GetWorld()->GetTimeSeconds() - ExtractStartTime >= ExtractTimeout)
 		{
+			StopMovement();
+			OnExtractArrived.Broadcast(Spot);
 			Spot->ForceEject();
 			FinishExtract();
 		}
+		return;
+	}
+
+	if (CurrentState != ELCOCaretakerState::Chase)
+	{
+		return;
+	}
+
+	// 안전지대(로비) 안에서는 잡을 수 없다.
+	if (ChasingManager.IsValid() && ChasingManager->IsPlayerInSafeZone())
+	{
 		return;
 	}
 
@@ -247,7 +262,7 @@ void ALCOCaretakerAIController::HandlePlayerCaught(AActor* CaughtPlayer)
 		BoundSuspicion->ResetSuspicion();
 	}
 	WarningCount = 0;
-	ExtractSpot.Reset();
+	ClearExtractState();
 
 	// 플레이어를 Player Start 위치로 이동
 	APawn* PlayerPawn = Cast<APawn>(CaughtPlayer);
@@ -290,17 +305,39 @@ void ALCOCaretakerAIController::StartExtractHider(ALCOHidingSpot* HidingSpot)
 	UBlackboardComponent* BB = GetBlackboardComponent();
 	if (!HidingSpot || !BB || CurrentState != ELCOCaretakerState::Chase)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOCaretakerAIController] Extract ignored (State: %d)"), static_cast<int32>(CurrentState));
 		return;
 	}
 
 	// 추격 대상을 플레이어 대신 은신처로 바꿔 그 앞까지 이동한다.
 	ExtractSpot = HidingSpot;
+	if (BrainComponent)
+	{
+		BrainComponent->PauseLogic(TEXT("Extract"));
+	}
+	StopMovement();
+	MoveToLocation(HidingSpot->GetExitTransform().GetLocation(), ExtractArriveDistance * 0.5f, true, true, true);
+	ExtractStartTime = GetWorld()->GetTimeSeconds();
+	GetWorldTimerManager().ClearTimer(LostGraceTimer);
 	BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, HidingSpot);
+	UE_LOG(LogTemp, Log, TEXT("[LCOCaretakerAIController] Extract start: %s"), *GetNameSafe(HidingSpot));
+}
+
+void ALCOCaretakerAIController::ClearExtractState()
+{
+	if (ExtractSpot.IsValid())
+	{
+		ExtractSpot.Reset();
+		if (BrainComponent)
+		{
+			BrainComponent->ResumeLogic(TEXT("Extract"));
+		}
+	}
 }
 
 void ALCOCaretakerAIController::FinishExtract()
 {
-	ExtractSpot.Reset();
+	ClearExtractState();
 
 	if (UBlackboardComponent* BB = GetBlackboardComponent())
 	{
@@ -310,7 +347,7 @@ void ALCOCaretakerAIController::FinishExtract()
 
 void ALCOCaretakerAIController::StopChase()
 {
-	ExtractSpot.Reset();
+	ClearExtractState();
 	GetWorldTimerManager().ClearTimer(LostGraceTimer);
 	StopMovement();
 	AIPerception->ForgetAll();

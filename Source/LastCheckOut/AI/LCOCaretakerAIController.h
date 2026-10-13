@@ -13,6 +13,9 @@ class UBehaviorTree;
 class ALCOChasingManager;
 class ALCOHidingSpot;
 
+// 관리인이 은신처에 도착해 숨은 플레이어를 끌어내기 직전에 호출된다. (옷장 열기 연출 연결용)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCaretakerExtractArrived, ALCOHidingSpot*, HidingSpot);
+
 // 관리인 AI 컨트롤러. 감지와 상태 전환을 담당하고, 행동은 Behavior Tree가 실행한다.
 UCLASS()
 class LASTCHECKOUT_API ALCOCaretakerAIController : public AAIController
@@ -34,8 +37,16 @@ public:
 	// 추격을 멈추고 순찰로 되돌린다. (체이싱이 끝났을 때 매니저가 호출)
 	void StopChase();
 
+	// 관리인 시야 거리(cm)와 시야각(정면 기준 좌우 각각, 도)
+	float GetViewDistance() const { return SightRadius; }
+	float GetViewHalfAngle() const { return PeripheralVisionAngle; }
+
 	// 들킨 채 숨은 플레이어를 끌어내러 간다. 은신처까지 이동한 뒤 ForceEject()로 끌어내고 다시 플레이어를 추격한다.
 	void StartExtractHider(ALCOHidingSpot* HidingSpot);
+
+	// 은신처에 도착해 ForceEject() 하기 직전에 호출된다. 옷장 여는 연출을 여기에 연결한다.
+	UPROPERTY(BlueprintAssignable, Category = "AI|Catch")
+	FOnCaretakerExtractArrived OnExtractArrived;
 
 protected:
 	virtual void BeginPlay() override;
@@ -69,9 +80,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Catch")
 	float CatchCheckInterval = 0.1f;
 
-	// 은신처에서 이 거리(cm) 안에 도착하면 숨은 플레이어를 끌어낸다.
+	// 은신처 앞(ExitPoint)에서 이 거리(cm) 안에 도착하면 숨은 플레이어를 끌어낸다.
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Catch")
-	float ExtractDistance = 250.f;
+	float ExtractArriveDistance = 150.f;
+
+	// 이 시간(초) 안에 은신처에 도착하지 못해도 강제로 끌어낸다. (이동 실패 대비)
+	UPROPERTY(EditDefaultsOnly, Category = "AI|Catch")
+	float ExtractTimeout = 8.f;
 
 	// true면 시야 감지로 추격한다. (의심도 연동 전 테스트용 임시 동작)
 	// false면 플레이어의 의심도 구간에 따라 상태를 바꾼다.
@@ -115,9 +130,13 @@ private:
 
 	// 끌어내러 가는 중인 은신처
 	TWeakObjectPtr<ALCOHidingSpot> ExtractSpot;
+	double ExtractStartTime = 0.0;
 
 	// 끌어내기를 마치고 추격 대상을 다시 플레이어로 되돌린다.
 	void FinishExtract();
+
+	// 끌어내기 상태를 해제하고 멈춰 둔 BT를 재개한다.
+	void ClearExtractState();
 
 	// 직전에 처리한 의심도 구간. 구간이 바뀔 때만 상태를 갱신한다.
 	ELCOSuspicionLevel LastSuspicionLevel = ELCOSuspicionLevel::Calm;

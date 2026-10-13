@@ -50,3 +50,4 @@ CAMERA_FAIL_ALREADY_CAPTURED,이미 찍어둔 곳이다,I've already photographe
 CAMERA_FAIL_ERROR,제대로 찍히지 않았다,The shot didn't come out.,うまく撮れなかった,没拍好,沒拍好,La foto no salió bien.,La photo est ratée.,Das Foto ist nichts geworden.,A foto não saiu.,Kuva epäonnistui.
 CAMERA_PHOTO_CLOSE_HINT,[E] 닫기,[E] Close,[E] 閉じる,[E] 关闭,[E] 關閉,[E] Cerrar,[E] Fermer,[E] Schließen,[E] Fechar,[E] Sulje
 QUICKSLOT_BARE_HAND,맨손,Bare Hands,素手,空手,空手,Manos vacías,Mains nues,Leere Hände,Mãos vazias,Paljain käsin
+NOTIFICATION_ITEM_ACQUIRED_FORMAT,{0} 획득,Acquired {0},{0}を入手,获得{0},獲得{0},{0} obtenido,{0} obtenu,{0} erhalten,{0} adquirido,{0} saatu

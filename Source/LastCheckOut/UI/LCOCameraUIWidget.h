@@ -18,6 +18,7 @@ class UInputAction;
  * - 시간 정지 없음, 마우스 커서 없음 (팝업이 떠 있어도 이동 가능)
  * - 팝업 닫기: PhotoDisplayTime 후 자동 / ClosePhotoAction 키 입력
  * - 촬영 모드(퀵슬롯 1번 카메라를 든 상태)일 때 CameraModePanel(뷰파인더) 표시
+ * - 촬영 모드 중 인벤토리 / 수첩 / 대화 / 상자 / 일시정지 등 UI가 열리면 카메라를 자동으로 내림
  */
 UCLASS(Abstract)
 class LASTCHECKOUT_API ULCOCameraUIWidget : public UUserWidget
@@ -66,6 +67,9 @@ public:
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeDestruct() override;
+
+	// 촬영 모드 중 UI가 열렸는지 감시 → 열리면 카메라 내리기
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	// ---------- BP 연출용 이벤트 (선택 구현: 페이드 애니메이션 등) ----------
 

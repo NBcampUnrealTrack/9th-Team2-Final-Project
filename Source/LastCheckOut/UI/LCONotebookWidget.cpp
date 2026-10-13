@@ -11,6 +11,26 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
+#include "UI/LCOContainerWidget.h"
+
+namespace LCONotebookWidgetPrivate
+{
+	// 화면에 열려 있는 상자(서랍장) 창을 모두 닫음 (상자 위에 인벤토리 / 수첩을 겹쳐 열지 않도록)
+	void CloseOpenContainerWidgets(UObject* WorldContextObject)
+	{
+		TArray<UUserWidget*> FoundWidgets;
+		UWidgetBlueprintLibrary::GetAllWidgetsOfClass(WorldContextObject, FoundWidgets, ULCOContainerWidget::StaticClass(), true);
+
+		for (UUserWidget* Widget : FoundWidgets)
+		{
+			ULCOContainerWidget* ContainerWidget = Cast<ULCOContainerWidget>(Widget);
+			if (ContainerWidget && ContainerWidget->IsInViewport())
+			{
+				ContainerWidget->CloseContainer();
+			}
+		}
+	}
+}
 
 namespace LCONotebookPage
 {
@@ -116,6 +136,9 @@ void ULCONotebookWidget::OpenNotebook()
 			return;
 		}
 	}
+
+	// 상자 창이 열려 있으면 먼저 닫음 (닫은 뒤 일시정지 + UI 모드 적용)
+	LCONotebookWidgetPrivate::CloseOpenContainerWidgets(this);
 
 	AddDebugEntriesOnce();
 

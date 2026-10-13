@@ -205,49 +205,60 @@ bool UInventoryComponent::UseItem(FName ItemID)
 
 	// 아이템 종류에 따라 사용 방식 분기
 	switch (ItemData->ItemType)
-	{
-	case EItemType::Consumable:
-
-		// DataTable에 설정된 버프 종류에 따라 효과 적용
-		switch (ItemData->BuffType)
+{
+		case EItemType::Consumable:
 		{
-		case EBuffType::MoveSpeed:
-
-			// 이동속도 증가 버프 적용
-			if (!Character->ApplyMoveSpeedBuff(
-				ItemData->BuffAmount,
-				ItemData->BuffDuration))
+			// 아이템에 등록된 버프 효과가 있는지 확인
+			// 버프가 없는 소비 아이템은 사용할 수 없음
+			if (ItemData->BuffEffects.IsEmpty())
 			{
 				return false;
 			}
 
-			break;
-
-
-		case EBuffType::MaxStamina:
-
-			// 최대 스태미나 증가 버프 적용
-			if (!Character->ApplyMaxStaminaBuff(
-				static_cast<int32>(ItemData->BuffAmount),
-				ItemData->BuffDuration))
+			// 아이템에 등록된 모든 버프 효과를 순회
+			for (const FItemBuffEffect& Effect : ItemData->BuffEffects)
 			{
-				return false;
+				// 버프 종류에 따라 서로 다른 효과 적용
+				switch (Effect.BuffType)
+				{
+				case EBuffType::MoveSpeed:
+
+					// 이동속도 증가 버프 적용
+					if (!Character->ApplyMoveSpeedBuff(
+						Effect.BuffAmount,
+						Effect.BuffDuration))
+					{
+						return false;
+					}
+
+					break;
+
+				case EBuffType::MaxStamina:
+
+					// 최대 스태미나 증가 버프 적용
+					if (!Character->ApplyMaxStaminaBuff(
+						static_cast<int32>(Effect.BuffAmount),
+						Effect.BuffDuration))
+					{
+						return false;
+					}
+
+					break;
+
+				case EBuffType::None:
+				default:
+
+					// 유효하지 않은 버프가 등록되어 있으면 사용 중단
+					return false;
+				}
 			}
 
-			break;
+			// 모든 버프 적용이 끝나면 아이템 1개 소모
+			RemoveItem(ItemID, 1);
 
-
-		case EBuffType::None:
-		default:
-
-			// 적용할 버프가 없는 소비 아이템
-			return false;
+			return true;
 		}
 
-		// 버프 적용 성공 시 아이템 1개 소모
-		RemoveItem(ItemID, 1);
-
-		return true;
 
 
 	case EItemType::KeyItem:

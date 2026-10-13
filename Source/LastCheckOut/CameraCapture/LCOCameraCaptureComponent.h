@@ -22,10 +22,11 @@ enum class ELCOCameraCaptureResult : uint8
 {
 	Success         UMETA(DisplayName = "촬영 성공"),
 	NoTarget        UMETA(DisplayName = "촬영 대상 없음"),
+	Cooldown		UMETA(DisplayName = "촬영 대기 중"),
 	AlreadyCaptured UMETA(DisplayName = "이미 촬영한 대상"),
-	NoFilm          UMETA(DisplayName = "필름 부족"),
 	InvalidData     UMETA(DisplayName = "촬영 데이터 오류"),
-	SystemError     UMETA(DisplayName = "시스템 오류")
+	SystemError     UMETA(DisplayName = "시스템 오류"),
+
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
@@ -60,10 +61,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Camera")
 	FOnCameraCaptureFailed OnCaptureFailed;
 
-	// 카메라 필름 아이템 ID
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LCO|Camera")
-	FName CameraFilmItemID = TEXT("CameraFilm");
-
 	// 촬영 거리
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LCO|Camera",
 		meta=(ClampMin="100.0"))
@@ -72,13 +69,18 @@ public:
 	// 촬영한 사진을 등록할 수첩 DataTable
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LCO|Camera")
 	TObjectPtr<UDataTable> NotebookTable = nullptr;
+	
+	// ---------------------------------------------------------------------------------------------
+	
+	// 촬영 성공 후 다음 촬영까지 대기 시간
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LCO|Camera",
+		meta=(ClampMin="0.0"))
+	float CaptureCooldown = 5.0f;
+	
+	// 다음 촬영이 가능한 월드 시간
+	float NextCaptureAllowedTime = 0.0f;
 
 protected:
-	// 필름이 충분한지 확인
-	bool HasCameraFilm() const;
-
-	// 필름 1개 소모
-	bool ConsumeFilm();
 
 	ELCOCameraCaptureResult ProcessCapture(
 		ULCOCameraCapturePointComponent* CapturePoint

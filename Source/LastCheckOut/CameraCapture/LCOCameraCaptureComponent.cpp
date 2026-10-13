@@ -1,11 +1,9 @@
 
 #include "LCOCameraCaptureComponent.h"
 #include "LCOCameraCapturePointComponent.h"
-#include "Camera/CameraComponent.h"
 #include "Engine/World.h"
 #include "Engine/Texture2D.h"
 #include "GameFramework/Actor.h"
-#include "Inventory/InventoryComponent.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Notebook/LCONotebookSubsystem.h"
@@ -104,66 +102,6 @@ ULCOCameraCaptureComponent::FindCaptureTarget() const
     return HitResult.GetActor()
         ->FindComponentByClass<ULCOCameraCapturePointComponent>();
 }
-
-// 인벤토리에 카메라 필름이 남아 있는지 확인한다.
-bool ULCOCameraCaptureComponent::HasCameraFilm() const
-{
-    AActor* Owner = GetOwner();
-
-    // 소유자가 없으면 인벤토리에 접근할 수 없다.
-    if (!Owner)
-    {
-        return false;
-    }
-
-    // 플레이어 캐릭터에 부착된 인벤토리 컴포넌트를 찾는다.
-    UInventoryComponent* Inventory =
-        Owner->FindComponentByClass<UInventoryComponent>();
-
-    // 인벤토리를 찾지 못했다면 필름이 없는 것으로 처리한다.
-    if (!Inventory)
-    {
-        return false;
-    }
-
-    // CameraFilmItemID에 해당하는 아이템의 보유 수량을 확인한다.
-    // 수량이 1개 이상이면 촬영할 수 있다.
-    return Inventory->GetItemCount(CameraFilmItemID) > 0;
-}
-
-// 인벤토리에서 카메라 필름 1개를 소모한다.
-bool ULCOCameraCaptureComponent::ConsumeFilm()
-{
-    AActor* Owner = GetOwner();
-
-    // 소유자가 없으면 소모할 수 없다.
-    if (!Owner)
-    {
-        return false;
-    }
-
-    // 플레이어 캐릭터의 인벤토리 컴포넌트를 가져온다.
-    UInventoryComponent* Inventory =
-        Owner->FindComponentByClass<UInventoryComponent>();
-
-    // 인벤토리가 없다면 소모에 실패한다.
-    if (!Inventory)
-    {
-        return false;
-    }
-
-    // 필름 수량을 다시 확인한다.
-    // 촬영 처리 시점에 필름이 부족한 경우를 방지한다.
-    if (Inventory->GetItemCount(CameraFilmItemID) <= 0)
-    {
-        return false;
-    }
-
-    // 카메라 필름 1개를 제거한다.
-    // RemoveItem이 성공 여부를 bool로 반환한다는 전제다.
-    return Inventory->RemoveItem(CameraFilmItemID, 1);
-}
-
 
 ELCOCameraCaptureResult
 ULCOCameraCaptureComponent::ProcessCapture(
@@ -284,19 +222,7 @@ ULCOCameraCaptureComponent::ProcessCapture(
         return ELCOCameraCaptureResult::InvalidData;
     }
 
-    // 12. 필름 1개 소모
-    if (!ConsumeFilm())
-    {
-        UE_LOG(
-            LogTemp,
-            Warning,
-            TEXT("[Camera] 필름이 부족하거나 소모에 실패했습니다.")
-        );
-
-        return ELCOCameraCaptureResult::NoFilm;
-    }
-
-    // 13. 신규 사진만 수첩에 등록
+    // 12. 신규 사진만 수첩에 등록
     if (!bAlreadyRegistered)
     {
         if (!NotebookSubsystem->AddEntryFromTable(
@@ -314,10 +240,10 @@ ULCOCameraCaptureComponent::ProcessCapture(
         }
     }
 
-    // 14. 촬영 완료 상태 기록
+    // 13. 촬영 완료 상태 기록
     CapturePoint->MarkCaptured();
 
-    // 15. UI에 사진 정보 전달
+    // 14. UI에 사진 정보 전달
     OnPhotoCaptured.Broadcast(
         EntryID,
         NotebookRow->Image,
@@ -325,34 +251,50 @@ ULCOCameraCaptureComponent::ProcessCapture(
         NotebookRow->Description
     );
 
-    // 16. 촬영 성공
+    // 15. 촬영 성공
     return ELCOCameraCaptureResult::Success;
 }
 
 
-// 플레이어가 촬영 버튼을 눌렀을 때 호출되는 진입 함수다.
 bool ULCOCameraCaptureComponent::Capture()
 {
-    // 현재 카메라가 바라보는 방향에서 촬영 대상을 탐색한다.
+    UWorld* World = GetWorld();
+
+    if (!World)
+    {
+        OnCaptureFailed.Broadcast(
+            ELCOCameraCaptureResult::SystemError
+        );
+        return false;
+    }
+
+    const float CurrentTime = World->GetTimeSeconds();
+
+    // 쿨타임 중이면 촬영 불가
+    if (CurrentTime < NextCaptureAllowedTime)
+    {
+        OnCaptureFailed.Broadcast(
+            ELCOCameraCaptureResult::Cooldown
+        );
+        return false;
+    }
+
+    // 촬영 시도 즉시 쿨타임 적용
+    NextCaptureAllowedTime = CurrentTime + CaptureCooldown;
+
+    // 촬영 대상 탐색
     ULCOCameraCapturePointComponent* CapturePoint =
         FindCaptureTarget();
 
-    // 촬영 가능한 대상이 없다면 촬영을 중단한다.
     if (!CapturePoint)
     {
-        OnCaptureFailed.Broadcast(ELCOCameraCaptureResult::NoTarget);
+        OnCaptureFailed.Broadcast(
+            ELCOCameraCaptureResult::NoTarget
+        );
         return false;
     }
 
-    // 필름이 없으면 촬영을 진행하지 않는다.
-    if (!HasCameraFilm())
-    {
-        OnCaptureFailed.Broadcast(ELCOCameraCaptureResult::NoFilm);
-        return false;
-    }
-
-    // 대상의 촬영 가능 여부 확인, 필름 소모,
-    // 촬영 완료 처리 및 이벤트 전달을 수행한다.
+    // 실제 촬영 처리
     const ELCOCameraCaptureResult Result =
         ProcessCapture(CapturePoint);
 
@@ -361,6 +303,6 @@ bool ULCOCameraCaptureComponent::Capture()
         OnCaptureFailed.Broadcast(Result);
         return false;
     }
-    
+
     return true;
 }

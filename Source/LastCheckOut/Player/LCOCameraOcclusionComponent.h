@@ -7,9 +7,10 @@
 class UPrimitiveComponent;
 
 // 3인칭 카메라 가림 처리
-// - 카메라가 벽에 밀려 캐릭터에 너무 가까워지면 내 몸을 숨김
+// - 카메라가 벽에 밀려 캐릭터에 가까워지면 내 몸을 디더 반투명 처리 (머티리얼의 CameraFade 파라미터)
+// - 카메라가 몸 안까지 들어오면 내 몸 숨김
 // - 카메라와 캐릭터 사이(또는 카메라 위치)에 NPC 등 다른 Pawn이 있으면 그 Pawn을 숨김
-// 숨김은 SetRenderInMainPass(false) 방식이라 그림자는 그대로 남는다
+// 숨김은 메인 / 깊이 패스만 끄는 방식이라 그림자는 그대로 남는다
 UCLASS(ClassGroup = (Player), meta = (BlueprintSpawnableComponent))
 class LASTCHECKOUT_API ULCOCameraOcclusionComponent : public UActorComponent
 {
@@ -35,14 +36,34 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Occlusion")
 	bool bHideOccludingPawns = true;
 
+	// 카메라가 이 거리보다 가까워지면 내 몸이 반투명해지기 시작 (SelfHideDistance까지 점점 투명해짐)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Occlusion|Fade", meta = (ClampMin = "0"))
+	float SelfFadeStartDistance = 150.f;
+
+	// SelfHideDistance 직전, 가장 투명할 때의 불투명도 (0 = 완전 투명, 1 = 불투명)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Occlusion|Fade", meta = (ClampMin = "0", ClampMax = "1"))
+	float SelfMinOpacity = 0.3f;
+
+	// 불투명도가 바뀌는 속도 (벽에 부딪혀 카메라가 확 당겨져도 부드럽게)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Occlusion|Fade", meta = (ClampMin = "0"))
+	float SelfFadeSpeed = 10.f;
+
+	// 캐릭터 머티리얼의 디더 불투명도 스칼라 파라미터 이름
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Occlusion|Fade")
+	FName FadeParamName = TEXT("CameraFade");
+
 private:
-	void UpdateSelf(const FVector& CameraLocation, const FVector& PawnEyeLocation);
+	void UpdateSelf(const FVector& CameraLocation, const FVector& PawnEyeLocation, float DeltaTime);
 	void UpdateOccluders(const FVector& CameraLocation, const FVector& PawnEyeLocation);
 
 	void SetSelfHidden(bool bHide);
+	void SetSelfOpacity(float Opacity);
 	void RestoreAllOccluders();
 
 	bool bSelfHidden = false;
+
+	// 현재 내 몸 불투명도 (1 = 불투명)
+	float SelfOpacity = 1.f;
 
 	// 지금 숨겨 둔 다른 액터의 메시들
 	TArray<TWeakObjectPtr<UPrimitiveComponent>> HiddenOccluders;

@@ -27,8 +27,7 @@ public:
 	UPROPERTY()
 	FString MapName;
 
-	// ---------- Story ----------
-
+	// [Story]
 	UPROPERTY()
 	FName ChapterID = NAME_None;
 
@@ -38,15 +37,15 @@ public:
 	UPROPERTY()
 	TArray<FName> CompletedObjectives;
 
-	// ---------- Notebook ----------
-
-	// 수첩 (목표 / 단서 / 증언 / 사진)
+	// 획득한 증언 / 키워드 플래그 이름 (예: "T02", "K01")
+	UPROPERTY()
+	TArray<FName> StoryFlags;
+	
+	// [수첩] (목표 / 단서 / 증언 / 사진)
 	UPROPERTY()
 	TArray<FLCONotebookEntry> NotebookEntries;
-
-	// ---------- Player ----------
-
-	// 인벤토리 / 퀵슬롯 / 시점 (맵 이동용 보관 구조체 재사용)
+	
+	// [Player] 인벤토리 / 퀵슬롯 / 시점 (맵 이동용 보관 구조체 재사용)
 	UPROPERTY()
 	FLCOPlayerCarryData PlayerData;
 

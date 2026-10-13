@@ -12,6 +12,24 @@ class ULCODialogueWidget;
 class ULCOPlayerInteractionComponent;
 class UWorld;
 
+USTRUCT()
+struct FLCODialogueProgressTransaction
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient)
+	FName DialogueID = NAME_None;
+
+	UPROPERTY(Transient)
+	bool bStartedFirstConversation = false;
+
+	void Reset()
+	{
+		DialogueID = NAME_None;
+		bStartedFirstConversation = false;
+	}
+};
+
 UCLASS(Config = Game)
 class LASTCHECKOUT_API ULCODialogueSubsystem : public ULocalPlayerSubsystem
 {
@@ -38,12 +56,15 @@ private:
 	void HandleNPCConversationEnded();
 
 	UFUNCTION()
-	void HandleDialogueClosed(ALCONPCBase* NPC);
+	void HandleDialogueClosed(ALCONPCBase* NPC, FName DialogueID, bool bCompletedNormally, bool bCompletedFirstConversation);
 
 	void HandleWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources);
 	void HandlePostLoadMapWithWorld(UWorld* LoadedWorld);
 	void TryCreateDialogue(APlayerController* PlayerController);
 	void CleanupDialogue();
+	void BeginDialogueProgressTransaction(FName DialogueID, bool bStartedFirstConversation);
+	void CommitDialogueProgressTransaction(FName DialogueID, bool bCompletedNormally, bool bCompletedFirstConversation);
+	void DiscardDialogueProgressTransaction(FName DialogueID);
 	void BindToPlayerController(APlayerController* PlayerController);
 	void UnbindFromPlayerController();
 	void BindToPawn(APawn* Pawn);
@@ -73,4 +94,7 @@ private:
 
 	UPROPERTY(Transient)
 	TSet<FName> CompletedFirstConversationNPCIds;
+
+	UPROPERTY(Transient)
+	FLCODialogueProgressTransaction PendingProgressTransaction;
 };

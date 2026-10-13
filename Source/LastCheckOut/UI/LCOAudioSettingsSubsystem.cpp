@@ -35,19 +35,21 @@ void ULCOAudioSettingsSubsystem::Initialize(FSubsystemCollectionBase& Collection
 
 void ULCOAudioSettingsSubsystem::Deinitialize()
 {
+	SaveAudioSettings();
+
 	if (AudioDeviceRegistrationHandle.IsValid())
 	{
 		FAudioDeviceWorldDelegates::OnWorldRegisteredToAudioDevice.Remove(AudioDeviceRegistrationHandle);
 		AudioDeviceRegistrationHandle.Reset();
 	}
 
-	SoundMixPushedWorld.Reset();
+	SoundMixPushedWorldId = 0;
 	SoundMixPushedAudioDeviceId = Audio::FDeviceId(INDEX_NONE);
 
 	Super::Deinitialize();
 }
 
-void ULCOAudioSettingsSubsystem::SetVolume(ELCOAudioVolumeChannel Channel, float Volume)
+void ULCOAudioSettingsSubsystem::SetVolume(ELCOAudioVolumeChannel Channel, float Volume, bool bSaveImmediately)
 {
 	const float ClampedVolume = FMath::Clamp(Volume, 0.0f, 1.0f);
 	const TCHAR* ChannelName = TEXT("Unknown");
@@ -75,7 +77,10 @@ void ULCOAudioSettingsSubsystem::SetVolume(ELCOAudioVolumeChannel Channel, float
 
 	UE_LOG(LogTemp, Warning, TEXT("[LCOAudioSettings] SetVolume: %s=%.3f"), ChannelName, ClampedVolume);
 	ApplyAudioSettings();
-	SaveAudioSettings();
+	if (bSaveImmediately)
+	{
+		SaveAudioSettings();
+	}
 }
 
 float ULCOAudioSettingsSubsystem::GetVolume(ELCOAudioVolumeChannel Channel) const
@@ -100,7 +105,7 @@ void ULCOAudioSettingsSubsystem::ApplyAudioSettings()
 	ApplyAudioSettingsForWorld(GetWorld());
 }
 
-void ULCOAudioSettingsSubsystem::ApplyAudioSettingsForWorld(UWorld* World)
+void ULCOAudioSettingsSubsystem::ApplyAudioSettingsForWorld(const UWorld* World)
 {
 	USoundMix* SoundMix = LoadSoundMix();
 	if (!SoundMix)
@@ -127,10 +132,10 @@ void ULCOAudioSettingsSubsystem::ApplyAudioSettingsForWorld(UWorld* World)
 		return;
 	}
 
-	ApplyClassVolume(World, SoundMix, LoadSoundClass(MasterSoundClass, TEXT("SC_Master")), MasterVolume, TEXT("SC_Master"), true);
-	ApplyClassVolume(World, SoundMix, LoadSoundClass(BGMSoundClass, TEXT("SC_BGM")), BGMVolume, TEXT("SC_BGM"), false);
-	ApplyClassVolume(World, SoundMix, LoadSoundClass(SFXSoundClass, TEXT("SC_SFX")), SFXVolume, TEXT("SC_SFX"), false);
-	ApplyClassVolume(World, SoundMix, LoadSoundClass(VoiceSoundClass, TEXT("SC_Voice")), VoiceVolume, TEXT("SC_Voice"), false);
+	ApplyClassVolume(World, SoundMix, LoadSoundClass(LoadedMasterSoundClass, MasterSoundClass, TEXT("SC_Master"), bMissingMasterSoundClassWarningLogged), MasterVolume, TEXT("SC_Master"), true);
+	ApplyClassVolume(World, SoundMix, LoadSoundClass(LoadedBGMSoundClass, BGMSoundClass, TEXT("SC_BGM"), bMissingBGMSoundClassWarningLogged), BGMVolume, TEXT("SC_BGM"), false);
+	ApplyClassVolume(World, SoundMix, LoadSoundClass(LoadedSFXSoundClass, SFXSoundClass, TEXT("SC_SFX"), bMissingSFXSoundClassWarningLogged), SFXVolume, TEXT("SC_SFX"), false);
+	ApplyClassVolume(World, SoundMix, LoadSoundClass(LoadedVoiceSoundClass, VoiceSoundClass, TEXT("SC_Voice"), bMissingVoiceSoundClassWarningLogged), VoiceVolume, TEXT("SC_Voice"), false);
 }
 
 void ULCOAudioSettingsSubsystem::SaveAudioSettings()
@@ -183,7 +188,7 @@ void ULCOAudioSettingsSubsystem::HandleWorldRegisteredToAudioDevice(const UWorld
 	UE_LOG(LogTemp, Warning, TEXT("[LCOAudioSettings] WorldRegisteredToAudioDevice: World=%s AudioDeviceId=%u"),
 		*GetNameSafe(World),
 		AudioDeviceId);
-	ApplyAudioSettingsForWorld(const_cast<UWorld*>(World));
+	ApplyAudioSettingsForWorld(World);
 }
 
 bool ULCOAudioSettingsSubsystem::ShouldHandleWorld(const UWorld* World) const
@@ -193,7 +198,7 @@ bool ULCOAudioSettingsSubsystem::ShouldHandleWorld(const UWorld* World) const
 		&& World->GetGameInstance() == GetGameInstance();
 }
 
-bool ULCOAudioSettingsSubsystem::EnsureSoundMixActive(UWorld* World, USoundMix* SoundMix)
+bool ULCOAudioSettingsSubsystem::EnsureSoundMixActive(const UWorld* World, USoundMix* SoundMix)
 {
 	if (!ShouldHandleWorld(World))
 	{
@@ -212,10 +217,11 @@ bool ULCOAudioSettingsSubsystem::EnsureSoundMixActive(UWorld* World, USoundMix* 
 		return false;
 	}
 
-	if (SoundMixPushedWorld.Get() != World || SoundMixPushedAudioDeviceId != AudioDeviceId)
+	const uint32 WorldId = World->GetUniqueID();
+	if (SoundMixPushedWorldId != WorldId || SoundMixPushedAudioDeviceId != AudioDeviceId)
 	{
 		UGameplayStatics::PushSoundMixModifier(World, SoundMix);
-		SoundMixPushedWorld = World;
+		SoundMixPushedWorldId = WorldId;
 		SoundMixPushedAudioDeviceId = AudioDeviceId;
 		UE_LOG(LogTemp, Warning, TEXT("[LCOAudioSettings] Pushed sound mix: %s World=%s AudioDeviceId=%u"),
 			*GetNameSafe(SoundMix),
@@ -226,7 +232,7 @@ bool ULCOAudioSettingsSubsystem::EnsureSoundMixActive(UWorld* World, USoundMix* 
 	return true;
 }
 
-void ULCOAudioSettingsSubsystem::ApplyClassVolume(UWorld* World, USoundMix* SoundMix, USoundClass* SoundClass, float Volume, const TCHAR* DebugName, bool bApplyToChildren)
+void ULCOAudioSettingsSubsystem::ApplyClassVolume(const UWorld* World, USoundMix* SoundMix, USoundClass* SoundClass, float Volume, const TCHAR* DebugName, bool bApplyToChildren)
 {
 	if (!World || !SoundMix || !SoundClass)
 	{
@@ -247,29 +253,41 @@ void ULCOAudioSettingsSubsystem::ApplyClassVolume(UWorld* World, USoundMix* Soun
 	UGameplayStatics::SetSoundMixClassOverride(World, SoundMix, SoundClass, ClampedVolume, 1.0f, 0.0f, bApplyToChildren);
 }
 
-USoundMix* ULCOAudioSettingsSubsystem::LoadSoundMix() const
+USoundMix* ULCOAudioSettingsSubsystem::LoadSoundMix()
 {
-	USoundMix* SoundMix = GameAudioSoundMix.LoadSynchronous();
-	if (!SoundMix)
+	if (!LoadedGameAudioSoundMix)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[LCOAudioSettings] Missing sound mix asset: %s"), *GameAudioSoundMix.ToString());
+		LoadedGameAudioSoundMix = GameAudioSoundMix.LoadSynchronous();
+		if (!LoadedGameAudioSoundMix && !bMissingSoundMixWarningLogged)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[LCOAudioSettings] Missing sound mix asset: %s"), *GameAudioSoundMix.ToString());
+			bMissingSoundMixWarningLogged = true;
+		}
 	}
 
-	return SoundMix;
+	return LoadedGameAudioSoundMix;
 }
 
-USoundClass* ULCOAudioSettingsSubsystem::LoadSoundClass(const TSoftObjectPtr<USoundClass>& SoundClass, const TCHAR* DebugName) const
+USoundClass* ULCOAudioSettingsSubsystem::LoadSoundClass(TObjectPtr<USoundClass>& LoadedSoundClass, const TSoftObjectPtr<USoundClass>& SoundClass, const TCHAR* DebugName, bool& bMissingAssetWarningLogged)
 {
 	if (SoundClass.IsNull())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[LCOAudioSettings] Sound class is not configured: %s"), DebugName);
+		if (!bMissingAssetWarningLogged)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[LCOAudioSettings] Sound class is not configured: %s"), DebugName);
+			bMissingAssetWarningLogged = true;
+		}
 		return nullptr;
 	}
 
-	USoundClass* LoadedSoundClass = SoundClass.LoadSynchronous();
 	if (!LoadedSoundClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[LCOAudioSettings] Missing sound class asset for %s: %s"), DebugName, *SoundClass.ToString());
+		LoadedSoundClass = SoundClass.LoadSynchronous();
+		if (!LoadedSoundClass && !bMissingAssetWarningLogged)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[LCOAudioSettings] Missing sound class asset for %s: %s"), DebugName, *SoundClass.ToString());
+			bMissingAssetWarningLogged = true;
+		}
 	}
 
 	return LoadedSoundClass;

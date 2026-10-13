@@ -4,6 +4,7 @@
 #include "Components/ComboBoxString.h"
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
+#include "Engine/GameInstance.h"
 #include "Localization/LCOLocalizationSubsystem.h"
 #include "UI/LCOAudioSettingsSubsystem.h"
 
@@ -71,6 +72,7 @@ void ULCOSettingsWidget::NativeConstruct()
 
 void ULCOSettingsWidget::NativeDestruct()
 {
+	SaveAudioSettings();
 	UnbindAudioSliders();
 	UnbindLocalizationEvents();
 
@@ -98,6 +100,7 @@ void ULCOSettingsWidget::HandleLanguageSelectionChanged(FString SelectedItem, ES
 
 void ULCOSettingsWidget::HandleBackClicked()
 {
+	SaveAudioSettings();
 	RemoveFromParent();
 }
 
@@ -115,9 +118,10 @@ void ULCOSettingsWidget::HandleMasterVolumeChanged(float Value)
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Master slider changed: %.3f"), Value);
-	if (ULCOAudioSettingsSubsystem* AudioSettings = GetGameInstance()->GetSubsystem<ULCOAudioSettingsSubsystem>())
+	if (ULCOAudioSettingsSubsystem* AudioSettings = GetAudioSettingsSubsystem())
 	{
-		AudioSettings->SetVolume(ELCOAudioVolumeChannel::Master, Value);
+		AudioSettings->SetVolume(ELCOAudioVolumeChannel::Master, Value, false);
+		bAudioSettingsDirty = true;
 	}
 	else
 	{
@@ -133,9 +137,10 @@ void ULCOSettingsWidget::HandleBGMVolumeChanged(float Value)
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] BGM slider changed: %.3f"), Value);
-	if (ULCOAudioSettingsSubsystem* AudioSettings = GetGameInstance()->GetSubsystem<ULCOAudioSettingsSubsystem>())
+	if (ULCOAudioSettingsSubsystem* AudioSettings = GetAudioSettingsSubsystem())
 	{
-		AudioSettings->SetVolume(ELCOAudioVolumeChannel::BGM, Value);
+		AudioSettings->SetVolume(ELCOAudioVolumeChannel::BGM, Value, false);
+		bAudioSettingsDirty = true;
 	}
 	else
 	{
@@ -151,9 +156,10 @@ void ULCOSettingsWidget::HandleSFXVolumeChanged(float Value)
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] SFX slider changed: %.3f"), Value);
-	if (ULCOAudioSettingsSubsystem* AudioSettings = GetGameInstance()->GetSubsystem<ULCOAudioSettingsSubsystem>())
+	if (ULCOAudioSettingsSubsystem* AudioSettings = GetAudioSettingsSubsystem())
 	{
-		AudioSettings->SetVolume(ELCOAudioVolumeChannel::SFX, Value);
+		AudioSettings->SetVolume(ELCOAudioVolumeChannel::SFX, Value, false);
+		bAudioSettingsDirty = true;
 	}
 	else
 	{
@@ -169,14 +175,20 @@ void ULCOSettingsWidget::HandleVoiceVolumeChanged(float Value)
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Voice slider changed: %.3f"), Value);
-	if (ULCOAudioSettingsSubsystem* AudioSettings = GetGameInstance()->GetSubsystem<ULCOAudioSettingsSubsystem>())
+	if (ULCOAudioSettingsSubsystem* AudioSettings = GetAudioSettingsSubsystem())
 	{
-		AudioSettings->SetVolume(ELCOAudioVolumeChannel::Voice, Value);
+		AudioSettings->SetVolume(ELCOAudioVolumeChannel::Voice, Value, false);
+		bAudioSettingsDirty = true;
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Missing audio settings subsystem for Voice"));
 	}
+}
+
+void ULCOSettingsWidget::HandleAudioSliderCaptureEnd()
+{
+	SaveAudioSettings();
 }
 
 void ULCOSettingsWidget::BindLocalizationEvents()
@@ -241,6 +253,10 @@ void ULCOSettingsWidget::BindAudioSliders()
 	{
 		MasterVolumeSlider->OnValueChanged.RemoveDynamic(this, &ThisClass::HandleMasterVolumeChanged);
 		MasterVolumeSlider->OnValueChanged.AddDynamic(this, &ThisClass::HandleMasterVolumeChanged);
+		MasterVolumeSlider->OnMouseCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		MasterVolumeSlider->OnMouseCaptureEnd.AddDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		MasterVolumeSlider->OnControllerCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		MasterVolumeSlider->OnControllerCaptureEnd.AddDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
 		UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Bound MasterVolumeSlider"));
 	}
 	else
@@ -252,6 +268,10 @@ void ULCOSettingsWidget::BindAudioSliders()
 	{
 		BGMVolumeSlider->OnValueChanged.RemoveDynamic(this, &ThisClass::HandleBGMVolumeChanged);
 		BGMVolumeSlider->OnValueChanged.AddDynamic(this, &ThisClass::HandleBGMVolumeChanged);
+		BGMVolumeSlider->OnMouseCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		BGMVolumeSlider->OnMouseCaptureEnd.AddDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		BGMVolumeSlider->OnControllerCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		BGMVolumeSlider->OnControllerCaptureEnd.AddDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
 		UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Bound BGMVolumeSlider"));
 	}
 	else
@@ -263,6 +283,10 @@ void ULCOSettingsWidget::BindAudioSliders()
 	{
 		SFXVolumeSlider->OnValueChanged.RemoveDynamic(this, &ThisClass::HandleSFXVolumeChanged);
 		SFXVolumeSlider->OnValueChanged.AddDynamic(this, &ThisClass::HandleSFXVolumeChanged);
+		SFXVolumeSlider->OnMouseCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		SFXVolumeSlider->OnMouseCaptureEnd.AddDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		SFXVolumeSlider->OnControllerCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		SFXVolumeSlider->OnControllerCaptureEnd.AddDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
 		UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Bound SFXVolumeSlider"));
 	}
 	else
@@ -274,6 +298,10 @@ void ULCOSettingsWidget::BindAudioSliders()
 	{
 		VoiceVolumeSlider->OnValueChanged.RemoveDynamic(this, &ThisClass::HandleVoiceVolumeChanged);
 		VoiceVolumeSlider->OnValueChanged.AddDynamic(this, &ThisClass::HandleVoiceVolumeChanged);
+		VoiceVolumeSlider->OnMouseCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		VoiceVolumeSlider->OnMouseCaptureEnd.AddDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		VoiceVolumeSlider->OnControllerCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		VoiceVolumeSlider->OnControllerCaptureEnd.AddDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
 		UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Bound VoiceVolumeSlider"));
 	}
 	else
@@ -287,27 +315,55 @@ void ULCOSettingsWidget::UnbindAudioSliders()
 	if (MasterVolumeSlider)
 	{
 		MasterVolumeSlider->OnValueChanged.RemoveDynamic(this, &ThisClass::HandleMasterVolumeChanged);
+		MasterVolumeSlider->OnMouseCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		MasterVolumeSlider->OnControllerCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
 	}
 
 	if (BGMVolumeSlider)
 	{
 		BGMVolumeSlider->OnValueChanged.RemoveDynamic(this, &ThisClass::HandleBGMVolumeChanged);
+		BGMVolumeSlider->OnMouseCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		BGMVolumeSlider->OnControllerCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
 	}
 
 	if (SFXVolumeSlider)
 	{
 		SFXVolumeSlider->OnValueChanged.RemoveDynamic(this, &ThisClass::HandleSFXVolumeChanged);
+		SFXVolumeSlider->OnMouseCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		SFXVolumeSlider->OnControllerCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
 	}
 
 	if (VoiceVolumeSlider)
 	{
 		VoiceVolumeSlider->OnValueChanged.RemoveDynamic(this, &ThisClass::HandleVoiceVolumeChanged);
+		VoiceVolumeSlider->OnMouseCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
+		VoiceVolumeSlider->OnControllerCaptureEnd.RemoveDynamic(this, &ThisClass::HandleAudioSliderCaptureEnd);
 	}
+}
+
+void ULCOSettingsWidget::SaveAudioSettings()
+{
+	if (!bAudioSettingsDirty)
+	{
+		return;
+	}
+
+	if (ULCOAudioSettingsSubsystem* AudioSettings = GetAudioSettingsSubsystem())
+	{
+		AudioSettings->SaveAudioSettings();
+		bAudioSettingsDirty = false;
+	}
+}
+
+ULCOAudioSettingsSubsystem* ULCOSettingsWidget::GetAudioSettingsSubsystem() const
+{
+	UGameInstance* GameInstance = GetGameInstance();
+	return GameInstance ? GameInstance->GetSubsystem<ULCOAudioSettingsSubsystem>() : nullptr;
 }
 
 void ULCOSettingsWidget::InitializeAudioSliders()
 {
-	ULCOAudioSettingsSubsystem* AudioSettings = GetGameInstance()->GetSubsystem<ULCOAudioSettingsSubsystem>();
+	ULCOAudioSettingsSubsystem* AudioSettings = GetAudioSettingsSubsystem();
 	if (!AudioSettings)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Missing audio settings subsystem during slider init"));

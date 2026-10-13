@@ -57,6 +57,7 @@ bool ULCOSaveManager::SaveGame()
 		SaveData->ChapterID = StorySubsystem->GetCurrentChapterID();
 		SaveData->ObjectiveID = StorySubsystem->GetCurrentObjectiveID();
 		SaveData->CompletedObjectives = StorySubsystem->GetCompletedObjectives();
+		SaveData->StoryFlags = StorySubsystem->GetStoryFlagNames();
 	}
 
 	// [수첩] 분류별로 전부 모으기 (수첩에 전체 조회 함수가 없어 분류 4개를 순서대로 조회)
@@ -181,6 +182,7 @@ bool ULCOSaveManager::ApplyLoadedData()
 	if (ULCOStorySubsystem* StorySubsystem = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>())
 	{
 		StorySubsystem->RestoreStoryState(LoadedSaveGame->ChapterID, LoadedSaveGame->ObjectiveID, LoadedSaveGame->CompletedObjectives);
+		StorySubsystem->RestoreStoryFlags(LoadedSaveGame->StoryFlags);
 	}
 
 	// [수첩] 기존 기록을 비우고 저장된 기록으로 다시 채움

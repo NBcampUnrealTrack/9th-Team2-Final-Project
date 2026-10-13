@@ -7,6 +7,7 @@
 
 class UButton;
 class USlider;
+class ULCOAudioSettingsSubsystem;
 
 UCLASS()
 class LASTCHECKOUT_API ULCOSettingsWidget : public UUserWidget
@@ -102,15 +103,21 @@ private:
 	UFUNCTION()
 	void HandleVoiceVolumeChanged(float Value);
 
+	UFUNCTION()
+	void HandleAudioSliderCaptureEnd();
+
 	void BindLocalizationEvents();
 	void UnbindLocalizationEvents();
 	void ResolveAudioSliders();
 	void BindAudioSliders();
 	void UnbindAudioSliders();
+	void SaveAudioSettings();
+	ULCOAudioSettingsSubsystem* GetAudioSettingsSubsystem() const;
 	void InitializeAudioSliders();
 	void InitializeLanguageOptions();
 	void SelectCurrentLanguage();
 	void RefreshLocalizedTexts();
 
 	bool bUpdatingAudioSliders = false;
+	bool bAudioSettingsDirty = false;
 };

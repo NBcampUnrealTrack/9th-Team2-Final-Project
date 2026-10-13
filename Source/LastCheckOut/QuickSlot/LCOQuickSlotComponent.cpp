@@ -369,7 +369,7 @@ bool ULCOQuickSlotComponent::CanAssignItem(FName ItemID) const
 	// 직접 사용할 수 있는 소비 아이템만 (BuffType이 None인 카메라 필름 등은 제외)
 	return ItemData
 		&& ItemData->ItemType == EItemType::Consumable
-		&& ItemData->BuffType != EBuffType::None;
+		&& !ItemData->BuffEffects.IsEmpty();
 }
 
 UInventoryComponent* ULCOQuickSlotComponent::GetInventory() const

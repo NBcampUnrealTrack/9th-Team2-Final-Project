@@ -50,6 +50,36 @@ void ULCODialogueSubsystem::PlayerControllerChanged(APlayerController* NewPlayer
 	TryCreateDialogue(NewPlayerController);
 }
 
+bool ULCODialogueSubsystem::StartDialogue(FName DialogueID, FName StartNodeID, AActor* Interactor)
+{
+	// NPC 대화 중이면 시작하지 않음
+	if (ActiveNPC.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] StartDialogue ignored: NPC conversation is active (%s)"), *GetNameSafe(ActiveNPC.Get()));
+		return false;
+	}
+
+	APlayerController* PlayerController = BoundPlayerController.Get();
+	if (!PlayerController)
+	{
+		const ULocalPlayer* LocalPlayer = GetLocalPlayer();
+		PlayerController = LocalPlayer ? LocalPlayer->GetPlayerController(GetWorld()) : nullptr;
+	}
+
+	if (!DialogueWidget || DialogueWidget->GetOwningPlayer() != PlayerController)
+	{
+		TryCreateDialogue(PlayerController);
+	}
+
+	if (!DialogueWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] StartDialogue failed: dialogue widget is not available"));
+		return false;
+	}
+
+	return DialogueWidget->OpenDialogueByID(DialogueID, StartNodeID, Interactor);
+}
+
 void ULCODialogueSubsystem::HandlePossessedPawnChanged(APawn* OldPawn, APawn* NewPawn)
 {
 	BindToPawn(NewPawn);
@@ -97,6 +127,8 @@ void ULCODialogueSubsystem::HandleDialogueClosed(ALCONPCBase* NPC, FName Dialogu
 	{
 		ActiveNPC.Reset();
 	}
+
+	OnDialogueFinished.Broadcast(DialogueID, bCompletedNormally);
 }
 
 void ULCODialogueSubsystem::HandleWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources)

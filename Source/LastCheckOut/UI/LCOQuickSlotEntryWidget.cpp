@@ -84,9 +84,16 @@ ULCOQuickSlotComponent* ULCOQuickSlotEntryWidget::GetQuickSlotComponent() const
 	return Pawn ? Pawn->FindComponentByClass<ULCOQuickSlotComponent>() : nullptr;
 }
 
+bool ULCOQuickSlotEntryWidget::IsPinned() const
+{
+	const ULCOQuickSlotComponent* QuickSlot = GetQuickSlotComponent();
+	return QuickSlot && QuickSlot->IsPinnedSlot(SlotIndex);
+}
+
 FReply ULCOQuickSlotEntryWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (!bInteractive || ItemID.IsNone())
+	// 고정 칸(카메라)은 우클릭 해제 / 드래그 불가
+	if (!bInteractive || ItemID.IsNone() || IsPinned())
 	{
 		return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 	}
@@ -114,7 +121,7 @@ void ULCOQuickSlotEntryWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 
-	if (!bInteractive || ItemID.IsNone())
+	if (!bInteractive || ItemID.IsNone() || IsPinned())
 	{
 		return;
 	}
@@ -125,8 +132,9 @@ void ULCOQuickSlotEntryWidget::NativeOnDragDetected(const FGeometry& InGeometry,
 	Operation->QuickSlot = GetQuickSlotComponent();
 	Operation->Pivot = EDragPivot::CenterCenter;
 
-	// 마우스를 따라다니는 미리보기 (같은 WBP로 복사본 생성)
-	if (ULCOQuickSlotEntryWidget* DragVisual = CreateWidget<ULCOQuickSlotEntryWidget>(GetOwningPlayer(), GetClass()))
+	// 마우스를 따라다니는 미리보기 (DragVisualClass 지정 시 인벤토리와 같은 모양, 없으면 이 칸 WBP 복사)
+	const TSubclassOf<ULCOQuickSlotEntryWidget> VisualClass = DragVisualClass ? DragVisualClass : TSubclassOf<ULCOQuickSlotEntryWidget>(GetClass());
+	if (ULCOQuickSlotEntryWidget* DragVisual = CreateWidget<ULCOQuickSlotEntryWidget>(GetOwningPlayer(), VisualClass))
 	{
 		DragVisual->SetSlotData(SlotIndex, ItemID, Icon, ItemName, Count);
 		DragVisual->SetVisibility(ESlateVisibility::HitTestInvisible);
@@ -140,7 +148,8 @@ void ULCOQuickSlotEntryWidget::NativeOnDragEnter(const FGeometry& InGeometry, co
 {
 	Super::NativeOnDragEnter(InGeometry, InDragDropEvent, InOperation);
 
-	if (bInteractive && Cast<ULCOQuickSlotDragOperation>(InOperation))
+	// 고정 칸(카메라)에는 놓을 수 없으므로 강조하지 않음
+	if (bInteractive && Cast<ULCOQuickSlotDragOperation>(InOperation) && !IsPinned())
 	{
 		SetHighlighted(true);
 	}
@@ -168,6 +177,12 @@ bool ULCOQuickSlotEntryWidget::NativeOnDrop(const FGeometry& InGeometry, const F
 
 	ULCOQuickSlotComponent* QuickSlot = GetQuickSlotComponent();
 	if (!QuickSlot || SlotIndex == INDEX_NONE)
+	{
+		return true;
+	}
+
+	// 고정 칸(카메라)에 놓으면 아무 변화 없음 (원래 칸 유지)
+	if (QuickSlot->IsPinnedSlot(SlotIndex))
 	{
 		return true;
 	}

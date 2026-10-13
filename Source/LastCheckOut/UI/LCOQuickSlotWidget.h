@@ -15,6 +15,7 @@ class UTextBlock;
  *
  * 디자이너에서 WBP_QuickSlotEntry 4개를 Slot_1 ~ Slot_4 이름으로 배치 (필수)
  * Txt_SelectedName (선택) : 휠에서 현재 선택한 아이템 이름 표시
+ *                          선택 없음(가운데)일 때는 NoSelectionTextKey 문구 ("맨손") 표시
  *
  * 표시/숨김은 ShowQuickSlot / HideQuickSlot - BP에서 오버라이드하면 페이드 애니메이션 가능
  * (오버라이드 시 Parent 호출 또는 직접 Visibility 처리 필요)
@@ -65,6 +66,10 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Txt_SelectedName;
+
+	// 선택 없음(휠 가운데)일 때 Txt_SelectedName에 표시할 UI.csv 키 (가운데에서 떼면 맨손). None이면 빈칸
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LCO|QuickSlot")
+	FName NoSelectionTextKey = TEXT("QUICKSLOT_BARE_HAND");
 
 private:
 	ULCOQuickSlotEntryWidget* GetEntry(int32 Index) const;

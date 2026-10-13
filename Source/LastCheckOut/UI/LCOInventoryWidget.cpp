@@ -2,6 +2,8 @@
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
+#include "Components/Widget.h"
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "Engine/LocalPlayer.h"
@@ -35,6 +37,8 @@ void ULCOInventoryWidget::NativeOnInitialized()
 		LCOPC->OnInventoryRequested.RemoveDynamic(this, &ThisClass::HandleInventoryRequested);
 		LCOPC->OnInventoryRequested.AddDynamic(this, &ThisClass::HandleInventoryRequested);
 	}
+
+	HideItemDetail();
 }
 
 void ULCOInventoryWidget::NativeDestruct()
@@ -66,6 +70,9 @@ void ULCOInventoryWidget::OpenInventory()
 
 	ApplyInventoryInputMode();
 	RefreshLocalizedTexts();
+
+	// 열 때마다 선택 초기화 (상세 패널 닫힌 상태로 시작)
+	SelectedItemID = NAME_None;
 	RefreshItems();
 
 	BindQuickSlotEvents();
@@ -140,6 +147,7 @@ void ULCOInventoryWidget::RefreshItems()
 	}
 
 	bool bHasVisibleItem = false;
+	bool bSelectedItemFound = false;
 	for (const FInventorySlot& InventorySlot : Inventory->InventorySlots)
 	{
 		if (InventorySlot.ItemID.IsNone() || InventorySlot.Quantity <= 0)
@@ -154,8 +162,25 @@ void ULCOInventoryWidget::RefreshItems()
 		}
 
 		ItemWidget->SetItem(InventorySlot.ItemID, InventorySlot.Quantity, ResolveItemName(InventorySlot.ItemID, Inventory), ResolveItemIcon(InventorySlot.ItemID, Inventory));
+		ItemWidget->OnItemSelected.AddDynamic(this, &ThisClass::HandleItemSelected);
+		ItemWidget->SetSelected(InventorySlot.ItemID == SelectedItemID);
 		ItemsPanel->AddChild(ItemWidget);
 		bHasVisibleItem = true;
+
+		if (InventorySlot.ItemID == SelectedItemID)
+		{
+			bSelectedItemFound = true;
+		}
+	}
+
+	// 선택했던 아이템이 사라졌으면(다 씀 등) 상세 패널 닫기, 남아 있으면 내용 갱신
+	if (bSelectedItemFound)
+	{
+		ShowItemDetail(SelectedItemID);
+	}
+	else
+	{
+		HideItemDetail();
 	}
 
 	if (EmptyText)
@@ -302,6 +327,109 @@ UTexture2D* ULCOInventoryWidget::ResolveItemIcon(FName ItemID, const UInventoryC
 {
 	const FItemData* ItemData = Inventory ? Inventory->GetItemData(ItemID) : nullptr;
 	return ItemData ? ItemData->Icon : nullptr;
+}
+
+FText ULCOInventoryWidget::ResolveItemDescription(FName ItemID, const UInventoryComponent* Inventory) const
+{
+	// Items.csv에 "아이템ID_DESC" 키가 있으면 번역 문구 우선
+	if (const ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		const FName DescKey(*FString::Printf(TEXT("%s_DESC"), *ItemID.ToString()));
+		const FText LocalizedDesc = LocalizationSubsystem->GetItemText(DescKey);
+		if (!LocalizedDesc.IsEmpty())
+		{
+			return LocalizedDesc;
+		}
+	}
+
+	const FItemData* ItemData = Inventory ? Inventory->GetItemData(ItemID) : nullptr;
+	return ItemData ? ItemData->Description : FText::GetEmpty();
+}
+
+// ======================================================================
+// 아이템 상세 설명
+// ======================================================================
+
+void ULCOInventoryWidget::HandleItemSelected(FName ItemID)
+{
+	if (ItemID.IsNone())
+	{
+		return;
+	}
+
+	ShowItemDetail(ItemID);
+}
+
+void ULCOInventoryWidget::ShowItemDetail(FName ItemID)
+{
+	const UInventoryComponent* Inventory = GetPlayerInventory();
+	if (ItemID.IsNone() || !Inventory)
+	{
+		HideItemDetail();
+		return;
+	}
+
+	SelectedItemID = ItemID;
+
+	if (Img_DetailIcon)
+	{
+		if (UTexture2D* DetailIcon = ResolveItemIcon(ItemID, Inventory))
+		{
+			Img_DetailIcon->SetBrushFromTexture(DetailIcon);
+			Img_DetailIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+		else
+		{
+			Img_DetailIcon->SetVisibility(ESlateVisibility::Hidden);
+		}
+	}
+
+	if (Txt_DetailName)
+	{
+		Txt_DetailName->SetText(ResolveItemName(ItemID, Inventory));
+	}
+
+	if (Txt_DetailDescription)
+	{
+		Txt_DetailDescription->SetText(ResolveItemDescription(ItemID, Inventory));
+	}
+
+	if (DetailPanel)
+	{
+		DetailPanel->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
+
+	UpdateItemSelectionVisuals();
+	OnItemDetailChanged(SelectedItemID);
+}
+
+void ULCOInventoryWidget::HideItemDetail()
+{
+	SelectedItemID = NAME_None;
+
+	if (DetailPanel)
+	{
+		DetailPanel->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	UpdateItemSelectionVisuals();
+	OnItemDetailChanged(NAME_None);
+}
+
+void ULCOInventoryWidget::UpdateItemSelectionVisuals()
+{
+	if (!ItemsPanel)
+	{
+		return;
+	}
+
+	for (UWidget* Child : ItemsPanel->GetAllChildren())
+	{
+		if (ULCOInventoryItemWidget* ItemWidget = Cast<ULCOInventoryItemWidget>(Child))
+		{
+			ItemWidget->SetSelected(!SelectedItemID.IsNone() && ItemWidget->GetItemID() == SelectedItemID);
+		}
+	}
 }
 
 void ULCOInventoryWidget::RefreshLocalizedTexts()

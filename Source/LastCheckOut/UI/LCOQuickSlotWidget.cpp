@@ -4,6 +4,8 @@
 #include "QuickSlot/LCOQuickSlotComponent.h"
 #include "Item/ItemData.h"
 #include "Components/TextBlock.h"
+#include "Engine/GameInstance.h"
+#include "Localization/LCOLocalizationSubsystem.h"
 
 ULCOQuickSlotEntryWidget* ULCOQuickSlotWidget::GetEntry(int32 Index) const
 {
@@ -78,8 +80,22 @@ void ULCOQuickSlotWidget::UpdateSelectedName()
 		return;
 	}
 
-	const ULCOQuickSlotEntryWidget* Entry = GetEntry(SelectedIndex);
-	Txt_SelectedName->SetText(Entry ? Entry->GetItemName() : FText::GetEmpty());
+	if (const ULCOQuickSlotEntryWidget* Entry = GetEntry(SelectedIndex))
+	{
+		Txt_SelectedName->SetText(Entry->GetItemName());
+		return;
+	}
+
+	// 선택 없음 = 가운데 → "맨손"
+	FText NoSelectionText = FText::GetEmpty();
+	if (!NoSelectionTextKey.IsNone())
+	{
+		const UGameInstance* GameInstance = GetGameInstance();
+		const ULCOLocalizationSubsystem* Localization = GameInstance ? GameInstance->GetSubsystem<ULCOLocalizationSubsystem>() : nullptr;
+		NoSelectionText = Localization ? Localization->GetUIText(NoSelectionTextKey) : FText::FromName(NoSelectionTextKey);
+	}
+
+	Txt_SelectedName->SetText(NoSelectionText);
 }
 
 void ULCOQuickSlotWidget::ShowQuickSlot_Implementation()

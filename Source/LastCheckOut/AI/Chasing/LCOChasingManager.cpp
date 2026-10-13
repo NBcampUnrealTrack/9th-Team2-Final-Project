@@ -3,6 +3,7 @@
 #include "AI/LCOCaretakerAIController.h"
 #include "AI/SuspicionComponent.h"
 #include "Engine/TargetPoint.h"
+#include "Interaction/LCOHidingSpot.h"
 #include "Kismet/GameplayStatics.h"
 #include "NPC/LCOCaretaker.h"
 #include "NPC/LCOSigolYouth.h"
@@ -24,6 +25,17 @@ void ALCOChasingManager::BeginPlay()
 	{
 		GetWorldTimerManager().SetTimer(SuspicionBindTimer, this, &ALCOChasingManager::TryBindSuspicion, 0.5f, true);
 	}
+
+	// 레벨의 모든 은신처에 바인딩한다.
+	TArray<AActor*> HidingSpots;
+	UGameplayStatics::GetAllActorsOfClass(this, ALCOHidingSpot::StaticClass(), HidingSpots);
+	for (AActor* Actor : HidingSpots)
+	{
+		if (ALCOHidingSpot* HidingSpot = Cast<ALCOHidingSpot>(Actor))
+		{
+			HidingSpot->OnEnteredDelegate.AddUniqueDynamic(this, &ALCOChasingManager::HandleHidingSpotEntered);
+		}
+	}
 }
 
 void ALCOChasingManager::TryBindSuspicion()
@@ -43,6 +55,38 @@ void ALCOChasingManager::TryBindSuspicion()
 void ALCOChasingManager::HandleSuspicionMax()
 {
 	StartChasing();
+}
+
+void ALCOChasingManager::HandleHidingSpotEntered(ALCOHidingSpot* HidingSpot, AActor* Hider)
+{
+	// 플레이어가 숨은 경우만 처리한다.
+	const APawn* HiderPawn = Cast<APawn>(Hider);
+	if (!HiderPawn || !HiderPawn->IsPlayerControlled())
+	{
+		return;
+	}
+
+	// 따돌리지 못했으면(관리인에게 보이는 상태로 숨음) 관리인이 은신처로 와서 끌어낸 뒤 잡는다.
+	if (bIsChasing && !TryEndChasingByHiding(HidingSpot))
+	{
+		StartExtractByCaretakers(HidingSpot);
+	}
+}
+
+void ALCOChasingManager::StartExtractByCaretakers(ALCOHidingSpot* HidingSpot)
+{
+	TArray<AActor*> Caretakers;
+	UGameplayStatics::GetAllActorsOfClass(this, ALCOCaretaker::StaticClass(), Caretakers);
+	for (const AActor* Caretaker : Caretakers)
+	{
+		if (const APawn* CaretakerPawn = Cast<APawn>(Caretaker))
+		{
+			if (ALCOCaretakerAIController* Controller = Cast<ALCOCaretakerAIController>(CaretakerPawn->GetController()))
+			{
+				Controller->StartExtractHider(HidingSpot);
+			}
+		}
+	}
 }
 
 void ALCOChasingManager::StartChasing()

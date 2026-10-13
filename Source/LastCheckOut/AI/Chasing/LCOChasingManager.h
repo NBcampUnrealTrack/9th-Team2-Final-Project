@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "LCOChasingManager.generated.h"
 
+class ALCOHidingSpot;
 class ALCOSigolYouth;
 class ATargetPoint;
 class USuspicionComponent;
@@ -107,6 +108,13 @@ private:
 
 	UFUNCTION()
 	void HandleSuspicionMax();
+
+	// 플레이어가 옷장에 숨었을 때 호출된다. 관리인의 시야 밖이면 체이싱을 종료한다.
+	UFUNCTION()
+	void HandleHidingSpotEntered(ALCOHidingSpot* HidingSpot, AActor* Hider);
+
+	// 들킨 채 숨은 경우, 추격 중인 관리인들이 은신처로 가서 끌어내게 한다.
+	void StartExtractByCaretakers(ALCOHidingSpot* HidingSpot);
 
 	bool FindSpawnLocation(const FVector& PlayerLocation, FVector& OutLocation) const;
 	void SpawnYouth(const FVector& Location);

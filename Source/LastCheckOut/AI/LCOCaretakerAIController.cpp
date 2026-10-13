@@ -1,6 +1,7 @@
 #include "AI/LCOCaretakerAIController.h"
 
 #include "AI/Chasing/LCOChasingManager.h"
+#include "Interaction/LCOHidingSpot.h"
 
 #include "BehaviorTree/BehaviorTree.h"
 #include "DrawDebugHelpers.h"
@@ -209,6 +210,22 @@ void ALCOCaretakerAIController::CheckCatch()
 		return;
 	}
 
+	// 숨은 플레이어를 끌어내러 가는 중에는 은신처에 도착해 끌어낼 때까지 잡지 않는다.
+	if (ALCOHidingSpot* Spot = ExtractSpot.Get())
+	{
+		if (!Spot->IsOccupied())
+		{
+			// 스스로 나왔거나 이미 끌려나온 경우
+			FinishExtract();
+		}
+		else if (FVector::Dist(GetPawn()->GetActorLocation(), Spot->GetActorLocation()) <= ExtractDistance)
+		{
+			Spot->ForceEject();
+			FinishExtract();
+		}
+		return;
+	}
+
 	const UBlackboardComponent* BB = GetBlackboardComponent();
 	AActor* Target = BB ? Cast<AActor>(BB->GetValueAsObject(LCOBlackboardKeys::TargetActor)) : nullptr;
 	if (!Target)
@@ -230,6 +247,7 @@ void ALCOCaretakerAIController::HandlePlayerCaught(AActor* CaughtPlayer)
 		BoundSuspicion->ResetSuspicion();
 	}
 	WarningCount = 0;
+	ExtractSpot.Reset();
 
 	// 플레이어를 Player Start 위치로 이동
 	APawn* PlayerPawn = Cast<APawn>(CaughtPlayer);
@@ -267,8 +285,32 @@ void ALCOCaretakerAIController::HandlePlayerCaught(AActor* CaughtPlayer)
 	}
 }
 
+void ALCOCaretakerAIController::StartExtractHider(ALCOHidingSpot* HidingSpot)
+{
+	UBlackboardComponent* BB = GetBlackboardComponent();
+	if (!HidingSpot || !BB || CurrentState != ELCOCaretakerState::Chase)
+	{
+		return;
+	}
+
+	// 추격 대상을 플레이어 대신 은신처로 바꿔 그 앞까지 이동한다.
+	ExtractSpot = HidingSpot;
+	BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, HidingSpot);
+}
+
+void ALCOCaretakerAIController::FinishExtract()
+{
+	ExtractSpot.Reset();
+
+	if (UBlackboardComponent* BB = GetBlackboardComponent())
+	{
+		BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, UGameplayStatics::GetPlayerPawn(this, 0));
+	}
+}
+
 void ALCOCaretakerAIController::StopChase()
 {
+	ExtractSpot.Reset();
 	GetWorldTimerManager().ClearTimer(LostGraceTimer);
 	StopMovement();
 	AIPerception->ForgetAll();

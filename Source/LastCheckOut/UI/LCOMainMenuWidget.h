@@ -5,6 +5,7 @@
 #include "LCOMainMenuWidget.generated.h"
 
 class UButton;
+class UTextBlock;
 class UWidget;
 enum class ELCOGameStartMode : uint8;
 
@@ -33,6 +34,7 @@ public:
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 	// ---------- BP 연출용 이벤트 (선택 구현) ----------
 
@@ -70,6 +72,18 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Btn_Quit;
 
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Txt_Start;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Txt_Continue;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Txt_Settings;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Txt_Quit;
+
 	// 메인 버튼들을 감싸는 패널 (설정 열 때 숨김) - 없어도 동작
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UWidget> MenuPanel;
@@ -97,6 +111,13 @@ private:
 
 	UFUNCTION()
 	void HandleSettingsBackClicked();
+
+	UFUNCTION()
+	void HandleLanguageChanged(FName NewLanguage);
+
+	void BindLocalizationEvents();
+	void UnbindLocalizationEvents();
+	void RefreshLocalizedText();
 
 	// 시작 모드 저장 후 게임 레벨로 이동
 	void StartGameWithMode(ELCOGameStartMode InStartMode);

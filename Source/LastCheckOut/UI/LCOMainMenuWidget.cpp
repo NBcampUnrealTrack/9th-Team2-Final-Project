@@ -1,9 +1,11 @@
 #include "LCOMainMenuWidget.h"
 
 #include "Components/Button.h"
+#include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "LastCheckOut/Core/LCOGameInstance.h"
+#include "Localization/LCOLocalizationSubsystem.h"
 
 void ULCOMainMenuWidget::NativeOnInitialized()
 {
@@ -23,6 +25,9 @@ void ULCOMainMenuWidget::NativeConstruct()
 
 	bIsTransitioning = false;
 
+	BindLocalizationEvents();
+	RefreshLocalizedText();
+
 	// 세이브가 없으면 이어하기 비활성화
 	if (Btn_Continue)
 	{
@@ -37,6 +42,13 @@ void ULCOMainMenuWidget::NativeConstruct()
 	{
 		Btn_NewGame->SetKeyboardFocus();
 	}
+}
+
+void ULCOMainMenuWidget::NativeDestruct()
+{
+	UnbindLocalizationEvents();
+
+	Super::NativeDestruct();
 }
 
 bool ULCOMainMenuWidget::CanContinue() const
@@ -89,9 +101,61 @@ void ULCOMainMenuWidget::HandleSettingsBackClicked()
 	CloseSettings();
 }
 
+void ULCOMainMenuWidget::HandleLanguageChanged(FName /*NewLanguage*/)
+{
+	RefreshLocalizedText();
+}
+
 void ULCOMainMenuWidget::HandleQuitClicked()
 {
 	UKismetSystemLibrary::QuitGame(this, GetOwningPlayer(), EQuitPreference::Quit, false);
+}
+
+void ULCOMainMenuWidget::BindLocalizationEvents()
+{
+	UGameInstance* GameInstance = GetGameInstance();
+	if (!GameInstance)
+	{
+		return;
+	}
+
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GameInstance->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+		LocalizationSubsystem->OnLanguageChanged.AddDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
+}
+
+void ULCOMainMenuWidget::UnbindLocalizationEvents()
+{
+	UGameInstance* GameInstance = GetGameInstance();
+	if (!GameInstance)
+	{
+		return;
+	}
+
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GameInstance->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
+}
+
+void ULCOMainMenuWidget::RefreshLocalizedText()
+{
+	const UGameInstance* GameInstance = GetGameInstance();
+	const ULCOLocalizationSubsystem* LocalizationSubsystem = GameInstance
+		? GameInstance->GetSubsystem<ULCOLocalizationSubsystem>()
+		: nullptr;
+
+	if (!LocalizationSubsystem)
+	{
+		return;
+	}
+
+	if (Txt_Start)    Txt_Start->SetText(LocalizationSubsystem->GetUIText(FName(TEXT("MENU_NEW_GAME"))));
+	if (Txt_Continue) Txt_Continue->SetText(LocalizationSubsystem->GetUIText(FName(TEXT("MENU_CONTINUE"))));
+	if (Txt_Settings) Txt_Settings->SetText(LocalizationSubsystem->GetUIText(FName(TEXT("MENU_SETTINGS"))));
+	if (Txt_Quit)     Txt_Quit->SetText(LocalizationSubsystem->GetUIText(FName(TEXT("MENU_QUIT"))));
 }
 
 void ULCOMainMenuWidget::StartGameWithMode(ELCOGameStartMode InStartMode)

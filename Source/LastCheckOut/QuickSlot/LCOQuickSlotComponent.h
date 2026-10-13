@@ -22,7 +22,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOCameraEquipChanged, bool, bEqu
  * - BP_PlayerCharacter에 Add Component로 붙여서 사용 (캐릭터 / 컨트롤러 C++ 수정 없음)
  * - 슬롯 순서 등록: 인벤토리 UI에서 AssignSlot / SwapSlots / ClearSlot 호출
  * - Q 꾹 누르기: 원형 휠 표시 + 시간 느려짐 → 마우스 방향으로 선택 → 떼면 사용
- * - 평소엔 숨김, 달리는 동안만 HUD 표시 (캐릭터 OnSprintStarted / OnWalkStarted 자동 바인딩)
+ * - 평소엔 HUD 표시, 달리는 동안엔 숨김 (캐릭터 OnSprintStarted / OnWalkStarted 자동 바인딩)
+ * - 인벤토리 / 대화창이 열려 있는 동안에도 HUD 숨김 (0.1초마다 확인)
  * - 사용 시 InventoryComponent::UseItem 호출 (효과·소모는 인벤토리에서 처리), 성공하면 OnQuickSlotItemUsed
  * - 인벤토리 OnInventoryChanged 자동 바인딩 → 수량 즉시 갱신
  * - 소비 아이템(Consumable)만 등록 가능
@@ -162,7 +163,7 @@ protected:
 
 	// ---------- 위젯 ----------
 
-	// 달릴 때 보이는 1~4 HUD (WBP_QuickSlotHUD)
+	// 평소에 보이는 1~4 HUD, 달리는 동안엔 숨김 (WBP_QuickSlotHUD)
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Widget")
 	TSubclassOf<ULCOQuickSlotWidget> HUDWidgetClass;
 
@@ -242,6 +243,9 @@ private:
 	void CloseWheel(bool bUseSelected);
 	void UpdateHUDVisibility();
 
+	// 인벤토리 / 대화창이 화면에 열려 있는지 (열려 있으면 HUD 숨김)
+	bool IsHUDBlockingMenuOpen();
+
 	bool IsValidSlotIndex(int32 SlotIndex) const { return SlotIndex >= 0 && SlotIndex < NumSlots; }
 	void NotifySlotsChanged();
 
@@ -259,6 +263,12 @@ private:
 	bool bInputBound = false;
 	bool bWheelOpen = false;
 	bool bIsSprinting = false;
+
+	// HUD가 지금 보이는 상태인지 (바뀔 때만 Show / Hide 호출해서 BP 애니메이션이 반복 재생되지 않게)
+	bool bHUDShown = false;
+
+	// 인벤토리 / 대화창 열림 확인용 타이머
+	FTimerHandle HUDCheckTimerHandle;
 	bool bCameraEquipped = false;
 
 	// 휠이 열린 동안 누적한 마우스 이동량 (위 = +Y)

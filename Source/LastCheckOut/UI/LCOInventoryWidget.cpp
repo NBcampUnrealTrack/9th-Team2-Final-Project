@@ -18,6 +18,7 @@
 #include "UI/LCOInteractionPromptSubsystem.h"
 #include "UI/LCOInventoryItemWidget.h"
 #include "UI/LCOQuickSlotWidget.h"
+#include "UI/LCOContainerWidget.h"
 #include "QuickSlot/LCOQuickSlotComponent.h"
 
 void ULCOInventoryWidget::NativeOnInitialized()
@@ -53,8 +54,30 @@ void ULCOInventoryWidget::NativeDestruct()
 	Super::NativeDestruct();
 }
 
+namespace LCOInventoryWidgetPrivate
+{
+	// 화면에 열려 있는 상자(서랍장) 창을 모두 닫음 (상자 위에 인벤토리 / 수첩을 겹쳐 열지 않도록)
+	void CloseOpenContainerWidgets(UObject* WorldContextObject)
+	{
+		TArray<UUserWidget*> FoundWidgets;
+		UWidgetBlueprintLibrary::GetAllWidgetsOfClass(WorldContextObject, FoundWidgets, ULCOContainerWidget::StaticClass(), true);
+
+		for (UUserWidget* Widget : FoundWidgets)
+		{
+			ULCOContainerWidget* ContainerWidget = Cast<ULCOContainerWidget>(Widget);
+			if (ContainerWidget && ContainerWidget->IsInViewport())
+			{
+				ContainerWidget->CloseContainer();
+			}
+		}
+	}
+}
+
 void ULCOInventoryWidget::OpenInventory()
 {
+	// 상자 창이 열려 있으면 먼저 닫음 (상자 입력 모드가 먼저 정리된 뒤 인벤토리 UI 모드 적용)
+	LCOInventoryWidgetPrivate::CloseOpenContainerWidgets(this);
+
 	if (!IsInViewport())
 	{
 		AddToViewport(ViewportZOrder);
@@ -203,6 +226,14 @@ void ULCOInventoryWidget::ApplyInventoryInputMode()
 {
 	APlayerController* PC = GetOwningPlayer();
 	if (!PC || bInventoryInputModeApplied)
+	{
+		return;
+	}
+
+	// 상자 / 대화 등 다른 UI가 이미 커서를 켜 둔 상태면 입력 모드를 건드리지 않음
+	// (여기서 UI 모드를 켜면, 인벤토리를 닫을 때 게임 모드로 되돌리면서
+	//  아래에 열려 있는 상자 창의 마우스 커서까지 사라지기 때문)
+	if (PC->bShowMouseCursor)
 	{
 		return;
 	}

@@ -15,6 +15,7 @@ struct FItemData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLCOQuickSlotsChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOQuickSlotItemUsed, int32, SlotIndex, FName, ItemID);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOCameraEquipChanged, bool, bEquipped);
 
 /**
  * 퀵슬롯(1~4) 컴포넌트
@@ -27,6 +28,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOQuickSlotItemUsed, int32, Slo
  * - 소비 아이템(Consumable)만 등록 가능
  * - 소비 아이템을 새로 획득하면 빈 슬롯에 자동 등록 (bAutoAssignConsumables), 다 쓴 슬롯은 자동으로 비움
  * - 인벤토리 창에서 드래그 앤 드롭으로 등록 / 순서 교체 / 해제 (LCOQuickSlotDragOperation)
+ * - 1번 칸은 카메라 고정 (bPinCameraToFirstSlot): 등록 / 해제 / 교체 / 드래그 불가
+ *   휠에서 1번 선택 = 카메라 들기(촬영 모드), 휠 가운데에서 떼기 = 맨손
+ *   카메라를 든 상태에서만 CaptureAction(예: 좌클릭)으로 촬영
  *
  * 슬롯 인덱스: 0~3 (화면 표시 1~4)
  * 휠 방향:     위=1번, 오른쪽=2번, 아래=3번, 왼쪽=4번 (시계방향)
@@ -47,6 +51,10 @@ public:
 	// 카메라 필름처럼 직접 사용하지 않는 소비 아이템은 BuffType = None으로 두면 제외됨
 	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
 	bool CanAssignItem(FName ItemID) const;
+
+	// 고정 칸인지 (카메라 고정 시 인덱스 0 = 화면 1번). 등록 / 해제 / 교체 / 드래그 불가
+	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
+	bool IsPinnedSlot(int32 SlotIndex) const;
 
 	// 슬롯에 아이템 등록 (소비 아이템만). 다른 슬롯에 같은 아이템이 있으면 그 슬롯은 비움. ItemID가 None이면 비우기
 	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
@@ -84,8 +92,18 @@ public:
 	// ---------- 사용 ----------
 
 	// 보유 수량이 있을 때만 성공 → OnQuickSlotItemUsed 브로드캐스트
+	// 고정 칸(카메라)이면 카메라 들기
 	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
 	bool UseSlot(int32 SlotIndex);
+
+	// ---------- 카메라 (1번 고정 칸) ----------
+
+	// 카메라 들기 / 내리기 (휠에서 1번 선택 = 들기, 휠 가운데에서 떼기 = 맨손)
+	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot|Camera")
+	void SetCameraEquipped(bool bEquip);
+
+	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot|Camera")
+	bool IsCameraEquipped() const { return bCameraEquipped; }
 
 	// ---------- 달리기 상태 ----------
 
@@ -107,6 +125,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "LCO|QuickSlot")
 	FOnLCOQuickSlotItemUsed OnQuickSlotItemUsed;
 
+	// 카메라 들기 / 내리기 시 (카메라 UI 뷰파인더, 캐릭터 애니메이션 등에서 구독)
+	UPROPERTY(BlueprintAssignable, Category = "LCO|QuickSlot|Camera")
+	FOnLCOCameraEquipChanged OnCameraEquipChanged;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -123,6 +145,20 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Input")
 	int32 MappingContextPriority = 1;
+
+	// 카메라를 든 상태에서 촬영 키 (예: 마우스 좌클릭). 맨손일 때는 무시
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Input")
+	TObjectPtr<UInputAction> CaptureAction;
+
+	// ---------- 카메라 고정 칸 ----------
+
+	// 1번 칸에 카메라 고정
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Camera")
+	bool bPinCameraToFirstSlot = true;
+
+	// 카메라 아이콘 / 이름용 DT_ItemData 행 이름 (인벤토리에는 넣지 않음)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Camera")
+	FName CameraItemID = TEXT("Camera");
 
 	// ---------- 위젯 ----------
 
@@ -166,6 +202,12 @@ protected:
 private:
 	// 컨트롤러 확보 → 입력 바인딩 + 위젯 생성
 	void TrySetupForController(AController* NewController);
+
+	// 1번 칸에 카메라 고정 (BeginPlay에서 1회)
+	void ApplyPinnedSlot();
+
+	// 카메라를 든 상태에서 촬영 키 입력
+	void HandleCapturePressed();
 
 	UFUNCTION()
 	void HandleControllerChanged(APawn* Pawn, AController* OldController, AController* NewController);
@@ -217,6 +259,7 @@ private:
 	bool bInputBound = false;
 	bool bWheelOpen = false;
 	bool bIsSprinting = false;
+	bool bCameraEquipped = false;
 
 	// 휠이 열린 동안 누적한 마우스 이동량 (위 = +Y)
 	FVector2D WheelCursor = FVector2D::ZeroVector;

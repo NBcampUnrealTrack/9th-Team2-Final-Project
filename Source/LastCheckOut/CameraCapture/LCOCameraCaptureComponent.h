@@ -28,6 +28,12 @@ enum class ELCOCameraCaptureResult : uint8
 	SystemError     UMETA(DisplayName = "시스템 오류")
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FOnCameraCaptureFailed,
+	ELCOCameraCaptureResult,
+	Result
+);
+
 
 UCLASS(ClassGroup=(LCO), meta=(BlueprintSpawnableComponent))
 class LASTCHECKOUT_API ULCOCameraCaptureComponent
@@ -49,6 +55,10 @@ public:
 	// 사진 획득 이벤트
 	UPROPERTY(BlueprintAssignable, Category="LCO|Camera")
 	FOnCameraPhotoCaptured OnPhotoCaptured;
+	
+	// 사진 획득 실패
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Camera")
+	FOnCameraCaptureFailed OnCaptureFailed;
 
 	// 카메라 필름 아이템 ID
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="LCO|Camera")

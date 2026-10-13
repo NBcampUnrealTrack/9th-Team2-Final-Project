@@ -340,17 +340,27 @@ bool ULCOCameraCaptureComponent::Capture()
     // 촬영 가능한 대상이 없다면 촬영을 중단한다.
     if (!CapturePoint)
     {
+        OnCaptureFailed.Broadcast(ELCOCameraCaptureResult::NoTarget);
         return false;
     }
 
     // 필름이 없으면 촬영을 진행하지 않는다.
     if (!HasCameraFilm())
     {
+        OnCaptureFailed.Broadcast(ELCOCameraCaptureResult::NoFilm);
         return false;
     }
 
     // 대상의 촬영 가능 여부 확인, 필름 소모,
     // 촬영 완료 처리 및 이벤트 전달을 수행한다.
-    return ProcessCapture(CapturePoint)
-        == ELCOCameraCaptureResult::Success;
+    const ELCOCameraCaptureResult Result =
+        ProcessCapture(CapturePoint);
+
+    if (Result != ELCOCameraCaptureResult::Success)
+    {
+        OnCaptureFailed.Broadcast(Result);
+        return false;
+    }
+    
+    return true;
 }

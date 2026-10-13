@@ -16,8 +16,9 @@ public:
 	ALCOGameMode();
 
 	// 게임 중 맵 이동은 Open Level 대신 이 함수를 사용 (인벤토리 / 퀵슬롯 / 시점 유지)
+	// PlayerStartTag: 도착할 PlayerStart의 태그 (비우면 기본 PlayerStart)
 	UFUNCTION(BlueprintCallable, Category = "LCO|Travel")
-	void TravelToLevel(TSoftObjectPtr<UWorld> Level);
+	void TravelToLevel(TSoftObjectPtr<UWorld> Level, FName PlayerStartTag = NAME_None);
 
 	// 현재 플레이어의 인벤토리 / 퀵슬롯 / 시점을 OutData에 복사. 플레이어가 없으면 false
 	// (맵 이동 보관 / 세이브 저장에서 공용으로 사용)
@@ -28,6 +29,9 @@ protected:
 
 	// 플레이어 캐릭터 생성 + 모든 액터 BeginPlay가 끝난 뒤 호출됨 → 여기서 맵 이동 데이터 복원
 	virtual void HandleMatchHasStarted() override;
+
+	// 맵 이동 시 지정한 도착 태그(Entry 옵션)와 같은 PlayerStart를 선택
+	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
 	
 private:
 	void InitializeCurrentMap();

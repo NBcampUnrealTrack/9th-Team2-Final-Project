@@ -8,8 +8,10 @@ class APlayerController;
 class UButton;
 class UInventoryComponent;
 class UPanelWidget;
+class UImage;
 class UTextBlock;
 class UTexture2D;
+class UWidget;
 class ULCOInventoryItemWidget;
 class ULCOQuickSlotComponent;
 class ULCOQuickSlotWidget;
@@ -67,6 +69,25 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<ULCOQuickSlotWidget> QuickSlotPanel;
 
+	// ---------- 아이템 상세 설명 (아이템 좌클릭 시 표시, 전부 선택사항) ----------
+
+	// 상세 패널 전체 (선택한 아이템이 없으면 숨김)
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UWidget> DetailPanel;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UImage> Img_DetailIcon;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_DetailName;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_DetailDescription;
+
+	// 상세 패널이 바뀔 때 (BP 연출용, ItemID가 None이면 닫힘)
+	UFUNCTION(BlueprintImplementableEvent, Category = "LCO|Inventory")
+	void OnItemDetailChanged(FName ItemID);
+
 private:
 	UFUNCTION()
 	void HandleInventoryRequested();
@@ -79,6 +100,20 @@ private:
 	UInventoryComponent* GetPlayerInventory() const;
 	FText ResolveItemName(FName ItemID, const UInventoryComponent* Inventory) const;
 	UTexture2D* ResolveItemIcon(FName ItemID, const UInventoryComponent* Inventory) const;
+
+	// 설명: Items.csv의 "아이템ID_DESC" 키 → 없으면 DT_ItemData의 Description
+	FText ResolveItemDescription(FName ItemID, const UInventoryComponent* Inventory) const;
+
+	// 아이템 선택 → 상세 설명
+	UFUNCTION()
+	void HandleItemSelected(FName ItemID);
+
+	void ShowItemDetail(FName ItemID);
+	void HideItemDetail();
+	void UpdateItemSelectionVisuals();
+
+	// 현재 상세 설명을 보고 있는 아이템 (없으면 None)
+	FName SelectedItemID = NAME_None;
 	void RefreshLocalizedTexts();
 
 	// 퀵슬롯 패널 갱신 / 슬롯 변경 이벤트 연결

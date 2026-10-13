@@ -1,5 +1,8 @@
 #include "AI/LCOCaretakerAIController.h"
 
+#include "AI/Chasing/LCOChasingManager.h"
+#include "Interaction/LCOHidingSpot.h"
+
 #include "BehaviorTree/BehaviorTree.h"
 #include "DrawDebugHelpers.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -114,6 +117,9 @@ void ALCOCaretakerAIController::BeginPlay()
 
 	GetWorldTimerManager().SetTimer(CatchCheckTimer, this, &ALCOCaretakerAIController::CheckCatch, CatchCheckInterval, true);
 
+	// 레벨에 배치된 체이싱 매니저를 찾는다. 없으면 안전지대 판정 없이 동작한다.
+	ChasingManager = Cast<ALCOChasingManager>(UGameplayStatics::GetActorOfClass(this, ALCOChasingManager::StaticClass()));
+
 	// 플레이어가 아직 생성되지 않았을 수 있어 바인딩될 때까지 재시도한다.
 	TryBindSuspicion();
 	if (!BoundSuspicion.IsValid())
@@ -198,6 +204,28 @@ void ALCOCaretakerAIController::CheckCatch()
 		return;
 	}
 
+	// 안전지대(로비) 안에서는 잡을 수 없다.
+	if (ChasingManager.IsValid() && ChasingManager->IsPlayerInSafeZone())
+	{
+		return;
+	}
+
+	// 숨은 플레이어를 끌어내러 가는 중에는 은신처에 도착해 끌어낼 때까지 잡지 않는다.
+	if (ALCOHidingSpot* Spot = ExtractSpot.Get())
+	{
+		if (!Spot->IsOccupied())
+		{
+			// 스스로 나왔거나 이미 끌려나온 경우
+			FinishExtract();
+		}
+		else if (FVector::Dist(GetPawn()->GetActorLocation(), Spot->GetActorLocation()) <= ExtractDistance)
+		{
+			Spot->ForceEject();
+			FinishExtract();
+		}
+		return;
+	}
+
 	const UBlackboardComponent* BB = GetBlackboardComponent();
 	AActor* Target = BB ? Cast<AActor>(BB->GetValueAsObject(LCOBlackboardKeys::TargetActor)) : nullptr;
 	if (!Target)
@@ -219,6 +247,7 @@ void ALCOCaretakerAIController::HandlePlayerCaught(AActor* CaughtPlayer)
 		BoundSuspicion->ResetSuspicion();
 	}
 	WarningCount = 0;
+	ExtractSpot.Reset();
 
 	// 플레이어를 Player Start 위치로 이동
 	APawn* PlayerPawn = Cast<APawn>(CaughtPlayer);
@@ -241,6 +270,49 @@ void ALCOCaretakerAIController::HandlePlayerCaught(AActor* CaughtPlayer)
 	GetWorldTimerManager().ClearTimer(LostGraceTimer);
 	StopMovement();
 	GetPawn()->TeleportTo(InitialTransform.GetLocation(), InitialTransform.GetRotation().Rotator());
+	AIPerception->ForgetAll();
+
+	if (UBlackboardComponent* BB = GetBlackboardComponent())
+	{
+		BB->ClearValue(LCOBlackboardKeys::TargetActor);
+	}
+	SetState(ELCOCaretakerState::Patrol);
+
+	// 체이싱 중이었다면 실패로 종료한다. (시골청년 제거, 의심도 초기화)
+	if (ChasingManager.IsValid())
+	{
+		ChasingManager->EndChasing(ELCOChasingEndReason::Caught);
+	}
+}
+
+void ALCOCaretakerAIController::StartExtractHider(ALCOHidingSpot* HidingSpot)
+{
+	UBlackboardComponent* BB = GetBlackboardComponent();
+	if (!HidingSpot || !BB || CurrentState != ELCOCaretakerState::Chase)
+	{
+		return;
+	}
+
+	// 추격 대상을 플레이어 대신 은신처로 바꿔 그 앞까지 이동한다.
+	ExtractSpot = HidingSpot;
+	BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, HidingSpot);
+}
+
+void ALCOCaretakerAIController::FinishExtract()
+{
+	ExtractSpot.Reset();
+
+	if (UBlackboardComponent* BB = GetBlackboardComponent())
+	{
+		BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, UGameplayStatics::GetPlayerPawn(this, 0));
+	}
+}
+
+void ALCOCaretakerAIController::StopChase()
+{
+	ExtractSpot.Reset();
+	GetWorldTimerManager().ClearTimer(LostGraceTimer);
+	StopMovement();
 	AIPerception->ForgetAll();
 
 	if (UBlackboardComponent* BB = GetBlackboardComponent())

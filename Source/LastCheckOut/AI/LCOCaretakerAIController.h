@@ -10,6 +10,8 @@
 class UAIPerceptionComponent;
 class UAISenseConfig_Sight;
 class UBehaviorTree;
+class ALCOChasingManager;
+class ALCOHidingSpot;
 
 // 관리인 AI 컨트롤러. 감지와 상태 전환을 담당하고, 행동은 Behavior Tree가 실행한다.
 UCLASS()
@@ -28,6 +30,12 @@ public:
 	
 	bool BeginInterrogation(APawn* Player);
 	void EndInterrogation(bool bContinueSearch);
+
+	// 추격을 멈추고 순찰로 되돌린다. (체이싱이 끝났을 때 매니저가 호출)
+	void StopChase();
+
+	// 들킨 채 숨은 플레이어를 끌어내러 간다. 은신처까지 이동한 뒤 ForceEject()로 끌어내고 다시 플레이어를 추격한다.
+	void StartExtractHider(ALCOHidingSpot* HidingSpot);
 
 protected:
 	virtual void BeginPlay() override;
@@ -60,6 +68,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Catch")
 	float CatchCheckInterval = 0.1f;
+
+	// 은신처에서 이 거리(cm) 안에 도착하면 숨은 플레이어를 끌어낸다.
+	UPROPERTY(EditDefaultsOnly, Category = "AI|Catch")
+	float ExtractDistance = 250.f;
 
 	// true면 시야 감지로 추격한다. (의심도 연동 전 테스트용 임시 동작)
 	// false면 플레이어의 의심도 구간에 따라 상태를 바꾼다.
@@ -99,6 +111,13 @@ private:
 	static ELCOCaretakerState LevelToState(ELCOSuspicionLevel Level);
 
 	TWeakObjectPtr<USuspicionComponent> BoundSuspicion;
+	TWeakObjectPtr<ALCOChasingManager> ChasingManager;
+
+	// 끌어내러 가는 중인 은신처
+	TWeakObjectPtr<ALCOHidingSpot> ExtractSpot;
+
+	// 끌어내기를 마치고 추격 대상을 다시 플레이어로 되돌린다.
+	void FinishExtract();
 
 	// 직전에 처리한 의심도 구간. 구간이 바뀔 때만 상태를 갱신한다.
 	ELCOSuspicionLevel LastSuspicionLevel = ELCOSuspicionLevel::Calm;

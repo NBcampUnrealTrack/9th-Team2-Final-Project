@@ -15,7 +15,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOInventoryItemSelected, FName, 
 
 // 인벤토리 아이템 한 칸
 // 소비 아이템은 끌어서 인벤토리 창의 퀵슬롯 칸(QuickSlotPanel)에 놓으면 등록됨
-// 좌클릭하면 OnItemSelected → 인벤토리 창의 상세 설명 패널 표시
+// 마우스를 올리면 선택 테두리(Img_Selected) 표시, 내리면 숨김
+// 마우스를 올리면 TooltipWidgetClass(WBP_ItemTooltip)로 설명 창 표시
 UCLASS(Abstract)
 class LASTCHECKOUT_API ULCOInventoryItemWidget : public UUserWidget
 {
@@ -47,6 +48,10 @@ protected:
 	virtual FReply NativeOnPreviewMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 
+	// 마우스를 올리면 테두리 표시 (툴팁과 같이 동작)
+	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> ItemButton;
 
@@ -72,11 +77,25 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|Inventory")
 	TSubclassOf<ULCOQuickSlotEntryWidget> DragVisualClass;
 
+	// 마우스를 올렸을 때 뜨는 설명 창 (WBP_ItemTooltip). 비워두면 툴팁 없음
+	// WBP 안에 Img_TooltipIcon / Txt_TooltipName / Txt_TooltipDescription 이름으로 배치 (전부 선택)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Inventory")
+	TSubclassOf<UUserWidget> TooltipWidgetClass;
+
 private:
 	ULCOQuickSlotComponent* GetQuickSlotComponent() const;
 
 	// 퀵슬롯에 넣을 수 있는 아이템인지 (소비 아이템)
 	bool CanDragToQuickSlot() const;
+
+	// 툴팁 생성 / 내용 채우기 (SetItem에서 호출)
+	void RefreshTooltip();
+
+	// 설명: Items.csv의 "아이템ID_DESC" → 없으면 DT_ItemData의 Description
+	FText ResolveDescription() const;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UUserWidget> ItemTooltipWidget;
 
 	UPROPERTY(Transient)
 	FText DisplayName;

@@ -13,8 +13,13 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "EnhancedInputComponent.h"
+#include "Interaction/LCOHidingComponent.h"
 #include "InputActionValue.h"
+#include "Player/LCOSenseVolume.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "EngineUtils.h"
 #include "TimerManager.h"
+#include "Components/StaticMeshComponent.h"
 
 ALCOPlayerCharacter::ALCOPlayerCharacter()
 {
@@ -41,6 +46,12 @@ ALCOPlayerCharacter::ALCOPlayerCharacter()
 	SuspicionComponent = CreateDefaultSubobject<USuspicionComponent>(TEXT("SuspicionComponent"));
 	NotebookComponent = CreateDefaultSubobject<UNotebookComponent>(TEXT("Notebook"));
 	QuickSlotComponent = CreateDefaultSubobject<ULCOQuickSlotComponent>(TEXT("QuickSlot"));
+	HidingComponent = CreateDefaultSubobject<ULCOHidingComponent>(TEXT("Hiding"));
+	HeldCameraMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeldCameraMesh"));
+	HeldCameraMesh->SetupAttachment(GetMesh());
+	HeldCameraMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HeldCameraMesh->SetVisibility(false);
+	HeldCameraMesh->bCastHiddenShadow = true;
 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
@@ -68,14 +79,25 @@ void ALCOPlayerCharacter::BeginPlay()
 	// BP에서 바꾼 값 반영
 	UpdateMoveSpeed();
 	Camera->SetFieldOfView(DefaultFOV);
+	// BP에서 바꾼 소켓 반영 (BP에서 조정한 오프셋 유지)
+	HeldCameraMesh->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, HeldCameraSocket);
+
+	QuickSlotComponent->OnCameraEquipChanged.AddDynamic(this, &ALCOPlayerCharacter::HandleCameraEquipChanged);
 	SetViewMode(DefaultViewMode);
+	
+	CurrentSenseCharges = MaxSenseCharges;
+
+	// 버프 포스트 프로세스 등록 (강도 0으로 시작)
+	MoveSpeedBuffPostProcessMID = CreateBuffPostProcess(MoveSpeedBuffPostProcessMaterial);
+	MaxStaminaBuffPostProcessMID = CreateBuffPostProcess(MaxStaminaBuffPostProcessMaterial);
 }
 
 void ALCOPlayerCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-
+	
 	UpdateSprint();
+	UpdateBuffEffects(DeltaSeconds);
 	UpdateCameraFOV(DeltaSeconds);
 	UpdateCameraHeight(DeltaSeconds);
 }
@@ -126,6 +148,13 @@ void ALCOPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 	{
 		EIC->BindAction(CrouchAction, ETriggerEvent::Started, this, &ALCOPlayerCharacter::CrouchPressed);
 		EIC->BindAction(CrouchAction, ETriggerEvent::Completed, this, &ALCOPlayerCharacter::CrouchReleased);
+	}
+	if (SenseAction)
+	{
+		// 떼면 취소 (IA에 Hold 트리거가 들어가 있어도 동작하도록 Canceled도 연결)
+		EIC->BindAction(SenseAction, ETriggerEvent::Started, this, &ALCOPlayerCharacter::SensePressed);
+		EIC->BindAction(SenseAction, ETriggerEvent::Completed, this, &ALCOPlayerCharacter::SenseReleased);
+		EIC->BindAction(SenseAction, ETriggerEvent::Canceled, this, &ALCOPlayerCharacter::SenseReleased);
 	}
 }
 
@@ -209,6 +238,13 @@ void ALCOPlayerCharacter::Interact()
 		return;
 	}
 
+	// 숨어 있으면 바라보는 대상과 상관없이 밖으로 나오기 (옷장 안에서 트레이스가 컴포넌트에 안 닿는 경우 대비)
+	if (HidingComponent->IsHiding())
+	{
+		HidingComponent->ExitHiding();
+		return;
+	}
+
 	InteractionComponent->TryInteract();
 }
 
@@ -242,11 +278,14 @@ void ALCOPlayerCharacter::SetViewMode(ELCOViewMode NewMode)
 
 	// 1인칭에서는 내 화면에서 내 메시 숨김 (카메라가 머리 안에 들어가는 문제 방지)
 	GetMesh()->SetOwnerNoSee(bFirstPerson);
+	// 1인칭에서는 몸과 함께 손 카메라도 숨김 (그림자는 유지)
+	HeldCameraMesh->SetOwnerNoSee(bFirstPerson);
 }
 
 void ALCOPlayerCharacter::UpdateCameraFOV(float DeltaSeconds)
 {
-	const float TargetFOV = bIsSprinting ? SprintFOV : DefaultFOV;
+	// 평상시 / 달리기 FOV에 이동속도 버프 FOV를 더함 (버프 시작 / 종료 시 MoveSpeedBuffAlpha로 서서히)
+	const float TargetFOV = (bIsSprinting ? SprintFOV : DefaultFOV) + MoveSpeedBuffFOV * MoveSpeedBuffAlpha;
 	Camera->SetFieldOfView(FMath::FInterpTo(Camera->FieldOfView, TargetFOV, DeltaSeconds, FOVInterpSpeed));
 }
 
@@ -392,6 +431,67 @@ float ALCOPlayerCharacter::GetMaxStaminaBuffRemainingTime() const
 	return FMath::Max(0.f, GetWorldTimerManager().GetTimerRemaining(MaxStaminaBuffTimer));
 }
 
+int32 ALCOPlayerCharacter::GetBaseMaxStamina() const
+{
+	// 최대 스태미나 버프 중이면 버프 적용 전 최대치
+	return IsMaxStaminaBuffActive() ? BaseMaxStamina : StaminaComponent->GetMaxStamina();
+}
+
+void ALCOPlayerCharacter::UpdateBuffEffects(float DeltaSeconds)
+{
+	const float BlendSpeed = 1.f / BuffEffectBlendTime;
+
+	const float NewMoveSpeedAlpha = FMath::FInterpConstantTo(MoveSpeedBuffAlpha, IsMoveSpeedBuffActive() ? 1.f : 0.f, DeltaSeconds, BlendSpeed);
+	if (NewMoveSpeedAlpha != MoveSpeedBuffAlpha)
+	{
+		MoveSpeedBuffAlpha = NewMoveSpeedAlpha;
+		ApplyBuffPostProcess(MoveSpeedBuffPostProcessMID, MoveSpeedBuffAlpha * MoveSpeedBuffPostProcessIntensity);
+	}
+
+	const float NewMaxStaminaAlpha = FMath::FInterpConstantTo(MaxStaminaBuffAlpha, IsMaxStaminaBuffActive() ? 1.f : 0.f, DeltaSeconds, BlendSpeed);
+	if (NewMaxStaminaAlpha != MaxStaminaBuffAlpha)
+	{
+		MaxStaminaBuffAlpha = NewMaxStaminaAlpha;
+		ApplyBuffPostProcess(MaxStaminaBuffPostProcessMID, MaxStaminaBuffAlpha * MaxStaminaBuffPostProcessIntensity);
+	}
+}
+
+UMaterialInstanceDynamic* ALCOPlayerCharacter::CreateBuffPostProcess(UMaterialInterface* Material)
+{
+	if (!Material)
+	{
+		return nullptr;
+	}
+
+	UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(Material, this);
+	MID->SetScalarParameterValue(BuffPostProcessIntensityParam, 0.f);
+
+	// 버프가 없을 때는 꺼 둠 (Weight 0이면 렌더링에서 제외)
+	Camera->PostProcessSettings.AddBlendable(MID, 0.f);
+	return MID;
+}
+
+void ALCOPlayerCharacter::ApplyBuffPostProcess(UMaterialInstanceDynamic* MID, float Intensity)
+{
+	if (!MID)
+	{
+		return;
+	}
+
+	// 강도는 머티리얼 파라미터로 조절 (블렌더블이 하나뿐이면 Weight로는 강도가 바뀌지 않음)
+	MID->SetScalarParameterValue(BuffPostProcessIntensityParam, Intensity);
+
+	// 강도 0이면 블렌더블을 꺼서 머티리얼 연산 생략
+	for (FWeightedBlendable& Blendable : Camera->PostProcessSettings.WeightedBlendables.Array)
+	{
+		if (Blendable.Object == MID)
+		{
+			Blendable.Weight = Intensity > 0.f ? 1.f : 0.f;
+			break;
+		}
+	}
+}
+
 // ---------- 카메라 촬영 ----------
 
 void ALCOPlayerCharacter::TakePhoto()
@@ -407,6 +507,19 @@ void ALCOPlayerCharacter::TakePhoto()
 	{
 		UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Capture failed (대상 없음 / 필름 없음 / 이미 촬영)"));
 	}
+}
+
+void ALCOPlayerCharacter::HandleCameraEquipChanged(bool bEquipped)
+{
+	bCameraEquipped = bEquipped;
+	HeldCameraMesh->SetVisibility(bEquipped);
+
+	if (UAnimMontage* Montage = bEquipped ? CameraEquipMontage : CameraUnequipMontage)
+	{
+		PlayAnimMontage(Montage);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Camera %s"), bEquipped ? TEXT("Equipped") : TEXT("Unequipped"));
 }
 
 // ---------- 웅크리기 ----------
@@ -475,4 +588,119 @@ void ALCOPlayerCharacter::UpdateCameraHeight(float DeltaSeconds)
 void ALCOPlayerCharacter::ApplyCameraHeight()
 {
 	SpringArm->SetRelativeLocation(FVector(0.f, 0.f, CurrentCameraHeight));
+}
+
+// ---------- 감각(가칭) ----------
+
+void ALCOPlayerCharacter::SetSenseCharges(int32 NewCharges)
+{
+	const int32 Clamped = FMath::Clamp(NewCharges, 0, MaxSenseCharges);
+	if (Clamped == CurrentSenseCharges)
+	{
+		return;
+	}
+
+	CurrentSenseCharges = Clamped;
+	OnSenseChargesChanged.Broadcast(CurrentSenseCharges, MaxSenseCharges);
+}
+
+void ALCOPlayerCharacter::RestoreSenseCharges(int32 Amount)
+{
+	if (Amount <= 0)
+	{
+		return;
+	}
+
+	SetSenseCharges(CurrentSenseCharges + Amount);
+}
+
+bool ALCOPlayerCharacter::CanUseSense() const
+{
+	// 최대 스태미나 버프와 관계없이 기본 최대치 기준
+	return CurrentSenseCharges >= 1 && StaminaComponent->GetCurrentStamina() >= GetBaseMaxStamina();
+}
+
+bool ALCOPlayerCharacter::IsSenseHolding() const
+{
+	return GetWorldTimerManager().IsTimerActive(SenseHoldTimer);
+}
+
+float ALCOPlayerCharacter::GetSenseHoldProgress() const
+{
+	if (!IsSenseHolding())
+	{
+		return 0.f;
+	}
+
+	return FMath::Clamp(GetWorldTimerManager().GetTimerElapsed(SenseHoldTimer) / SenseHoldTime, 0.f, 1.f);
+}
+
+void ALCOPlayerCharacter::SensePressed()
+{
+	// 메뉴가 열려 있으면 막기
+	const ALCOPlayerController* PC = Cast<ALCOPlayerController>(Controller);
+	if (PC && PC->IsInUIMode())
+	{
+		return;
+	}
+
+	// 조건이 안 되면 홀드도 시작하지 않음 (자원 소모 / 결과 브로드캐스트 없음)
+	if (!CanUseSense())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Sense unavailable (Charges %d, Stamina %d / Base %d)"),
+			CurrentSenseCharges, StaminaComponent->GetCurrentStamina(), GetBaseMaxStamina());
+		return;
+	}
+
+	GetWorldTimerManager().SetTimer(SenseHoldTimer, this, &ALCOPlayerCharacter::ActivateSense, SenseHoldTime, false);
+}
+
+void ALCOPlayerCharacter::SenseReleased()
+{
+	// 홀드 시간 전에 떼면 취소
+	if (IsSenseHolding())
+	{
+		GetWorldTimerManager().ClearTimer(SenseHoldTimer);
+		UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Sense canceled"));
+	}
+}
+
+void ALCOPlayerCharacter::ActivateSense()
+{
+	// 홀드하는 동안 상태가 바뀌었을 수 있으므로 다시 확인 (달리기로 스태미나 소모, 메뉴 열림 등)
+	const ALCOPlayerController* PC = Cast<ALCOPlayerController>(Controller);
+	if ((PC && PC->IsInUIMode()) || !CanUseSense())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Sense blocked on activate"));
+		return;
+	}
+
+	SetSenseCharges(CurrentSenseCharges - 1);
+	StaminaComponent->ConsumeStamina(GetBaseMaxStamina());
+
+	ALCOSenseVolume* Volume = FindSenseVolume();
+	const bool bSuccess = (Volume != nullptr);
+
+	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Sense %s (%s) Charges %d/%d"),
+		bSuccess ? TEXT("Success") : TEXT("Fail"), *GetNameSafe(Volume), CurrentSenseCharges, MaxSenseCharges);
+
+	if (Volume)
+	{
+		Volume->NotifySensed(this);
+	}
+
+	OnSenseUsed.Broadcast(bSuccess);
+}
+
+ALCOSenseVolume* ALCOPlayerCharacter::FindSenseVolume() const
+{
+	const FVector Location = GetActorLocation();
+	for (TActorIterator<ALCOSenseVolume> It(GetWorld()); It; ++It)
+	{
+		if (It->IsSenseEnabled() && It->IsLocationInside(Location))
+		{
+			return *It;
+		}
+	}
+	return nullptr;
 }

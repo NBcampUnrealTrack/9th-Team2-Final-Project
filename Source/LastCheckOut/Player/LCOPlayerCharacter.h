@@ -15,11 +15,19 @@ class UNotebookComponent;
 class ULCOQuickSlotComponent;
 class ULCOCameraCaptureComponent;
 class ULCOCameraOcclusionComponent;
+class ULCOHidingComponent;
+class UMaterialInterface;
+class UMaterialInstanceDynamic;
+class ALCOSenseVolume;
+class UStaticMeshComponent;
+class UAnimMontage;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLCOMoveStateChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOSprintStateChanged, bool, bIsSprinting);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOCrouchStateChanged, bool, bIsCrouching);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOSenseChargesChanged, int32, CurrentCharges, int32, MaxCharges);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOSenseUsed, bool, bSuccess);
 
 UENUM(BlueprintType)
 enum class ELCOViewMode : uint8
@@ -36,6 +44,10 @@ class LASTCHECKOUT_API ALCOPlayerCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+	// 카메라를 손에 들고 있는지 (애님 BP에서 상체 포즈 전환용)
+	UFUNCTION(BlueprintPure, Category = "LCO|Camera")
+	bool IsCameraEquipped() const { return bCameraEquipped; }
+	
 public:
 	ALCOPlayerCharacter();
 
@@ -87,6 +99,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Camera")
 	ULCOCameraCaptureComponent* GetCameraCapture() const { return CameraCaptureComponent; }
+	
+	UFUNCTION(BlueprintPure, Category = "LCO|Hiding")
+	ULCOHidingComponent* GetHiding() const { return HidingComponent; }
 
 	// ---------- 이동 ----------
 
@@ -156,6 +171,41 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Buff")
 	float GetMaxStaminaBuffRemainingTime() const;
+	
+		// 버프 화면 효과 진행도 0 ~ 1 (시작 / 종료 시 BuffEffectBlendTime 동안 서서히 변함). BP 추가 연출용
+	UFUNCTION(BlueprintPure, Category = "LCO|Buff")
+	float GetMoveSpeedBuffEffectAlpha() const { return MoveSpeedBuffAlpha; }
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Buff")
+	float GetMaxStaminaBuffEffectAlpha() const { return MaxStaminaBuffAlpha; }
+
+	// 최대 스태미나 버프를 뺀 기본 최대 스태미나 (감각 사용 조건 / 소모량 기준)
+	UFUNCTION(BlueprintPure, Category = "LCO|Stamina")
+	int32 GetBaseMaxStamina() const;
+
+	// ---------- 감각(가칭) ----------
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Sense")
+	int32 GetCurrentSenseCharges() const { return CurrentSenseCharges; }
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Sense")
+	int32 GetMaxSenseCharges() const { return MaxSenseCharges; }
+
+	// 사용 횟수 회복 (최대 횟수 초과 불가). 세이브 시 전체 회복은 GetMaxSenseCharges()를 넘기면 됨
+	UFUNCTION(BlueprintCallable, Category = "LCO|Sense")
+	void RestoreSenseCharges(int32 Amount);
+
+	// 지금 사용할 수 있는지 (남은 횟수 1 이상 + 스태미나가 기본 최대치 이상). UI 아이콘 활성화 등
+	UFUNCTION(BlueprintPure, Category = "LCO|Sense")
+	bool CanUseSense() const;
+
+	// Tab 홀드 중인지
+	UFUNCTION(BlueprintPure, Category = "LCO|Sense")
+	bool IsSenseHolding() const;
+
+	// 홀드 진행도 0 ~ 1 (게이지 UI용, 홀드 중이 아니면 0)
+	UFUNCTION(BlueprintPure, Category = "LCO|Sense")
+	float GetSenseHoldProgress() const;
 
 	// ---------- 이벤트 ----------
 
@@ -174,6 +224,14 @@ public:
 	// 웅크리기 상태가 바뀔 때 (true: 웅크림, false: 일어섬) - AI 감지, UI, 사운드 등
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Movement")
 	FOnLCOCrouchStateChanged OnCrouchStateChanged;
+	
+	// 감각 사용 횟수가 바뀔 때 (UI 갱신용)
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Sense")
+	FOnLCOSenseChargesChanged OnSenseChargesChanged;
+
+	// 감각을 사용했을 때 (true: 감각 볼륨 안에서 성공, false: 실패). 의심도 등 후속 처리는 구독해서 처리
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Sense")
+	FOnLCOSenseUsed OnSenseUsed;
 
 protected:
 	virtual void BeginPlay() override;
@@ -188,6 +246,10 @@ protected:
 
 	// 카메라 촬영 (CameraCapture 컴포넌트로 전달)
 	void TakePhoto();
+	
+	// 퀵슬롯에서 카메라를 들거나 내릴 때 (메시 표시 + 몽타주)
+	UFUNCTION()
+	void HandleCameraEquipChanged(bool bEquipped);
 	
 	// 웅크리기 입력
 	void CrouchPressed();
@@ -209,6 +271,25 @@ protected:
 
 	// 달리기 상태에 맞춰 시야각을 부드럽게 변경
 	void UpdateCameraFOV(float DeltaSeconds);
+	
+		// 버프 활성 여부에 맞춰 화면 효과 진행도를 보간하고 포스트 프로세스에 반영
+	void UpdateBuffEffects(float DeltaSeconds);
+
+	// BP에서 지정한 머티리얼로 MID를 만들어 카메라 포스트 프로세스에 등록 (머티리얼이 없으면 nullptr)
+	UMaterialInstanceDynamic* CreateBuffPostProcess(UMaterialInterface* Material);
+	void ApplyBuffPostProcess(UMaterialInstanceDynamic* MID, float Intensity);
+
+	// 감각 입력 (Tab 홀드). 누르면 홀드 시작, SenseHoldTime 전에 떼면 취소
+	void SensePressed();
+	void SenseReleased();
+
+	// 홀드 완료 시 호출. 조건 재확인 후 자원 소모 + 성공 판정
+	void ActivateSense();
+
+	// 현재 위치가 들어 있는 감각 볼륨 (없으면 nullptr)
+	ALCOSenseVolume* FindSenseVolume() const;
+
+	void SetSenseCharges(int32 NewCharges);
 
 	// ---------- 컴포넌트 ----------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -246,6 +327,13 @@ protected:
 	// 퀵슬롯 (Q 휠). 입력 / 위젯은 BP에서 이 컴포넌트에 지정
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "QuickSlot")
 	TObjectPtr<ULCOQuickSlotComponent> QuickSlotComponent;
+	
+	// 숨기 (옷장 등 LCOHidingSpot과 상호작용). 숨은 상태에서는 상호작용 키가 나오기로 동작
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hiding")
+	TObjectPtr<ULCOHidingComponent> HidingComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	TObjectPtr<UStaticMeshComponent> HeldCameraMesh;
 
 	// ---------- 입력 에셋 (BP에서 지정) ----------
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -268,6 +356,10 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UInputAction> CrouchAction;
+	
+	// 감각 (Tab 홀드). 홀드 시간은 SenseHoldTime으로 코드에서 처리하므로 IA에 Hold 트리거 불필요
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	TObjectPtr<UInputAction> SenseAction;
 
 	// ---------- 카메라 설정 ----------
 	// 시작 시점
@@ -297,6 +389,18 @@ protected:
 	// 3인칭 카메라 위치 지연 속도 (클수록 빠르게 따라옴)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
 	float ThirdPersonCameraLagSpeed = 12.f;
+	
+	// 손에 드는 카메라 메시를 붙일 소켓
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Held")
+	FName HeldCameraSocket = TEXT("hand_r");
+
+	// 카메라를 들 때 / 내릴 때 몽타주 (비워두면 재생 안 함)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Held")
+	TObjectPtr<UAnimMontage> CameraEquipMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Held")
+	TObjectPtr<UAnimMontage> CameraUnequipMontage;
+	
 
 	// 마우스 감도 배율
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Look", meta = (ClampMin = "0.1", ClampMax = "5.0"))
@@ -317,6 +421,34 @@ protected:
 	// 시야각이 바뀌는 속도
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FOV")
 	float FOVInterpSpeed = 8.f;
+	
+	// 이동속도 버프 중 추가 시야각 (평상시 / 달리기 FOV에 더해짐)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FOV")
+	float MoveSpeedBuffFOV = 5.f;
+
+	// ---------- 버프 화면 효과 ----------
+	// 버프 시작 / 종료 시 효과가 완전히 켜지거나 꺼지는 데 걸리는 시간(초)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|BuffEffect", meta = (ClampMin = "0.01"))
+	float BuffEffectBlendTime = 0.5f;
+
+	// 포스트 프로세스 머티리얼의 강도 스칼라 파라미터 이름 (두 머티리얼 공통)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|BuffEffect")
+	FName BuffPostProcessIntensityParam = TEXT("Intensity");
+
+	// 이동속도 버프 포스트 프로세스 (Post Process 도메인 머티리얼). 비워두면 효과 없음
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|BuffEffect")
+	TObjectPtr<UMaterialInterface> MoveSpeedBuffPostProcessMaterial;
+
+	// 버프가 완전히 적용됐을 때의 강도
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|BuffEffect", meta = (ClampMin = "0"))
+	float MoveSpeedBuffPostProcessIntensity = 1.f;
+
+	// 최대 스태미나 버프 포스트 프로세스. 비워두면 효과 없음
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|BuffEffect")
+	TObjectPtr<UMaterialInterface> MaxStaminaBuffPostProcessMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|BuffEffect", meta = (ClampMin = "0"))
+	float MaxStaminaBuffPostProcessIntensity = 1.f;
 
 	// ---------- 이동 설정 ----------
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
@@ -341,6 +473,15 @@ protected:
 	// false: 누르고 있는 동안만 웅크림
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crouch")
 	bool bToggleCrouch = true;
+	
+	// ---------- 감각 설정 ----------
+	// 최대 사용 횟수
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sense", meta = (ClampMin = "0"))
+	int32 MaxSenseCharges = 3;
+
+	// 이 시간(초) 동안 누르고 있어야 발동
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sense", meta = (ClampMin = "0.1"))
+	float SenseHoldTime = 1.f;
 
 private:
 	ELCOViewMode ViewMode = ELCOViewMode::FirstPerson;
@@ -350,6 +491,8 @@ private:
 
 	// 실제로 달리는 중인지
 	bool bIsSprinting = false;
+	
+	bool bCameraEquipped = false;
 	
 	// 현재 카메라 높이 (부드럽게 바뀌는 중간값)
 	float CurrentCameraHeight = 0.f;
@@ -365,4 +508,18 @@ private:
 
 	FTimerHandle MoveSpeedBuffTimer;
 	FTimerHandle MaxStaminaBuffTimer;
+	
+	FTimerHandle SenseHoldTimer;
+
+	int32 CurrentSenseCharges = 0;
+
+	// 버프 화면 효과 진행도 (0 ~ 1)
+	float MoveSpeedBuffAlpha = 0.f;
+	float MaxStaminaBuffAlpha = 0.f;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> MoveSpeedBuffPostProcessMID;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> MaxStaminaBuffPostProcessMID;
 };

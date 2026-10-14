@@ -14,7 +14,8 @@ enum class ELCONotebookCategory : uint8
 	Objective  UMETA(DisplayName = "목표"),
 	Clue       UMETA(DisplayName = "단서·증거"),
 	Testimony  UMETA(DisplayName = "증언"),
-	Photo      UMETA(DisplayName = "사진·도면")
+	Photo      UMETA(DisplayName = "사진·도면"),
+	Deduction  UMETA(DisplayName = "추리")   // 조합 성공 시 독백 기록 (새 항목은 항상 맨 아래에 추가)
 };
 
 /**

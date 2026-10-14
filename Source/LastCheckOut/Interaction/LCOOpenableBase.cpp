@@ -48,6 +48,25 @@ FText ALCOOpenableBase::GetInteractionPrompt_Implementation(ULCOInteractComponen
 	return bIsOpen ? ClosePrompt : OpenPrompt;
 }
 
+FLCOActorSaveState ALCOOpenableBase::SaveActorState_Implementation() const
+{
+	FLCOActorSaveState State;
+	State.bIsOpen = bIsOpen;
+	State.bIsLocked = bIsLocked;
+	return State;
+}
+
+void ALCOOpenableBase::LoadActorState_Implementation(const FLCOActorSaveState& State)
+{
+	bIsOpen = State.bIsOpen;
+	bIsLocked = State.bIsLocked;
+
+	UE_LOG(LogTemp, Log, TEXT("[LCOOpenable] %s LoadActorState (Open: %d, Locked: %d)"), *GetName(), bIsOpen, bIsLocked);
+
+	// 애니메이션 없이 열림 / 닫힘 모습으로 맞춤
+	OnInitialized(bIsOpen);
+}
+
 void ALCOOpenableBase::HandleUnlockedInteraction(AActor* Interactor)
 {
 	if (bIsOpen)

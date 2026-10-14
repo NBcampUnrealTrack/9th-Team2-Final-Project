@@ -25,9 +25,10 @@ public:
 	bool CapturePlayerCarryData(FLCOPlayerCarryData& OutData) const;
 	
 protected:
-	virtual void BeginPlay() override;
+	// 맵 액터들의 BeginPlay보다 먼저 호출됨 → 여기서 진행 데이터 준비 (새 게임 초기화 / 이어하기 적용)
+	virtual void StartPlay() override;
 
-	// 플레이어 캐릭터 생성 + 모든 액터 BeginPlay가 끝난 뒤 호출됨 → 여기서 맵 이동 데이터 복원
+	// 플레이어 캐릭터 생성 + 모든 액터 BeginPlay가 끝난 뒤 호출됨 → 여기서 맵 상태 / 맵 이동 데이터 복원
 	virtual void HandleMatchHasStarted() override;
 
 	// 맵 이동 시 지정한 도착 태그(Entry 옵션)와 같은 PlayerStart를 선택
@@ -38,7 +39,7 @@ private:
 	
 	void StartGame();
 
-	// 새 게임 진행 데이터 초기화: 수첩 → 이동 보관함 → 스토리 순서
+	// 새 게임 진행 데이터 초기화: 수첩 → 이동 보관함 → 맵 상태 → 퍼즐 → 스토리 순서
 	void StartNewGameProgress(ULCOGameInstance* LCOGameInstance);
 
 	// 맵 이동 직전: 캐릭터의 인벤토리 / 퀵슬롯 / 시점을 GameInstance에 보관

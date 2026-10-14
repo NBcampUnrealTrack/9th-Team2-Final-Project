@@ -5,7 +5,24 @@
 #include "Story/LCOStoryTypes.h"
 #include "LCOStorySubsystem.generated.h"  
 
-UCLASS()
+class UDataTable;
+
+// 증언 / 키워드 획득 시 (알림 팝업 등에 사용)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOStoryFlagUnlocked, ELCOStoryFlag, Flag);
+
+/**
+ * 스토리 진행 (챕터, 목표, 증언·키워드 플래그)
+ *
+ * [수첩 자동 기록]
+ * 플래그를 획득하면 StoryNotebookTable(DT_StoryNotebook, 행 구조 = FLCONotebookEntry)에서
+ * 같은 이름의 행을 찾아 수첩에 기록함
+ *   - "T01" 행 → 증언 탭,  "K01" 행 → 추리 탭 (Description = 독백)
+ *   - "K01_OBJ" 행이 있으면 목표 탭에도 추가 (막연한 새 목표 문구)
+ * 설정: Config/DefaultGame.ini
+ *   [/Script/LastCheckOut.LCOStorySubsystem]
+ *   StoryNotebookTable=/Game/.../DT_StoryNotebook.DT_StoryNotebook
+ */
+UCLASS(Config = Game)
 class LASTCHECKOUT_API ULCOStorySubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
@@ -62,6 +79,29 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Story|Flag")
 	bool SetFlag(ELCOStoryFlag Flag);
 
+	// 이름으로 TryUnlock ("T04" 등). 대화 CSV의 UnlockFlag 열에서 사용. 모르는 이름이면 false
+	UFUNCTION(BlueprintCallable, Category = "LCO|Story|Flag")
+	bool TryUnlockByName(FName FlagName);
+
+	// 플래그 획득 시
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Story|Flag")
+	FOnLCOStoryFlagUnlocked OnStoryFlagUnlocked;
+
+	// 추리 (수첩 추리 탭)
+
+	// 선택한 수첩 항목 ID들(E01, T02, K01 ...)이 어떤 키워드(K)의 조건과 정확히 일치하면 획득
+	// OutFlag: 일치한 키워드 (Success / AlreadyKnown일 때만 유효)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Story|Deduction")
+	ELCODeductionResult TryDeduce(const TArray<FName>& SelectedIDs, ELCOStoryFlag& OutFlag);
+
+	// 추리로 얻는 키워드인지 (K로 시작)
+	UFUNCTION(BlueprintPure, Category = "LCO|Story|Deduction")
+	static bool IsDeductionFlag(ELCOStoryFlag Flag);
+
+	// 플래그 이름 ("T02")
+	UFUNCTION(BlueprintPure, Category = "LCO|Story|Flag")
+	static FName GetFlagName(ELCOStoryFlag Flag);
+
 	// Save
 
 	// 세이브 파일에서 읽은 진행 상태를 그대로 적용 (LCOSaveManager::ApplyLoadedData에서 호출)
@@ -115,6 +155,13 @@ private:
 
 	// 부족한 조건을 로그로 출력 (TryUnlock 실패 시 원인 확인용)
 	void LogMissingRequirements(ELCOStoryFlag Flag) const;
+
+	// 획득한 플래그를 수첩에 기록 (StoryNotebookTable 행 기준)
+	void RecordFlagToNotebook(ELCOStoryFlag Flag) const;
+
+	// 증언 / 추리 독백 / 추리 후 새 목표 문구 (행 구조 = FLCONotebookEntry)
+	UPROPERTY(Config)
+	TSoftObjectPtr<UDataTable> StoryNotebookTable;
 
 	// 획득한 증언 / 키워드 플래그 (새 게임 시 초기화)
 	UPROPERTY()

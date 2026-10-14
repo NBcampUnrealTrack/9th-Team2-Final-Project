@@ -5,6 +5,8 @@
 #include "Game/LCOGameMode.h"
 #include "Story/LCOStorySubsystem.h"
 #include "Notebook/LCONotebookSubsystem.h"
+#include "Save/LCOWorldStateSubsystem.h"
+#include "Puzzle/LCOPuzzleSubsystem.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -68,7 +70,8 @@ bool ULCOSaveManager::SaveGame()
 			ELCONotebookCategory::Objective,
 			ELCONotebookCategory::Clue,
 			ELCONotebookCategory::Testimony,
-			ELCONotebookCategory::Photo
+			ELCONotebookCategory::Photo,
+			ELCONotebookCategory::Deduction
 		};
 
 		for (const ELCONotebookCategory Category : Categories)
@@ -84,6 +87,19 @@ bool ULCOSaveManager::SaveGame()
 		{
 			SaveData->bHasPlayerData = LCOGameMode->CapturePlayerCarryData(SaveData->PlayerData);
 		}
+	}
+
+	// [맵 상태] 현재 맵 상태를 먼저 기록한 뒤, 모든 맵 기록을 저장
+	if (ULCOWorldStateSubsystem* WorldState = GetGameInstance()->GetSubsystem<ULCOWorldStateSubsystem>())
+	{
+		WorldState->CaptureWorldState(World);
+		SaveData->MapStates = WorldState->GetAllMapStates();
+	}
+
+	// [퍼즐] 해결한 퍼즐 ID
+	if (const ULCOPuzzleSubsystem* PuzzleSubsystem = GetGameInstance()->GetSubsystem<ULCOPuzzleSubsystem>())
+	{
+		SaveData->SolvedPuzzleIDs = PuzzleSubsystem->GetSolvedPuzzleIDs();
 	}
 
 	bIsSaving = true;
@@ -194,6 +210,18 @@ bool ULCOSaveManager::ApplyLoadedData()
 		{
 			NotebookSubsystem->AddEntry(Entry);
 		}
+	}
+
+	// [맵 상태] 저장된 맵별 기록으로 교체 → 맵 시작 후 LCOGameMode가 액터에 적용
+	if (ULCOWorldStateSubsystem* WorldState = GetGameInstance()->GetSubsystem<ULCOWorldStateSubsystem>())
+	{
+		WorldState->RestoreAllMapStates(LoadedSaveGame->MapStates);
+	}
+
+	// [퍼즐] 해결 기록 복원 → 퍼즐이 BeginPlay에서 확인해 해결 상태로 복원 (LCOPuzzleBase)
+	if (ULCOPuzzleSubsystem* PuzzleSubsystem = GetGameInstance()->GetSubsystem<ULCOPuzzleSubsystem>())
+	{
+		PuzzleSubsystem->RestoreSolvedPuzzles(LoadedSaveGame->SolvedPuzzleIDs);
 	}
 
 	// [Player] 맵 이동용 보관함에 넣어 둠 → 캐릭터 생성 후 LCOGameMode가 복원

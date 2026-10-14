@@ -4,6 +4,7 @@
 #include "GameFramework/SaveGame.h"
 #include "Notebook/LCONotebookTypes.h"
 #include "Core/LCOGameInstance.h"
+#include "Save/LCOWorldStateTypes.h"
 #include "LCOSaveGame.generated.h"
 
 // 세이브 파일에 들어가는 데이터 (UPROPERTY로 선언한 변수만 파일에 저장됨)
@@ -52,4 +53,12 @@ public:
 	// 저장 당시 플레이어가 있었는지 (메뉴 등 플레이어 없는 곳에서 저장하면 false)
 	UPROPERTY()
 	bool bHasPlayerData = false;
+
+	// [맵 상태] 맵별 문 / 서랍장 / 트리거 상태 (맵 경로 → 액터별 상태)
+	UPROPERTY()
+	TMap<FName, FLCOMapSaveState> MapStates;
+
+	// [퍼즐] 해결한 퍼즐 ID 목록 (LCOPuzzleSubsystem)
+	UPROPERTY()
+	TArray<FName> SolvedPuzzleIDs;
 };

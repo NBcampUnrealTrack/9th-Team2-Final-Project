@@ -2,6 +2,8 @@
 
 #include "UI/LCONotebookListItemWidget.h"
 #include "Notebook/LCONotebookSubsystem.h"
+#include "Story/LCOStorySubsystem.h"
+#include "Localization/LCOLocalizationSubsystem.h"
 #include "Player/LCOPlayerController.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
@@ -69,6 +71,32 @@ void ULCONotebookWidget::NativeOnInitialized()
 	if (Btn_Close)
 	{
 		Btn_Close->OnClicked.AddUniqueDynamic(this, &ThisClass::HandleCloseClicked);
+	}
+
+	// 추리 탭 (선택)
+	if (Btn_Tab_Deduction)
+	{
+		Btn_Tab_Deduction->OnClicked.AddUniqueDynamic(this, &ThisClass::HandleTabDeductionClicked);
+	}
+	if (Btn_DeductionSlot1)
+	{
+		Btn_DeductionSlot1->OnClicked.AddUniqueDynamic(this, &ThisClass::HandleDeductionSlot1Clicked);
+	}
+	if (Btn_DeductionSlot2)
+	{
+		Btn_DeductionSlot2->OnClicked.AddUniqueDynamic(this, &ThisClass::HandleDeductionSlot2Clicked);
+	}
+	if (Btn_DeductionSlot3)
+	{
+		Btn_DeductionSlot3->OnClicked.AddUniqueDynamic(this, &ThisClass::HandleDeductionSlot3Clicked);
+	}
+	if (Btn_DeductionCombine)
+	{
+		Btn_DeductionCombine->OnClicked.AddUniqueDynamic(this, &ThisClass::HandleDeductionCombineClicked);
+	}
+	if (Btn_DeductionClear)
+	{
+		Btn_DeductionClear->OnClicked.AddUniqueDynamic(this, &ThisClass::HandleDeductionClearClicked);
 	}
 
 	// J 키 → 수첩 토글
@@ -245,6 +273,7 @@ void ULCONotebookWidget::HandleTabClueClicked()      { SelectTab(ELCONotebookTab
 void ULCONotebookWidget::HandleTabTestimonyClicked() { SelectTab(ELCONotebookTab::Testimony); }
 void ULCONotebookWidget::HandleTabPhotoClicked()     { SelectTab(ELCONotebookTab::Photo); }
 void ULCONotebookWidget::HandleTabMapClicked()       { SelectTab(ELCONotebookTab::Map); }
+void ULCONotebookWidget::HandleTabDeductionClicked() { SelectTab(ELCONotebookTab::Deduction); }
 
 void ULCONotebookWidget::SelectTab(ELCONotebookTab NewTab)
 {
@@ -257,6 +286,16 @@ void ULCONotebookWidget::SelectTab(ELCONotebookTab NewTab)
 			Switcher_Pages->SetActiveWidgetIndex(LCONotebookPage::MapPage);
 		}
 		RebuildMapAreaList();
+	}
+	else if (CurrentTab == ELCONotebookTab::Deduction)
+	{
+		if (Switcher_Pages)
+		{
+			Switcher_Pages->SetActiveWidgetIndex(DeductionPageIndex);
+		}
+		RebuildDeductionCandidates();
+		RefreshDeductionSlots();
+		SetDeductionResultText(FText::GetEmpty());
 	}
 	else
 	{
@@ -291,6 +330,7 @@ ELCONotebookCategory ULCONotebookWidget::TabToCategory(ELCONotebookTab Tab)
 	case ELCONotebookTab::Clue:      return ELCONotebookCategory::Clue;
 	case ELCONotebookTab::Testimony: return ELCONotebookCategory::Testimony;
 	case ELCONotebookTab::Photo:     return ELCONotebookCategory::Photo;
+	case ELCONotebookTab::Deduction: return ELCONotebookCategory::Deduction;
 	default:                         return ELCONotebookCategory::Clue;
 	}
 }
@@ -455,7 +495,15 @@ void ULCONotebookWidget::HandleNotebookChanged()
 	}
 
 	TGuardValue<bool> Guard(bIsRefreshing, true);
-	RebuildEntryList();
+	if (CurrentTab == ELCONotebookTab::Deduction)
+	{
+		RebuildDeductionCandidates();
+		RefreshDeductionSlots();
+	}
+	else
+	{
+		RebuildEntryList();
+	}
 }
 
 // ======================================================================
@@ -544,4 +592,238 @@ void ULCONotebookWidget::SelectMapArea(int32 ItemIndex)
 	{
 		Txt_MapAreaName->SetText(Area.AreaName);
 	}
+}
+
+// ======================================================================
+// 추리 (단서·증언·추리 항목을 2~3개 골라 연결)
+// ======================================================================
+
+FText ULCONotebookWidget::GetUIText(FName Key) const
+{
+	if (Key.IsNone())
+	{
+		return FText::GetEmpty();
+	}
+
+	const UGameInstance* GameInstance = GetGameInstance();
+	if (const ULCOLocalizationSubsystem* Localization = GameInstance ? GameInstance->GetSubsystem<ULCOLocalizationSubsystem>() : nullptr)
+	{
+		return Localization->GetUIText(Key);
+	}
+
+	return FText::FromName(Key);
+}
+
+void ULCONotebookWidget::SetDeductionResultText(const FText& InText)
+{
+	if (Txt_DeductionResult)
+	{
+		Txt_DeductionResult->SetText(InText);
+	}
+}
+
+void ULCONotebookWidget::RebuildDeductionCandidates()
+{
+	DeductionCandidates.Reset();
+	DeductionItemWidgets.Reset();
+
+	if (const ULCONotebookSubsystem* Notebook = GetNotebookSubsystem())
+	{
+		for (const ELCONotebookCategory Category : DeductionCandidateCategories)
+		{
+			DeductionCandidates.Append(Notebook->GetEntriesByCategory(Category));
+		}
+	}
+
+	// 수첩에서 사라진 항목은 슬롯에서도 제거 (불러오기 등)
+	SelectedDeductionIDs.RemoveAll([this](const FName& ID)
+	{
+		return !DeductionCandidates.ContainsByPredicate([ID](const FLCONotebookEntry& Entry) { return Entry.EntryID == ID; });
+	});
+
+	if (!Panel_DeductionCandidates)
+	{
+		return;
+	}
+
+	Panel_DeductionCandidates->ClearChildren();
+
+	if (!ListItemWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCONotebook] ListItemWidgetClass가 비어 있음"));
+		return;
+	}
+
+	for (int32 i = 0; i < DeductionCandidates.Num(); ++i)
+	{
+		ULCONotebookListItemWidget* Item = CreateWidget<ULCONotebookListItemWidget>(GetOwningPlayer(), ListItemWidgetClass);
+		if (!Item)
+		{
+			continue;
+		}
+
+		Item->SetItemData(i, DeductionCandidates[i].Title, DeductionCandidates[i].bIsNew);
+		Item->SetSelected(SelectedDeductionIDs.Contains(DeductionCandidates[i].EntryID));
+		Item->OnItemClicked.AddUniqueDynamic(this, &ThisClass::HandleDeductionCandidateClicked);
+		Panel_DeductionCandidates->AddChild(Item);
+		DeductionItemWidgets.Add(Item);
+	}
+}
+
+void ULCONotebookWidget::RefreshDeductionSlots()
+{
+	UTextBlock* SlotTexts[] = { Txt_DeductionSlot1, Txt_DeductionSlot2, Txt_DeductionSlot3 };
+	UButton* SlotButtons[] = { Btn_DeductionSlot1, Btn_DeductionSlot2, Btn_DeductionSlot3 };
+
+	const FText EmptyText = GetUIText(DeductionEmptySlotTextKey);
+
+	for (int32 SlotIndex = 0; SlotIndex < UE_ARRAY_COUNT(SlotTexts); ++SlotIndex)
+	{
+		const bool bSlotUsed = SlotIndex < MaxDeductionSlots;
+
+		// 사용하지 않는 칸 (MaxDeductionSlots = 2일 때 3번 칸)
+		if (SlotButtons[SlotIndex])
+		{
+			SlotButtons[SlotIndex]->SetVisibility(bSlotUsed ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+		}
+
+		if (!SlotTexts[SlotIndex])
+		{
+			continue;
+		}
+
+		FText SlotText = EmptyText;
+		if (SelectedDeductionIDs.IsValidIndex(SlotIndex))
+		{
+			const FName ID = SelectedDeductionIDs[SlotIndex];
+			if (const FLCONotebookEntry* Entry = DeductionCandidates.FindByPredicate([ID](const FLCONotebookEntry& E) { return E.EntryID == ID; }))
+			{
+				SlotText = Entry->Title;
+			}
+		}
+		SlotTexts[SlotIndex]->SetText(SlotText);
+	}
+
+	// 목록 선택 표시
+	for (int32 i = 0; i < DeductionItemWidgets.Num(); ++i)
+	{
+		if (DeductionItemWidgets[i] && DeductionCandidates.IsValidIndex(i))
+		{
+			DeductionItemWidgets[i]->SetSelected(SelectedDeductionIDs.Contains(DeductionCandidates[i].EntryID));
+		}
+	}
+}
+
+void ULCONotebookWidget::HandleDeductionCandidateClicked(int32 ItemIndex)
+{
+	if (!DeductionCandidates.IsValidIndex(ItemIndex))
+	{
+		return;
+	}
+
+	FLCONotebookEntry& Entry = DeductionCandidates[ItemIndex];
+
+	// 넣기 / 빼기
+	if (SelectedDeductionIDs.Contains(Entry.EntryID))
+	{
+		SelectedDeductionIDs.Remove(Entry.EntryID);
+	}
+	else if (SelectedDeductionIDs.Num() < MaxDeductionSlots)
+	{
+		SelectedDeductionIDs.Add(Entry.EntryID);
+	}
+
+	// 클릭한 항목 내용 보여주기 (추리 항목이면 예전 독백 다시 읽기)
+	SetDeductionResultText(Entry.Description);
+
+	// 읽음 처리
+	if (Entry.bIsNew)
+	{
+		Entry.bIsNew = false;
+		if (DeductionItemWidgets.IsValidIndex(ItemIndex) && DeductionItemWidgets[ItemIndex])
+		{
+			DeductionItemWidgets[ItemIndex]->SetIsNew(false);
+		}
+
+		if (ULCONotebookSubsystem* Notebook = GetNotebookSubsystem())
+		{
+			TGuardValue<bool> Guard(bIsRefreshing, true);
+			Notebook->MarkEntryAsRead(Entry.EntryID);
+		}
+	}
+
+	RefreshDeductionSlots();
+}
+
+void ULCONotebookWidget::RemoveDeductionSlot(int32 SlotIndex)
+{
+	if (SelectedDeductionIDs.IsValidIndex(SlotIndex))
+	{
+		SelectedDeductionIDs.RemoveAt(SlotIndex);
+		RefreshDeductionSlots();
+	}
+}
+
+void ULCONotebookWidget::HandleDeductionSlot1Clicked() { RemoveDeductionSlot(0); }
+void ULCONotebookWidget::HandleDeductionSlot2Clicked() { RemoveDeductionSlot(1); }
+void ULCONotebookWidget::HandleDeductionSlot3Clicked() { RemoveDeductionSlot(2); }
+
+void ULCONotebookWidget::HandleDeductionClearClicked()
+{
+	SelectedDeductionIDs.Reset();
+	RefreshDeductionSlots();
+	SetDeductionResultText(FText::GetEmpty());
+}
+
+void ULCONotebookWidget::HandleDeductionCombineClicked()
+{
+	const UGameInstance* GameInstance = GetGameInstance();
+	ULCOStorySubsystem* Story = GameInstance ? GameInstance->GetSubsystem<ULCOStorySubsystem>() : nullptr;
+	if (!Story)
+	{
+		return;
+	}
+
+	ELCOStoryFlag MatchedFlag = ELCOStoryFlag::K01;
+	ELCODeductionResult Result;
+	{
+		// 획득 → 수첩 기록 → OnNotebookChanged 로 목록이 중간에 다시 그려지지 않도록 막음
+		TGuardValue<bool> Guard(bIsRefreshing, true);
+		Result = Story->TryDeduce(SelectedDeductionIDs, MatchedFlag);
+	}
+
+	FText ResultText;
+	switch (Result)
+	{
+	case ELCODeductionResult::Success:
+	{
+		// 독백 = 수첩에 방금 기록된 추리 항목의 설명
+		FLCONotebookEntry DeductionEntry;
+		if (const ULCONotebookSubsystem* Notebook = GetNotebookSubsystem();
+			Notebook && Notebook->FindEntry(ULCOStorySubsystem::GetFlagName(MatchedFlag), DeductionEntry))
+		{
+			ResultText = DeductionEntry.Description;
+		}
+		SelectedDeductionIDs.Reset();
+		break;
+	}
+	case ELCODeductionResult::AlreadyKnown:
+		ResultText = GetUIText(DeductionAlreadyKnownTextKey);
+		break;
+	case ELCODeductionResult::NotEnough:
+		ResultText = GetUIText(DeductionNotEnoughTextKey);
+		break;
+	default:
+		// 실패해도 선택은 유지 (하나만 바꿔서 다시 시도할 수 있게)
+		if (DeductionFailTextKeys.Num() > 0)
+		{
+			ResultText = GetUIText(DeductionFailTextKeys[FMath::RandRange(0, DeductionFailTextKeys.Num() - 1)]);
+		}
+		break;
+	}
+
+	RebuildDeductionCandidates();
+	RefreshDeductionSlots();
+	SetDeductionResultText(ResultText);
+	OnDeductionResult(Result);
 }

@@ -44,7 +44,14 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
 	{
 		if (Slot.ItemID == ItemID)
 		{
-			// 같은 아이템이 있다면 기존 수량에 추가
+			// 증거품과 열쇠 아이템은 중복 획득 방지
+			if (ItemData->ItemType == EItemType::Evidence ||
+				ItemData->ItemType == EItemType::KeyItem)
+			{
+				return;
+			}
+
+			// 소비 아이템은 기존 수량에 추가
 			Slot.Quantity += Quantity;
 
 			// 인벤토리 변경 이벤트 발생

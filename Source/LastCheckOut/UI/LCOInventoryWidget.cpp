@@ -42,8 +42,17 @@ void ULCOInventoryWidget::NativeOnInitialized()
 	HideItemDetail();
 }
 
+void ULCOInventoryWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	BindLocalizationEvents();
+	RefreshLocalizedTexts();
+}
+
 void ULCOInventoryWidget::NativeDestruct()
 {
+	UnbindLocalizationEvents();
 	UnbindQuickSlotEvents();
 
 	if (bInventoryInputModeApplied && bRestoreGameInputOnClose)
@@ -460,6 +469,35 @@ void ULCOInventoryWidget::UpdateItemSelectionVisuals()
 		{
 			ItemWidget->SetSelected(!SelectedItemID.IsNone() && ItemWidget->GetItemID() == SelectedItemID);
 		}
+	}
+}
+
+void ULCOInventoryWidget::HandleLanguageChanged(FName NewLanguage)
+{
+	if (!IsInViewport())
+	{
+		return;
+	}
+
+	RefreshLocalizedTexts();
+	RefreshItems();
+	RefreshQuickSlotPanel();
+}
+
+void ULCOInventoryWidget::BindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+		LocalizationSubsystem->OnLanguageChanged.AddDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
+}
+
+void ULCOInventoryWidget::UnbindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
 	}
 }
 

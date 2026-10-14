@@ -7,6 +7,21 @@
 #include "Engine/GameInstance.h"
 #include "Localization/LCOLocalizationSubsystem.h"
 
+void ULCOQuickSlotWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	BindLocalizationEvents();
+	UpdateSelectedName();
+}
+
+void ULCOQuickSlotWidget::NativeDestruct()
+{
+	UnbindLocalizationEvents();
+
+	Super::NativeDestruct();
+}
+
 ULCOQuickSlotEntryWidget* ULCOQuickSlotWidget::GetEntry(int32 Index) const
 {
 	switch (Index)
@@ -19,12 +34,15 @@ ULCOQuickSlotEntryWidget* ULCOQuickSlotWidget::GetEntry(int32 Index) const
 	}
 }
 
-void ULCOQuickSlotWidget::RefreshSlots(const ULCOQuickSlotComponent* QuickSlot)
+void ULCOQuickSlotWidget::RefreshSlots(ULCOQuickSlotComponent* QuickSlot)
 {
 	if (!QuickSlot)
 	{
+		CachedQuickSlot.Reset();
 		return;
 	}
+
+	CachedQuickSlot = QuickSlot;
 
 	for (int32 i = 0; i < ULCOQuickSlotComponent::NumSlots; ++i)
 	{
@@ -38,7 +56,7 @@ void ULCOQuickSlotWidget::RefreshSlots(const ULCOQuickSlotComponent* QuickSlot)
 		const FItemData* Data = QuickSlot->GetSlotItemData(i);
 
 		UTexture2D* Icon = Data ? Data->Icon.Get() : nullptr;
-		const FText Name = Data ? Data->ItemName : FText::GetEmpty();
+		const FText Name = ResolveItemName(ItemID, Data ? Data->ItemName : FText::GetEmpty());
 
 		Entry->SetSlotData(i, ItemID, Icon, Name, QuickSlot->GetSlotItemCount(i));
 	}
@@ -71,6 +89,53 @@ void ULCOQuickSlotWidget::SetSelectedIndex(int32 NewIndex)
 
 	UpdateSelectedName();
 	OnSelectedIndexChanged(SelectedIndex);
+}
+
+FText ULCOQuickSlotWidget::ResolveItemName(FName ItemID, const FText& FallbackName) const
+{
+	if (!ItemID.IsNone())
+	{
+		const UGameInstance* GameInstance = GetGameInstance();
+		const ULCOLocalizationSubsystem* Localization = GameInstance ? GameInstance->GetSubsystem<ULCOLocalizationSubsystem>() : nullptr;
+		if (Localization)
+		{
+			const FText LocalizedName = Localization->GetItemText(ItemID);
+			if (!LocalizedName.IsEmpty())
+			{
+				return LocalizedName;
+			}
+		}
+	}
+
+	return FallbackName;
+}
+
+void ULCOQuickSlotWidget::HandleLanguageChanged(FName NewLanguage)
+{
+	if (ULCOQuickSlotComponent* QuickSlot = CachedQuickSlot.Get())
+	{
+		RefreshSlots(QuickSlot);
+		return;
+	}
+
+	UpdateSelectedName();
+}
+
+void ULCOQuickSlotWidget::BindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+		LocalizationSubsystem->OnLanguageChanged.AddDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
+}
+
+void ULCOQuickSlotWidget::UnbindLocalizationEvents()
+{
+	if (ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
+	{
+		LocalizationSubsystem->OnLanguageChanged.RemoveDynamic(this, &ThisClass::HandleLanguageChanged);
+	}
 }
 
 void ULCOQuickSlotWidget::UpdateSelectedName()

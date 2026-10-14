@@ -28,7 +28,7 @@ class LASTCHECKOUT_API ULCOQuickSlotWidget : public UUserWidget
 public:
 	// 컴포넌트의 슬롯 정보로 4칸 갱신
 	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
-	void RefreshSlots(const ULCOQuickSlotComponent* QuickSlot);
+	void RefreshSlots(ULCOQuickSlotComponent* QuickSlot);
 
 	// 휠 선택 표시 (-1 = 선택 없음)
 	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
@@ -48,6 +48,9 @@ public:
 	void HideQuickSlot();
 
 protected:
+	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
+
 	// BP 연출용 (선택 바뀔 때 틱 사운드 등)
 	UFUNCTION(BlueprintImplementableEvent, Category = "LCO|QuickSlot")
 	void OnSelectedIndexChanged(int32 NewIndex);
@@ -73,7 +76,13 @@ protected:
 
 private:
 	ULCOQuickSlotEntryWidget* GetEntry(int32 Index) const;
+	FText ResolveItemName(FName ItemID, const FText& FallbackName) const;
+	UFUNCTION()
+	void HandleLanguageChanged(FName NewLanguage);
+	void BindLocalizationEvents();
+	void UnbindLocalizationEvents();
 	void UpdateSelectedName();
 
+	TWeakObjectPtr<ULCOQuickSlotComponent> CachedQuickSlot;
 	int32 SelectedIndex = INDEX_NONE;
 };

@@ -41,6 +41,7 @@ public:
 
 protected:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Inventory")
@@ -114,6 +115,10 @@ private:
 
 	// 현재 상세 설명을 보고 있는 아이템 (없으면 None)
 	FName SelectedItemID = NAME_None;
+	UFUNCTION()
+	void HandleLanguageChanged(FName NewLanguage);
+	void BindLocalizationEvents();
+	void UnbindLocalizationEvents();
 	void RefreshLocalizedTexts();
 
 	// 퀵슬롯 패널 갱신 / 슬롯 변경 이벤트 연결

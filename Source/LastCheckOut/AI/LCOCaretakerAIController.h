@@ -48,6 +48,11 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "AI|Catch")
 	FOnCaretakerExtractArrived OnExtractArrived;
 
+	// OnExtractArrived에 연결한 연출(몽타주 등)에서 끌어낼 타이밍(AnimNotify 등)에 호출한다. 숨은 플레이어를 끌어내고 다시 추격한다.
+	// OnExtractArrived에 아무것도 연결하지 않았으면 도착 즉시 자동으로 호출된다.
+	UFUNCTION(BlueprintCallable, Category = "AI|Catch")
+	void ExecuteExtract();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
@@ -87,6 +92,10 @@ protected:
 	// 이 시간(초) 안에 은신처에 도착하지 못해도 강제로 끌어낸다. (이동 실패 대비)
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Catch")
 	float ExtractTimeout = 8.f;
+
+	// 도착 후 이 시간(초) 안에 ExecuteExtract()가 호출되지 않으면 강제로 끌어낸다. (연출 연결 누락 대비)
+	UPROPERTY(EditDefaultsOnly, Category = "AI|Catch")
+	float ExtractExecuteTimeout = 5.f;
 
 	// true면 시야 감지로 추격한다. (의심도 연동 전 테스트용 임시 동작)
 	// false면 플레이어의 의심도 구간에 따라 상태를 바꾼다.
@@ -131,6 +140,10 @@ private:
 	// 끌어내러 가는 중인 은신처
 	TWeakObjectPtr<ALCOHidingSpot> ExtractSpot;
 	double ExtractStartTime = 0.0;
+
+	// 은신처 앞에 도착해 ExecuteExtract()를 기다리는 중인지
+	bool bExtractArrived = false;
+	double ExtractArrivedTime = 0.0;
 
 	// 끌어내기를 마치고 추격 대상을 다시 플레이어로 되돌린다.
 	void FinishExtract();

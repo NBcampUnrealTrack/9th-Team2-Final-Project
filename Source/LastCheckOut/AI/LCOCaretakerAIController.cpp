@@ -219,13 +219,29 @@ void ALCOCaretakerAIController::CheckCatch()
 			// 스스로 나왔거나 이미 끌려나온 경우
 			FinishExtract();
 		}
+		else if (bExtractArrived)
+		{
+			// 연출이 ExecuteExtract()를 호출하기를 기다린다. 호출되지 않으면 시간이 지난 뒤 강제로 끌어낸다.
+			if (GetWorld()->GetTimeSeconds() - ExtractArrivedTime >= ExtractExecuteTimeout)
+			{
+				ExecuteExtract();
+			}
+		}
 		else if (FVector::Dist(GetPawn()->GetActorLocation(), Spot->GetExitTransform().GetLocation()) <= ExtractArriveDistance
 			|| GetWorld()->GetTimeSeconds() - ExtractStartTime >= ExtractTimeout)
 		{
 			StopMovement();
-			OnExtractArrived.Broadcast(Spot);
-			Spot->ForceEject();
-			FinishExtract();
+			bExtractArrived = true;
+			ExtractArrivedTime = GetWorld()->GetTimeSeconds();
+
+			if (OnExtractArrived.IsBound())
+			{
+				OnExtractArrived.Broadcast(Spot);
+			}
+			else
+			{
+				ExecuteExtract();
+			}
 		}
 		return;
 	}
@@ -318,13 +334,27 @@ void ALCOCaretakerAIController::StartExtractHider(ALCOHidingSpot* HidingSpot)
 	StopMovement();
 	MoveToLocation(HidingSpot->GetExitTransform().GetLocation(), ExtractArriveDistance * 0.5f, true, true, true);
 	ExtractStartTime = GetWorld()->GetTimeSeconds();
+	bExtractArrived = false;
 	GetWorldTimerManager().ClearTimer(LostGraceTimer);
 	BB->SetValueAsObject(LCOBlackboardKeys::TargetActor, HidingSpot);
 	UE_LOG(LogTemp, Log, TEXT("[LCOCaretakerAIController] Extract start: %s"), *GetNameSafe(HidingSpot));
 }
 
+void ALCOCaretakerAIController::ExecuteExtract()
+{
+	ALCOHidingSpot* Spot = ExtractSpot.Get();
+	if (!Spot || !bExtractArrived)
+	{
+		return;
+	}
+
+	Spot->ForceEject();
+	FinishExtract();
+}
+
 void ALCOCaretakerAIController::ClearExtractState()
 {
+	bExtractArrived = false;
 	if (ExtractSpot.IsValid())
 	{
 		ExtractSpot.Reset();

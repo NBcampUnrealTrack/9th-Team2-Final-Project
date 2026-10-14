@@ -54,6 +54,8 @@ struct FLCODialogueNode
 	FName TextKey = NAME_None;
 	FName NextNodeID = NAME_None;
 	bool bEndConversation = false;
+	// 이 대사가 나올 때 획득하는 증언 / 키워드 (CSV의 UnlockFlag 열, 예: T04). 비어 있으면 없음
+	FName UnlockFlag = NAME_None;
 	TArray<FLCODialogueChoiceRow> Choices;
 };
 

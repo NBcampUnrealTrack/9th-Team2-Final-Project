@@ -70,7 +70,8 @@ bool ULCOSaveManager::SaveGame()
 			ELCONotebookCategory::Objective,
 			ELCONotebookCategory::Clue,
 			ELCONotebookCategory::Testimony,
-			ELCONotebookCategory::Photo
+			ELCONotebookCategory::Photo,
+			ELCONotebookCategory::Deduction
 		};
 
 		for (const ELCONotebookCategory Category : Categories)

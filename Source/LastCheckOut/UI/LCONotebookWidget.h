@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Notebook/LCONotebookTypes.h"
+#include "Story/LCOStoryTypes.h"
 #include "LCONotebookWidget.generated.h"
 
 class UButton;
@@ -20,7 +21,8 @@ enum class ELCONotebookTab : uint8
 	Clue       UMETA(DisplayName = "단서·증거"),
 	Testimony  UMETA(DisplayName = "증언"),
 	Photo      UMETA(DisplayName = "사진·도면"),
-	Map        UMETA(DisplayName = "지도")
+	Map        UMETA(DisplayName = "지도"),
+	Deduction  UMETA(DisplayName = "추리")
 };
 
 /**
@@ -36,6 +38,14 @@ enum class ELCONotebookTab : uint8
  *              Txt_EmptyList(선택), Txt_PageTitle(선택)
  * 지도        : Panel_MapAreaList(필수), Img_Map(필수), Txt_MapAreaName(선택)
  * 기타        : Btn_Close(선택)
+ *
+ * [추리 탭 - 전부 선택 사항, 없으면 추리 탭만 동작 안 함]
+ * 탭          : Btn_Tab_Deduction
+ * 페이지      : Switcher_Pages의 2번 (DeductionPageIndex로 변경 가능)
+ * 후보 목록   : Panel_DeductionCandidates (ScrollBox 권장, 단서·증언·추리 항목이 나옴. 클릭 = 슬롯에 넣기/빼기)
+ * 슬롯        : Txt_DeductionSlot1~3 (고른 항목 이름), Btn_DeductionSlot1~3 (클릭 시 해당 칸 비우기)
+ * 버튼        : Btn_DeductionCombine (연결하기), Btn_DeductionClear (비우기)
+ * 결과        : Txt_DeductionResult (클릭한 항목 설명 / 조합 결과 독백)
  */
 UCLASS(Abstract)
 class LASTCHECKOUT_API ULCONotebookWidget : public UUserWidget
@@ -79,6 +89,10 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "LCO|Notebook")
 	void OnNotebookClosed();
 
+	// 조합 결과 연출 (성공 효과음, 실패 시 흔들림 등)
+	UFUNCTION(BlueprintImplementableEvent, Category = "LCO|Notebook|Deduction")
+	void OnDeductionResult(ELCODeductionResult Result);
+
 	// ---------- 설정 (WBP 클래스 디폴트) ----------
 
 	// 목록 한 줄 위젯 (WBP_NotebookListItem)
@@ -106,6 +120,34 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Debug", meta = (EditCondition = "bAddDebugEntries"))
 	TArray<FLCONotebookEntry> DebugEntries;
+
+	// ---------- 추리 탭 설정 ----------
+
+	// Switcher_Pages에서 추리 페이지 번호
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Deduction")
+	int32 DeductionPageIndex = 2;
+
+	// 후보 목록에 나올 분류 (위에서부터 순서대로)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Deduction")
+	TArray<ELCONotebookCategory> DeductionCandidateCategories = { ELCONotebookCategory::Clue, ELCONotebookCategory::Testimony, ELCONotebookCategory::Deduction };
+
+	// 한 번에 고를 수 있는 최대 개수 (슬롯 위젯 수와 맞추기)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Deduction", meta = (ClampMin = "2", ClampMax = "3"))
+	int32 MaxDeductionSlots = 3;
+
+	// 실패 독백 (UI.csv 키, 무작위 1개)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Deduction")
+	TArray<FName> DeductionFailTextKeys = { TEXT("NOTEBOOK_DEDUCTION_FAIL_01"), TEXT("NOTEBOOK_DEDUCTION_FAIL_02"), TEXT("NOTEBOOK_DEDUCTION_FAIL_03") };
+
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Deduction")
+	FName DeductionNotEnoughTextKey = TEXT("NOTEBOOK_DEDUCTION_NOT_ENOUGH");
+
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Deduction")
+	FName DeductionAlreadyKnownTextKey = TEXT("NOTEBOOK_DEDUCTION_ALREADY");
+
+	// 빈 슬롯 표시 (UI.csv 키)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Deduction")
+	FName DeductionEmptySlotTextKey = TEXT("NOTEBOOK_DEDUCTION_EMPTY_SLOT");
 
 	// ---------- 바인딩 위젯 ----------
 
@@ -157,6 +199,40 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Btn_Close;
 
+	// 추리 탭 (전부 선택)
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Btn_Tab_Deduction;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UPanelWidget> Panel_DeductionCandidates;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_DeductionSlot1;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_DeductionSlot2;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_DeductionSlot3;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Btn_DeductionSlot1;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Btn_DeductionSlot2;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Btn_DeductionSlot3;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Btn_DeductionCombine;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Btn_DeductionClear;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_DeductionResult;
+
 private:
 	// 입력
 	UFUNCTION()
@@ -179,6 +255,9 @@ private:
 	void HandleTabMapClicked();
 
 	UFUNCTION()
+	void HandleTabDeductionClicked();
+
+	UFUNCTION()
 	void HandleCloseClicked();
 
 	// 목록 클릭
@@ -187,6 +266,25 @@ private:
 
 	UFUNCTION()
 	void HandleMapAreaClicked(int32 ItemIndex);
+
+	// 추리 탭
+	UFUNCTION()
+	void HandleDeductionCandidateClicked(int32 ItemIndex);
+
+	UFUNCTION()
+	void HandleDeductionSlot1Clicked();
+
+	UFUNCTION()
+	void HandleDeductionSlot2Clicked();
+
+	UFUNCTION()
+	void HandleDeductionSlot3Clicked();
+
+	UFUNCTION()
+	void HandleDeductionCombineClicked();
+
+	UFUNCTION()
+	void HandleDeductionClearClicked();
 
 	// 수첩 내용 변경 (열려 있을 때만 갱신)
 	UFUNCTION()
@@ -198,6 +296,12 @@ private:
 
 	void RebuildMapAreaList();
 	void SelectMapArea(int32 ItemIndex);
+
+	void RebuildDeductionCandidates();
+	void RefreshDeductionSlots();
+	void RemoveDeductionSlot(int32 SlotIndex);
+	void SetDeductionResultText(const FText& InText);
+	FText GetUIText(FName Key) const;
 
 	void UpdatePageTitle();
 	void SetPlayerUIMode(bool bEnable);
@@ -214,6 +318,15 @@ private:
 
 	// 현재 탭에 표시 중인 항목 (목록 순서와 동일)
 	TArray<FLCONotebookEntry> CurrentEntries;
+
+	// 추리 탭 후보 (목록 순서와 동일)
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<ULCONotebookListItemWidget>> DeductionItemWidgets;
+
+	TArray<FLCONotebookEntry> DeductionCandidates;
+
+	// 슬롯에 넣은 항목 ID (넣은 순서)
+	TArray<FName> SelectedDeductionIDs;
 
 	ELCONotebookTab CurrentTab = ELCONotebookTab::Objective;
 	int32 SelectedEntryIndex = INDEX_NONE;

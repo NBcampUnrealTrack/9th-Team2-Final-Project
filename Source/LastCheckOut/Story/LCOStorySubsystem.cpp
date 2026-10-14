@@ -1,6 +1,7 @@
 #include "LCOStorySubsystem.h"
 #include "LastCheckOut.h"
 #include "Notebook/LCONotebookSubsystem.h"
+#include "Engine/DataTable.h"
 
 namespace
 {
@@ -228,7 +229,134 @@ bool ULCOStorySubsystem::SetFlag(ELCOStoryFlag Flag)
 
 	// Log Test
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] Unlock: %s"), *FlagToString(Flag));
+
+	RecordFlagToNotebook(Flag);
+	OnStoryFlagUnlocked.Broadcast(Flag);
 	return true;
+}
+
+bool ULCOStorySubsystem::TryUnlockByName(FName FlagName)
+{
+	const int64 Value = StaticEnum<ELCOStoryFlag>()->GetValueByNameString(FlagName.ToString());
+	if (Value == INDEX_NONE)
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOStorySubsystem] TryUnlockByName: unknown flag %s"), *FlagName.ToString());
+		return false;
+	}
+
+	return TryUnlock(static_cast<ELCOStoryFlag>(Value));
+}
+
+FName ULCOStorySubsystem::GetFlagName(ELCOStoryFlag Flag)
+{
+	return FName(*FlagToString(Flag));
+}
+
+bool ULCOStorySubsystem::IsDeductionFlag(ELCOStoryFlag Flag)
+{
+	return FlagToString(Flag).StartsWith(TEXT("K"));
+}
+
+ELCODeductionResult ULCOStorySubsystem::TryDeduce(const TArray<FName>& SelectedIDs, ELCOStoryFlag& OutFlag)
+{
+	// 중복 / 빈 칸 제거
+	TSet<FName> Selected;
+	for (const FName& ID : SelectedIDs)
+	{
+		if (!ID.IsNone())
+		{
+			Selected.Add(ID);
+		}
+	}
+
+	if (Selected.Num() < 2)
+	{
+		return ELCODeductionResult::NotEnough;
+	}
+
+	for (const TPair<ELCOStoryFlag, FLCOUnlockRule>& Pair : UnlockRules)
+	{
+		if (!IsDeductionFlag(Pair.Key))
+		{
+			continue;
+		}
+
+		// 조건 전체 (증거물 ID + 플래그 이름)
+		TSet<FName> Required;
+		for (const FName& EvidenceID : Pair.Value.RequiredEvidence)
+		{
+			Required.Add(EvidenceID);
+		}
+		for (const ELCOStoryFlag RequiredFlag : Pair.Value.RequiredFlags)
+		{
+			Required.Add(GetFlagName(RequiredFlag));
+		}
+
+		// 정확히 일치해야 함 (아무거나 많이 넣어서 맞히는 것 방지)
+		if (Required.Num() != Selected.Num() || !Required.Includes(Selected))
+		{
+			continue;
+		}
+
+		OutFlag = Pair.Key;
+
+		if (HasFlag(Pair.Key))
+		{
+			return ELCODeductionResult::AlreadyKnown;
+		}
+
+		// 선택한 항목은 모두 수첩에 있는 것이라 보통 성공. 실패하면 조건 데이터 불일치
+		return TryUnlock(Pair.Key) ? ELCODeductionResult::Success : ELCODeductionResult::NoMatch;
+	}
+
+	return ELCODeductionResult::NoMatch;
+}
+
+void ULCOStorySubsystem::RecordFlagToNotebook(ELCOStoryFlag Flag) const
+{
+	ULCONotebookSubsystem* NotebookSubsystem = GetGameInstance()->GetSubsystem<ULCONotebookSubsystem>();
+	if (!NotebookSubsystem)
+	{
+		return;
+	}
+
+	const UDataTable* Table = StoryNotebookTable.LoadSynchronous();
+	if (!Table)
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOStorySubsystem] StoryNotebookTable 미설정 - 수첩 기록 안 됨 (DefaultGame.ini 확인)"));
+		return;
+	}
+
+	const FName FlagName = GetFlagName(Flag);
+	const bool bIsDeduction = IsDeductionFlag(Flag);
+
+	// 증언 / 추리 독백
+	if (const FLCONotebookEntry* Row = Table->FindRow<FLCONotebookEntry>(FlagName, TEXT(""), false))
+	{
+		FLCONotebookEntry Entry = *Row;
+		Entry.EntryID = FlagName;   // 추리 조합 시 이 ID로 찾으므로 행 이름과 반드시 같게
+		Entry.Category = bIsDeduction ? ELCONotebookCategory::Deduction : ELCONotebookCategory::Testimony;
+		Entry.bIsNew = true;
+		NotebookSubsystem->AddEntry(Entry);
+	}
+	else
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOStorySubsystem] StoryNotebookTable에 %s 행 없음"), *FlagName.ToString());
+	}
+
+	// 추리 후 새 목표 (선택)
+	if (bIsDeduction)
+	{
+		const FName ObjectiveRowName(*(FlagName.ToString() + TEXT("_OBJ")));
+		if (const FLCONotebookEntry* ObjectiveRow = Table->FindRow<FLCONotebookEntry>(ObjectiveRowName, TEXT(""), false))
+		{
+			FLCONotebookEntry Objective = *ObjectiveRow;
+			Objective.EntryID = ObjectiveRowName;
+			Objective.Category = ELCONotebookCategory::Objective;
+			Objective.bIsNew = true;
+			NotebookSubsystem->AddEntry(Objective);
+		}
+	}
 }
 
 TArray<ELCOStoryFlag> ULCOStorySubsystem::GetUnlockableFlags() const

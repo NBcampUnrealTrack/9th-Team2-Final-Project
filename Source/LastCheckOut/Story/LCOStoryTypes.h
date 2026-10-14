@@ -33,6 +33,16 @@ enum class ELCOStoryFlag : uint8
 	K05 UMETA(DisplayName = "K05 1981년 화재 은폐 의혹"),
 };
 
+// 수첩 추리 탭 조합 결과
+UENUM(BlueprintType)
+enum class ELCODeductionResult : uint8
+{
+	Success       UMETA(DisplayName = "성공"),           // 새 키워드 획득
+	AlreadyKnown  UMETA(DisplayName = "이미 아는 내용"),  // 맞는 조합이지만 이미 획득
+	NoMatch       UMETA(DisplayName = "연결 없음"),       // 맞는 조합 없음
+	NotEnough     UMETA(DisplayName = "항목 부족")        // 2개 미만 선택
+};
+
 // 플래그 1개의 해금 조건: 필요한 증거물 + 필요한 플래그 (둘 다 비어 있으면 조건 없음)
 USTRUCT()
 struct FLCOUnlockRule

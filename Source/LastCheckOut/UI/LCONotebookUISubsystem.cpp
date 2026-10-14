@@ -151,6 +151,9 @@ void ULCONotebookUISubsystem::RefreshNotebookLocalizedTexts() const
 	SetNotebookButtonText(TEXT("Btn_Tab_Testimony"), TEXT("NOTEBOOK_TESTIMONIES"));
 	SetNotebookButtonText(TEXT("Btn_Tab_Photo"), TEXT("NOTEBOOK_PHOTOS"));
 	SetNotebookButtonText(TEXT("Btn_Tab_Map"), TEXT("NOTEBOOK_MAPS"));
+	SetNotebookButtonText(TEXT("Btn_Tab_Deduction"), TEXT("NOTEBOOK_DEDUCTIONS"));
+	SetNotebookButtonText(TEXT("Btn_DeductionCombine"), TEXT("NOTEBOOK_DEDUCTION_COMBINE"));
+	SetNotebookButtonText(TEXT("Btn_DeductionClear"), TEXT("NOTEBOOK_DEDUCTION_CLEAR"));
 	SetNotebookTextBlockText(TEXT("Txt_EmptyList"), TEXT("NOTEBOOK_EMPTY"));
 }
 

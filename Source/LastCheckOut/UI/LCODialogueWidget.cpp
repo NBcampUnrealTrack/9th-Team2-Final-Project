@@ -15,6 +15,7 @@
 #include "NPC/LCONPCBase.h"
 #include "Player/LCOPlayerController.h"
 #include "Serialization/Csv/CsvParser.h"
+#include "Story/LCOStorySubsystem.h"
 #include "TimerManager.h"
 #include "UI/LCODialogueChoiceWidget.h"
 #include "UI/LCOInteractionPromptSubsystem.h"
@@ -463,6 +464,8 @@ bool ULCODialogueWidget::LoadFlowForDialogueID(FName DialogueID)
 			Node.TextKey = CsvCellAsName(CsvRow, ColumnIndices, TEXT("TextKey"));
 			Node.NextNodeID = CsvCellAsName(CsvRow, ColumnIndices, TEXT("NextNodeID"));
 			Node.bEndConversation = CsvCellAsBool(CsvRow, ColumnIndices, TEXT("EndConversation"));
+			// 선택 열 (없는 CSV는 그대로 동작)
+			Node.UnlockFlag = CsvCellAsName(CsvRow, ColumnIndices, TEXT("UnlockFlag"));
 			ValidateDialogueTextKey(Node.TextKey, FString::Printf(TEXT("%s row %d"), *FlowPath, RowIndex + 1));
 			ActiveFlow.Nodes.Add(NodeID, MoveTemp(Node));
 		}
@@ -665,6 +668,15 @@ void ULCODialogueWidget::ShowCurrentLine()
 	}
 
 	StartTypewriter(ResolveDialogueText(Node->TextKey));
+
+	// 증언 획득 (조건 검사 후 수첩 증언 탭에 자동 기록, 이미 있으면 무시)
+	if (!Node->UnlockFlag.IsNone())
+	{
+		if (ULCOStorySubsystem* StorySubsystem = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>())
+		{
+			StorySubsystem->TryUnlockByName(Node->UnlockFlag);
+		}
+	}
 
 	if (Text_ContinueHint)
 	{

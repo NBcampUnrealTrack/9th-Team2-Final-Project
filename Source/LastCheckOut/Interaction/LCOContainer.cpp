@@ -24,6 +24,39 @@ FText ALCOContainer::GetInteractionPrompt_Implementation(ULCOInteractComponent* 
 	return Super::GetInteractionPrompt_Implementation(SourceComponent, Interactor);
 }
 
+FLCOActorSaveState ALCOContainer::SaveActorState_Implementation() const
+{
+	// 열림·잠금은 부모가 채움 → 남은 아이템만 추가
+	FLCOActorSaveState State = Super::SaveActorState_Implementation();
+	for (const FLCOContainerItem& Item : ContainedItems)
+	{
+		FLCOSavedItem SavedItem;
+		SavedItem.ItemID = Item.ItemID;
+		SavedItem.Quantity = Item.Quantity;
+		State.Items.Add(SavedItem);
+	}
+	return State;
+}
+
+void ALCOContainer::LoadActorState_Implementation(const FLCOActorSaveState& State)
+{
+	// 창고의 열림은 "UI 사용 중" 상태라, 열린 채로 복원하면 bBlockInteractionWhileOpen 때문에 다시 열 수 없게 됨
+	// UI를 연 채로 맵 상태가 기록된 경우를 대비해 항상 닫힌 상태로 복원
+	FLCOActorSaveState ClosedState = State;
+	ClosedState.bIsOpen = false;
+	Super::LoadActorState_Implementation(ClosedState);
+
+	// 저장된 남은 아이템으로 교체
+	ContainedItems.Reset();
+	for (const FLCOSavedItem& SavedItem : State.Items)
+	{
+		FLCOContainerItem Item;
+		Item.ItemID = SavedItem.ItemID;
+		Item.Quantity = SavedItem.Quantity;
+		ContainedItems.Add(Item);
+	}
+}
+
 void ALCOContainer::HandleUnlockedInteraction(AActor* Interactor)
 {
 	if (!IsOpen())

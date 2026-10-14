@@ -3,12 +3,14 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Interaction/LCOInteractionReceiver.h"
+#include "Save/LCOSaveableActor.h"
 #include "LCOOpenableBase.generated.h"
 
 // 열고 닫을 수 있는 상호작용 액터의 공통 부모 (문, 서랍장, 사물함, 금고 등)
 // 상태(열림 / 잠금)와 열쇠 확인 로직을 담당하고, 메시와 열림 연출(Timeline 등)은 BP 자식에서 구현한다
+// 열림 / 잠금 상태는 맵 이동 / 세이브 시 LCOWorldStateSubsystem이 저장·복원 (ILCOSaveableActor)
 UCLASS(Abstract, Blueprintable)
-class LASTCHECKOUT_API ALCOOpenableBase : public AActor, public ILCOInteractionReceiver
+class LASTCHECKOUT_API ALCOOpenableBase : public AActor, public ILCOInteractionReceiver, public ILCOSaveableActor
 {
 	GENERATED_BODY()
 
@@ -24,6 +26,13 @@ public:
 
 	// 상태별 문구: 잠김(열쇠 보유 여부에 따라) / 열림 / 닫힘
 	virtual FText GetInteractionPrompt_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const override;
+
+	// ILCOSaveableActor
+	// 열림 / 잠금 상태 저장
+	virtual FLCOActorSaveState SaveActorState_Implementation() const override;
+
+	// 열림 / 잠금 상태 복원. 연출 없이 OnInitialized로 모습만 맞춤
+	virtual void LoadActorState_Implementation(const FLCOActorSaveState& State) override;
 
 	// 열기. 잠겨 있거나 이미 열려 있으면 무시
 	UFUNCTION(BlueprintCallable, Category = "Openable")
@@ -56,7 +65,9 @@ protected:
 
 	// ---------- BP 연출 이벤트 ----------
 
-	// 게임 시작 시 초기 상태 적용 (애니메이션 없이 열린 / 닫힌 상태로 배치)
+	// 애니메이션 없이 열린 / 닫힌 모습으로 맞춤
+	// 게임 시작(BeginPlay) 때 한 번, 맵 상태 복원(LoadActorState) 때 한 번 더 호출될 수 있음 → 여러 번 불려도 모습만 맞추도록 구현
+	// Timeline으로 여닫는 BP는 Set New Time(열림 1 / 닫힘 0)으로 Timeline 위치도 같이 맞출 것 (안 맞추면 다음 Reverse / Play가 어긋남)
 	UFUNCTION(BlueprintImplementableEvent, Category = "Openable")
 	void OnInitialized(bool bStartOpen);
 

@@ -216,8 +216,10 @@ void ALCOPuzzleBase::TryRestoreSolvedState()
 
 	UE_LOG(LogTemp, Log, TEXT("[LCOPuzzleBase] %s Restored as solved (PuzzleID: %s)"), *GetName(), *PuzzleID.ToString());
 
-	// 스토리 결과는 세이브에 이미 반영되어 있으므로 월드 결과만 다시 적용
-	ApplyWorldResult();
+	// 결과는 다시 적용하지 않음
+	// - 스토리 결과: 세이브의 스토리 상태에 이미 반영
+	// - 잠금 해제 대상(문 / 서랍장): LCOWorldStateSubsystem이 열림 / 잠금 상태를 따로 복원
+	//   (여기서 Open()을 다시 부르면 열림 애니메이션이 재생되고, 플레이어가 닫아 둔 문과 어긋남)
 	OnPuzzleRestored();
 }
 

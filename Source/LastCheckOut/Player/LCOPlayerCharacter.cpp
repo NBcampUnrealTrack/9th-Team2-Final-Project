@@ -5,7 +5,6 @@
 #include "Player/LCOCameraOcclusionComponent.h"
 #include "Inventory/InventoryComponent.h"
 #include "AI/SuspicionComponent.h"
-#include "Notebook/NotebookComponent.h"
 #include "QuickSlot/LCOQuickSlotComponent.h"
 #include "CameraCapture/LCOCameraCaptureComponent.h"
 #include "Camera/CameraComponent.h"
@@ -44,7 +43,6 @@ ALCOPlayerCharacter::ALCOPlayerCharacter()
 	InteractionComponent = CreateDefaultSubobject<ULCOPlayerInteractionComponent>(TEXT("PlayerInteraction"));
 	StaminaComponent = CreateDefaultSubobject<ULCOStaminaComponent>(TEXT("Stamina"));
 	SuspicionComponent = CreateDefaultSubobject<USuspicionComponent>(TEXT("SuspicionComponent"));
-	NotebookComponent = CreateDefaultSubobject<UNotebookComponent>(TEXT("Notebook"));
 	QuickSlotComponent = CreateDefaultSubobject<ULCOQuickSlotComponent>(TEXT("QuickSlot"));
 	HidingComponent = CreateDefaultSubobject<ULCOHidingComponent>(TEXT("Hiding"));
 	HeldCameraMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeldCameraMesh"));
@@ -90,6 +88,8 @@ void ALCOPlayerCharacter::BeginPlay()
 	// 버프 포스트 프로세스 등록 (강도 0으로 시작)
 	MoveSpeedBuffPostProcessMID = CreateBuffPostProcess(MoveSpeedBuffPostProcessMaterial);
 	MaxStaminaBuffPostProcessMID = CreateBuffPostProcess(MaxStaminaBuffPostProcessMaterial);
+	// 숨을 때 진행 중이던 행동 정리
+	HidingComponent->OnHidingChanged.AddUniqueDynamic(this, &ALCOPlayerCharacter::HandleHidingChanged);
 }
 
 void ALCOPlayerCharacter::Tick(float DeltaSeconds)
@@ -250,9 +250,13 @@ void ALCOPlayerCharacter::Interact()
 
 void ALCOPlayerCharacter::ToggleView()
 {
+	if (IsActionBlocked())
+	{
+		return;
+	}
+
 	SetViewMode(ViewMode == ELCOViewMode::FirstPerson ? ELCOViewMode::ThirdPerson : ELCOViewMode::FirstPerson);
 }
-
 // ---------- 카메라 ----------
 
 void ALCOPlayerCharacter::SetViewMode(ELCOViewMode NewMode)
@@ -496,9 +500,14 @@ void ALCOPlayerCharacter::ApplyBuffPostProcess(UMaterialInstanceDynamic* MID, fl
 
 void ALCOPlayerCharacter::TakePhoto()
 {
-	// 메뉴(인벤토리, 수첩, 옵션)가 열려 있으면 촬영 막기 (UI 클릭이 촬영으로 이어지지 않도록)
-	const ALCOPlayerController* PC = Cast<ALCOPlayerController>(Controller);
-	if (PC && PC->IsInUIMode())
+	// 메뉴가 열려 있거나 숨어 있으면 막기
+	if (IsActionBlocked())
+	{
+		return;
+	}
+
+	// 카메라를 들고 있을 때만 촬영 (맨손 촬영 방지)
+	if (!bCameraEquipped)
 	{
 		return;
 	}
@@ -526,9 +535,8 @@ void ALCOPlayerCharacter::HandleCameraEquipChanged(bool bEquipped)
 
 void ALCOPlayerCharacter::CrouchPressed()
 {
-	// 메뉴가 열려 있으면 막기
-	const ALCOPlayerController* PC = Cast<ALCOPlayerController>(Controller);
-	if (PC && PC->IsInUIMode())
+	// 메뉴가 열려 있거나 숨어 있으면 막기
+	if (IsActionBlocked())
 	{
 		return;
 	}
@@ -637,9 +645,8 @@ float ALCOPlayerCharacter::GetSenseHoldProgress() const
 
 void ALCOPlayerCharacter::SensePressed()
 {
-	// 메뉴가 열려 있으면 막기
-	const ALCOPlayerController* PC = Cast<ALCOPlayerController>(Controller);
-	if (PC && PC->IsInUIMode())
+	// 메뉴가 열려 있거나 숨어 있으면 막기
+	if (IsActionBlocked())
 	{
 		return;
 	}
@@ -703,4 +710,31 @@ ALCOSenseVolume* ALCOPlayerCharacter::FindSenseVolume() const
 		}
 	}
 	return nullptr;
+}
+
+// ---------- 숨기 ----------
+
+bool ALCOPlayerCharacter::IsActionBlocked() const
+{
+	const ALCOPlayerController* PC = Cast<ALCOPlayerController>(Controller);
+	return (PC && PC->IsInUIMode()) || HidingComponent->IsHiding();
+}
+
+void ALCOPlayerCharacter::HandleHidingChanged(bool bIsHiding, ALCOHidingSpot* HidingSpot)
+{
+	if (!bIsHiding)
+	{
+		return;
+	}
+
+	// 숨기 전에 누르고 있던 달리기 입력 초기화 (나오자마자 달리지 않도록)
+	bWantsToSprint = false;
+	SetSprinting(false);
+
+	// 감각 홀드 중이었으면 취소
+	if (IsSenseHolding())
+	{
+		GetWorldTimerManager().ClearTimer(SenseHoldTimer);
+		UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Sense canceled (hiding)"));
+	}
 }

@@ -140,7 +140,7 @@ protected:
 
 	// ---------- 해결 결과 ----------
 
-	// 해결 시 잠금 해제할 대상 (문, 금고, 서랍 등). 세이브 복원 시에도 다시 적용
+	// 해결 시 잠금 해제할 대상 (문, 금고, 서랍 등). 복원 시에는 대상의 상태를 LCOWorldStateSubsystem이 따로 복원
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Puzzle|Result")
 	TArray<TObjectPtr<ALCOOpenableBase>> UnlockTargets;
 
@@ -170,7 +170,7 @@ private:
 	// 저장된 해결 기록이 있으면 연출 없이 해결 상태로 복원
 	void TryRestoreSolvedState();
 
-	// 잠금 해제 대상 적용 (해결 / 복원 공통)
+	// 잠금 해제 대상 적용 (해결 시)
 	void ApplyWorldResult();
 
 	UFUNCTION()

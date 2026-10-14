@@ -11,7 +11,6 @@ class UInventoryComponent;
 class ULCOPlayerInteractionComponent;
 class ULCOStaminaComponent;
 class USuspicionComponent;
-class UNotebookComponent;
 class ULCOQuickSlotComponent;
 class ULCOCameraCaptureComponent;
 class ULCOCameraOcclusionComponent;
@@ -21,6 +20,7 @@ class UMaterialInstanceDynamic;
 class ALCOSenseVolume;
 class UStaticMeshComponent;
 class UAnimMontage;
+class ALCOHidingSpot;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLCOMoveStateChanged);
@@ -90,10 +90,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Suspicion")
 	USuspicionComponent* GetSuspicion() const { return SuspicionComponent; }
-
-	UFUNCTION(BlueprintPure, Category = "LCO|Notebook")
-	UNotebookComponent* GetNotebook() const { return NotebookComponent; }
-
+	
 	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
 	ULCOQuickSlotComponent* GetQuickSlot() const { return QuickSlotComponent; }
 
@@ -247,6 +244,13 @@ protected:
 	// 카메라 촬영 (CameraCapture 컴포넌트로 전달)
 	void TakePhoto();
 	
+	// 메뉴가 열려 있거나 숨어 있어서 행동(웅크리기, 시점 전환, 촬영, 감각)을 막아야 하는지
+	bool IsActionBlocked() const;
+
+	// 숨기 / 나오기 시 캐릭터 상태 정리 (HidingComponent의 OnHidingChanged에 바인딩)
+	UFUNCTION()
+	void HandleHidingChanged(bool bIsHiding, ALCOHidingSpot* HidingSpot);
+	
 	// 퀵슬롯에서 카메라를 들거나 내릴 때 (메시 표시 + 몽타주)
 	UFUNCTION()
 	void HandleCameraEquipChanged(bool bEquipped);
@@ -319,10 +323,7 @@ protected:
 	// 의심도 (AI 담당). FindComponentByClass로도 찾을 수 있음
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Suspicion")
 	TObjectPtr<USuspicionComponent> SuspicionComponent;
-
-	// 수첩 (발견한 증거 목록)
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Notebook")
-	TObjectPtr<UNotebookComponent> NotebookComponent;
+	
 
 	// 퀵슬롯 (Q 휠). 입력 / 위젯은 BP에서 이 컴포넌트에 지정
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "QuickSlot")

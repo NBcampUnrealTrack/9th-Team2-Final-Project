@@ -61,10 +61,7 @@ void ALCOChasingManager::HandleHidingSpotEntered(ALCOHidingSpot* HidingSpot, AAc
 {
 	// 플레이어가 숨은 경우만 처리한다.
 	const APawn* HiderPawn = Cast<APawn>(Hider);
-	if (!HiderPawn || !HiderPawn->IsPlayerControlled())
-	{
-		return;
-	}
+	if (!HiderPawn || !HiderPawn->IsPlayerControlled())	return;
 
 	// 따돌리지 못했으면(관리인에게 보이는 상태로 숨음) 관리인이 은신처로 와서 끌어낸 뒤 잡는다.
 	if (bIsChasing && !TryEndChasingByHiding(HidingSpot))
@@ -91,10 +88,7 @@ void ALCOChasingManager::StartExtractByCaretakers(ALCOHidingSpot* HidingSpot)
 
 void ALCOChasingManager::StartChasing()
 {
-	if (bIsChasing)
-	{
-		return;
-	}
+	if (bIsChasing)	return;
 
 	// 안전지대(로비) 안에서는 체이싱을 시작하지 않고 의심도를 되돌린다.
 	// 의심도 변경 알림 안에서 다시 변경하지 않도록 다음 틱에 처리한다.

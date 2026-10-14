@@ -70,3 +70,15 @@ void ALCOLevelTransitionTrigger::HandleBeginOverlap(UPrimitiveComponent* Overlap
 	// 인벤토리, 퀵슬롯, 시점 보관 + 맵 이동은 GameMode가 처리
 	LCOGameMode->TravelToLevel(TargetLevel, TargetPlayerStartTag);
 }
+
+FLCOActorSaveState ALCOLevelTransitionTrigger::SaveActorState_Implementation() const
+{
+	FLCOActorSaveState State;
+	State.bIsEnabled = bTriggerEnabled;
+	return State;
+}
+
+void ALCOLevelTransitionTrigger::LoadActorState_Implementation(const FLCOActorSaveState& State)
+{
+	bTriggerEnabled = State.bIsEnabled;
+}

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Save/LCOSaveableActor.h"
 #include "LCOLevelTransitionTrigger.generated.h"
 
 class UBoxComponent;
@@ -10,7 +11,7 @@ class UBoxComponent;
 // - 맵에 배치 후 디테일 패널에서 TargetLevel(목적지 맵), TargetPlayerStartTag(도착 위치) 지정
 // - bTriggerEnabled를 끄면 닿아도 이동하지 않음 (스토리 진행 전 잠금 등)
 UCLASS()
-class LASTCHECKOUT_API ALCOLevelTransitionTrigger : public AActor
+class LASTCHECKOUT_API ALCOLevelTransitionTrigger : public AActor, public ILCOSaveableActor
 {
 	GENERATED_BODY()
 
@@ -23,6 +24,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Travel")
 	bool IsTriggerEnabled() const { return bTriggerEnabled; }
+
+	// ILCOSaveableActor: 켜짐/꺼짐 상태 저장·복원 (맵 이동 / 세이브)
+	virtual FLCOActorSaveState SaveActorState_Implementation() const override;
+	virtual void LoadActorState_Implementation(const FLCOActorSaveState& State) override;
 
 protected:
 	virtual void BeginPlay() override;

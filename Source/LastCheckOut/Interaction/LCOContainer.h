@@ -41,6 +41,13 @@ public:
 	// 창고는 상호작용으로 닫지 않으므로, 열려 있을 때도 열기 문구(UI 다시 열기) 사용
 	virtual FText GetInteractionPrompt_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const override;
 
+	// ILCOSaveableActor
+	// 열림 / 잠금(부모) + 남은 아이템 저장
+	virtual FLCOActorSaveState SaveActorState_Implementation() const override;
+
+	// 남은 아이템으로 교체. 창고의 열림은 UI 사용 중 상태라 항상 닫힌 상태로 복원
+	virtual void LoadActorState_Implementation(const FLCOActorSaveState& State) override;
+
 	// UI에서 아이템을 클릭 / 드래그했을 때 호출. 보관 목록에서 빼서 Interactor의 인벤토리에 추가
 	// 보관 수량이 부족하거나, 인벤토리가 없거나, 아이템 DataTable에 없는 ID면 false 반환
 	UFUNCTION(BlueprintCallable, Category = "Container")

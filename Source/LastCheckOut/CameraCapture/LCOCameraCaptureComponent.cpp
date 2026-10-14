@@ -112,20 +112,41 @@ ULCOCameraCaptureComponent::ProcessCapture(
     {
         return ELCOCameraCaptureResult::NoTarget;
     }
+    
+    // 2. GameInstance 가져오기
+    UWorld* World = GetWorld();
 
-    // 2. 이미 촬영한 대상인지 확인
-    if (CapturePoint->bHasBeenCaptured)
+    UGameInstance* GameInstance =
+        World ? World->GetGameInstance() : nullptr;
+
+    if (!GameInstance)
+    {
+        return ELCOCameraCaptureResult::SystemError;
+    }
+
+    // 3. 수첩 Subsystem 가져오기
+    ULCONotebookSubsystem* NotebookSubsystem =
+        GameInstance->GetSubsystem<ULCONotebookSubsystem>();
+
+    if (!NotebookSubsystem)
+    {
+        return ELCOCameraCaptureResult::SystemError;
+    }
+
+    // 4. 이미 촬영했거나 수첩에 등록된 대상인지 확인
+    if (CapturePoint->bHasBeenCaptured ||
+        NotebookSubsystem->HasEntry(CapturePoint->CaptureID))
     {
         return ELCOCameraCaptureResult::AlreadyCaptured;
     }
 
-    // 3. 촬영 가능 상태 확인
+    // 5. 촬영 가능 상태 확인
     if (!CapturePoint->CanCapture())
     {
         return ELCOCameraCaptureResult::InvalidData;
     }
 
-    // 4. 수첩 DataTable 확인
+    // 6. 수첩 DataTable 확인
     if (!NotebookTable)
     {
         UE_LOG(
@@ -137,7 +158,7 @@ ULCOCameraCaptureComponent::ProcessCapture(
         return ELCOCameraCaptureResult::SystemError;
     }
 
-    // 5. 촬영 ID 확인
+    // 7. 촬영 ID 확인
     const FName EntryID = CapturePoint->CaptureID;
 
     if (EntryID.IsNone())
@@ -151,7 +172,7 @@ ULCOCameraCaptureComponent::ProcessCapture(
         return ELCOCameraCaptureResult::InvalidData;
     }
 
-    // 6. 촬영 ID에 해당하는 수첩 데이터 검색
+    // 8. 촬영 ID에 해당하는 수첩 데이터 검색
     const FLCONotebookEntry* NotebookRow =
         NotebookTable->FindRow<FLCONotebookEntry>(
             EntryID,
@@ -170,7 +191,7 @@ ULCOCameraCaptureComponent::ProcessCapture(
         return ELCOCameraCaptureResult::InvalidData;
     }
 
-    // 7. 사진 이미지 확인
+    // 9. 사진 이미지 확인
     if (!NotebookRow->Image)
     {
         UE_LOG(
@@ -182,27 +203,7 @@ ULCOCameraCaptureComponent::ProcessCapture(
 
         return ELCOCameraCaptureResult::InvalidData;
     }
-
-    // 8. GameInstance 가져오기
-    UWorld* World = GetWorld();
-
-    UGameInstance* GameInstance =
-        World ? World->GetGameInstance() : nullptr;
-
-    if (!GameInstance)
-    {
-        return ELCOCameraCaptureResult::SystemError;
-    }
-
-    // 9. 수첩 Subsystem 가져오기
-    ULCONotebookSubsystem* NotebookSubsystem =
-        GameInstance->GetSubsystem<ULCONotebookSubsystem>();
-
-    if (!NotebookSubsystem)
-    {
-        return ELCOCameraCaptureResult::SystemError;
-    }
-
+    
     // 10. 이미 수첩에 등록된 사진인지 확인
     const bool bAlreadyRegistered =
         NotebookSubsystem->HasEntry(EntryID);

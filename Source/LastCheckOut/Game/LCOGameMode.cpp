@@ -10,18 +10,23 @@
 #include "GameFramework/PlayerStart.h"
 #include "EngineUtils.h"
 #include "Save/LCOSaveManager.h"
+#include "Save/LCOWorldStateSubsystem.h"
+#include "Puzzle/LCOPuzzleSubsystem.h"
 
 ALCOGameMode::ALCOGameMode()
 {
 	PrimaryActorTick.bCanEverTick = false;
 }
 
-void ALCOGameMode::BeginPlay()
+void ALCOGameMode::StartPlay()
 {
-	Super::BeginPlay();
-
+	// 맵 액터들의 BeginPlay보다 먼저 진행 데이터를 준비 (새 게임 초기화 / 이어하기 적용)
+	// → 퍼즐처럼 BeginPlay에서 서브시스템 기록을 읽는 액터가 정리된 값을 보게 됨
 	InitializeCurrentMap();
 	StartGame();
+
+	// 여기서 HandleMatchHasStarted → 플레이어 생성 → 모든 액터 BeginPlay 진행
+	Super::StartPlay();
 }
 
 void ALCOGameMode::InitializeCurrentMap()
@@ -134,14 +139,26 @@ void ALCOGameMode::StartNewGameProgress(ULCOGameInstance* LCOGameInstance)
 	// 2) 맵 이동용 보관함 비우기 (이전 플레이의 인벤토리가 복원되지 않도록)
 	LCOGameInstance->ClearCarryData();
 
-	// 3) 스토리 초기화 + Chapter1 시작 (완료 목표도 초기화)
+	// 3) 맵별 상태 기록 삭제 (이전 플레이의 문 / 서랍장 상태가 복원되지 않도록)
+	if (ULCOWorldStateSubsystem* WorldState = LCOGameInstance->GetSubsystem<ULCOWorldStateSubsystem>())
+	{
+		WorldState->ClearAll();
+	}
+
+	// 4) 퍼즐 해결 기록 삭제
+	if (ULCOPuzzleSubsystem* PuzzleSubsystem = LCOGameInstance->GetSubsystem<ULCOPuzzleSubsystem>())
+	{
+		PuzzleSubsystem->ClearAll();
+	}
+
+	// 5) 스토리 초기화 + Chapter1 시작 (완료 목표도 초기화)
 	if (ULCOStorySubsystem* StorySubsystem = LCOGameInstance->GetStorySubsystem())
 	{
 		StorySubsystem->StartNewStory();
 	}
 
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartNewGameProgress: Notebook / Carry / Story reset"));
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartNewGameProgress: Notebook / Carry / WorldState / Puzzle / Story reset"));
 }
 
 void ALCOGameMode::TravelToLevel(TSoftObjectPtr<UWorld> Level, FName PlayerStartTag)
@@ -156,6 +173,12 @@ void ALCOGameMode::TravelToLevel(TSoftObjectPtr<UWorld> Level, FName PlayerStart
 	// 캐릭터가 사라지기 전에 먼저 보관
 	StorePlayerCarryData();
 
+	// 이 맵의 문 / 서랍장 / 트리거 상태 기록 (다시 돌아왔을 때 복원)
+	if (ULCOWorldStateSubsystem* WorldState = GetGameInstance()->GetSubsystem<ULCOWorldStateSubsystem>())
+	{
+		WorldState->CaptureWorldState(GetWorld());
+	}
+
 	// 도착 위치는 URL 옵션으로 전달 → 새 맵 GameMode의 ChoosePlayerStart에서 읽음
 	const FString Options = PlayerStartTag.IsNone() ? FString() : FString::Printf(TEXT("Entry=%s"), *PlayerStartTag.ToString());
 
@@ -166,8 +189,14 @@ void ALCOGameMode::TravelToLevel(TSoftObjectPtr<UWorld> Level, FName PlayerStart
 
 void ALCOGameMode::HandleMatchHasStarted()
 {
-	// 이 안에서 플레이어 캐릭터 생성 → 모든 액터 BeginPlay(StartGame 포함)까지 끝남
+	// 이 안에서 플레이어 캐릭터 생성 → 모든 액터 BeginPlay까지 끝남
 	Super::HandleMatchHasStarted();
+
+	// 이 맵에 기록된 문 / 서랍장 / 트리거 상태 복원 (BeginPlay의 초기 상태 적용 이후여야 덮어써지지 않음)
+	if (ULCOWorldStateSubsystem* WorldState = GetGameInstance()->GetSubsystem<ULCOWorldStateSubsystem>())
+	{
+		WorldState->ApplyWorldState(GetWorld());
+	}
 
 	// 캐릭터 BeginPlay의 SetViewMode(DefaultViewMode) 이후에 복원해야 시점이 덮어써지지 않음
 	RestorePlayerCarryData();

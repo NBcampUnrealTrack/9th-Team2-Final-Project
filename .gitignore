@@ -87,3 +87,6 @@ Build/Windows/FileOpenOrder/EditorOpenOrder.log
 
 # RiderLink 플러그인 자체를 Git에서 제외
 Plugins/Developer/RiderLink/
+
+# MetaHuman 에셋 (용량 문제로 구글 드라이브로 공유)
+Content/MetaHumans/

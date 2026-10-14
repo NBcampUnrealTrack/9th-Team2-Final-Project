@@ -12,6 +12,10 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "TimerManager.h"
+#include "UI/LCOInventoryWidget.h"
+#include "UI/LCODialogueWidget.h"
 
 ULCOQuickSlotComponent::ULCOQuickSlotComponent()
 {
@@ -278,11 +282,24 @@ void ULCOQuickSlotComponent::CreateWidgets(APlayerController* PC)
 	}
 
 	RefreshWidgets();
+	bHUDShown = false;
 	UpdateHUDVisibility();
+
+	// 인벤토리 / 대화창 열림은 따로 알려주는 이벤트가 없어서 주기적으로 확인
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(HUDCheckTimerHandle, this, &ThisClass::UpdateHUDVisibility, 0.1f, true);
+	}
 }
 
 void ULCOQuickSlotComponent::RemoveWidgets()
 {
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(HUDCheckTimerHandle);
+	}
+	bHUDShown = false;
+
 	if (HUDWidget)
 	{
 		HUDWidget->RemoveFromParent();
@@ -401,7 +418,7 @@ bool ULCOQuickSlotComponent::CanAssignItem(FName ItemID) const
 	// 직접 사용할 수 있는 소비 아이템만 (BuffType이 None인 카메라 필름 등은 제외)
 	return ItemData
 		&& ItemData->ItemType == EItemType::Consumable
-		&& ItemData->BuffType != EBuffType::None;
+		&& !ItemData->BuffEffects.IsEmpty();
 }
 
 bool ULCOQuickSlotComponent::IsPinnedSlot(int32 SlotIndex) const
@@ -517,8 +534,22 @@ void ULCOQuickSlotComponent::UpdateHUDVisibility()
 		return;
 	}
 
-	// 휠이 열려 있을 땐 휠이 대신 보이므로 HUD는 숨김
-	if (bIsSprinting && !bWheelOpen)
+	// 평소엔 HUD 표시, 아래 경우엔 숨김
+	// - 달리는 동안
+	// - 휠이 열려 있을 때 (휠이 대신 보임)
+	// - 인벤토리 / 대화창이 열려 있을 때
+	// 카메라를 든 상태(촬영 모드)에서도 숨김 - 뷰파인더 화면을 가리지 않도록
+	const bool bShouldShow = !bIsSprinting && !bWheelOpen && !bCameraEquipped && !IsHUDBlockingMenuOpen();
+
+	// 상태가 바뀔 때만 처리 (타이머로 자주 불리므로)
+	if (bShouldShow == bHUDShown)
+	{
+		return;
+	}
+
+	bHUDShown = bShouldShow;
+
+	if (bShouldShow)
 	{
 		HUDWidget->RefreshSlots(this);
 		HUDWidget->ShowQuickSlot();
@@ -527,6 +558,21 @@ void ULCOQuickSlotComponent::UpdateHUDVisibility()
 	{
 		HUDWidget->HideQuickSlot();
 	}
+}
+
+bool ULCOQuickSlotComponent::IsHUDBlockingMenuOpen()
+{
+	// TopLevelOnly = true: 화면(뷰포트)에 올라가 있는 위젯만 찾음 = 열려 있는 창
+	TArray<UUserWidget*> FoundWidgets;
+
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, FoundWidgets, ULCOInventoryWidget::StaticClass(), true);
+	if (FoundWidgets.Num() > 0)
+	{
+		return true;
+	}
+
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, FoundWidgets, ULCODialogueWidget::StaticClass(), true);
+	return FoundWidgets.Num() > 0;
 }
 
 // ======================================================================
@@ -689,6 +735,7 @@ void ULCOQuickSlotComponent::SetCameraEquipped(bool bEquip)
 
 	OnCameraEquipChanged.Broadcast(bCameraEquipped);
 	RefreshWidgets();
+	UpdateHUDVisibility();
 }
 
 void ULCOQuickSlotComponent::HandleCapturePressed()

@@ -303,8 +303,21 @@ bool ALCOChasingManager::IsPlayerSpottedByCaretaker(const AActor* HidingSpot) co
 			continue;
 		}
 
+		// 시야 거리와 시야각은 관리인 컨트롤러의 SightRadius, PeripheralVisionAngle을 따른다.
+		const ALCOCaretakerAIController* CaretakerController = Cast<ALCOCaretakerAIController>(CaretakerPawn->GetController());
+		const float ViewDistance = CaretakerController ? CaretakerController->GetViewDistance() : 1500.f;
+		const float ViewHalfAngle = CaretakerController ? CaretakerController->GetViewHalfAngle() : 70.f;
+
 		// 거리가 멀면 보이지 않는다.
-		if (FVector::Dist(CaretakerPawn->GetActorLocation(), PlayerPawn->GetActorLocation()) > HideSpotDistance)
+		if (FVector::Dist(CaretakerPawn->GetActorLocation(), PlayerPawn->GetActorLocation()) > ViewDistance)
+		{
+			continue;
+		}
+
+		// 관리인의 정면 시야각 밖이면 보이지 않는다.
+		const FVector ToPlayer = (PlayerPawn->GetActorLocation() - CaretakerPawn->GetActorLocation()).GetSafeNormal();
+		const float AngleDeg = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(CaretakerPawn->GetActorForwardVector(), ToPlayer)));
+		if (AngleDeg > ViewHalfAngle)
 		{
 			continue;
 		}

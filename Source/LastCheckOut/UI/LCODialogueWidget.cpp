@@ -197,21 +197,44 @@ bool ULCODialogueWidget::OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, 
 		return false;
 	}
 
+	if (InNPC->GetNPCId().IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] NPC %s has no DialogueID/NPCId."), *GetNameSafe(InNPC));
+		return false;
+	}
+
+	const FName InitialNodeID = bPlayFirstConversation ? FirstNodeID : DefaultNodeID;
+	return OpenDialogueInternal(InNPC, InInteractor, InNPC->GetNPCId(), InitialNodeID, bPlayFirstConversation);
+}
+
+bool ULCODialogueWidget::OpenDialogueByID(FName DialogueID, FName StartNodeID, AActor* InInteractor)
+{
+	if (DialogueID.IsNone() || StartNodeID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] OpenDialogueByID requires DialogueID and StartNodeID (DialogueID: %s, StartNodeID: %s)"),
+			*DialogueID.ToString(),
+			*StartNodeID.ToString());
+		return false;
+	}
+
+	// 진행 중인 대화를 덮어쓰지 않음
+	if (IsDialogueActive())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] OpenDialogueByID ignored: dialogue '%s' is already active"), *ActiveDialogueID.ToString());
+		return false;
+	}
+
+	return OpenDialogueInternal(nullptr, InInteractor, DialogueID, StartNodeID, false);
+}
+
+bool ULCODialogueWidget::OpenDialogueInternal(ALCONPCBase* InNPC, AActor* InInteractor, FName DialogueID, FName InitialNodeID, bool bPlayFirstConversation)
+{
 	ActiveNPC = InNPC;
 	Interactor = InInteractor;
-	ActiveDialogueID = InNPC->GetNPCId();
+	ActiveDialogueID = DialogueID;
 	bActiveDialogueStartedAsFirstConversation = bPlayFirstConversation;
 	bActiveDialogueCompletedNormally = false;
 	LastVoicePlaybackTime = -FLT_MAX;
-
-	if (ActiveDialogueID.IsNone())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] NPC %s has no DialogueID/NPCId."), *GetNameSafe(InNPC));
-		ActiveNPC.Reset();
-		Interactor.Reset();
-		bActiveDialogueStartedAsFirstConversation = false;
-		return false;
-	}
 
 	if (!LoadFlowForDialogueID(ActiveDialogueID))
 	{
@@ -222,7 +245,6 @@ bool ULCODialogueWidget::OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, 
 		return false;
 	}
 
-	const FName InitialNodeID = bPlayFirstConversation ? FirstNodeID : DefaultNodeID;
 	if (!ActiveFlow.Nodes.Contains(InitialNodeID))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] Initial node '%s' is missing for DialogueID '%s': %s"),

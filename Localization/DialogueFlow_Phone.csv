@@ -1,0 +1,2 @@
+﻿NodeID,RowType,SpeakerID,TextKey,NextNodeID,ChoiceID,ChoiceTextKey,ChoiceTargetNodeID,Condition,EndConversation
+TEST_01,Line,Phone,PHONE_TEST_01,,,,,,true

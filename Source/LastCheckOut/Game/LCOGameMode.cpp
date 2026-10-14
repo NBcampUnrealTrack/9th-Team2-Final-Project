@@ -262,21 +262,35 @@ void ALCOGameMode::RestorePlayerCarryData()
 
 AActor* ALCOGameMode::ChoosePlayerStart_Implementation(AController* Player)
 {
-	// 맵 이동 시 전달된 도착 태그 (예: ?Entry=FromMain)
+	// 에디터 Play From Here로 시작하면 엔진 기본 방식 사용 (카메라 위치에서 시작)
+	// (엔진이 임시로 만드는 PlayerStartPIE가 있으면 그 경우. 헤더가 공개되지 않아 클래스 이름으로 확인)
+	for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
+	{
+		if (It->GetClass()->GetFName() == FName(TEXT("PlayerStartPIE")))
+		{
+			return Super::ChoosePlayerStart_Implementation(Player);
+		}
+	}
+
+	// 맵 이동 시 전달된 도착 태그 (예시: ?Entry=FromMain)
 	const FString EntryTag = UGameplayStatics::ParseOption(OptionsString, TEXT("Entry"));
 
+	// 도착 태그가 없으면(새 게임 / 이어하기 / 메뉴 없이 Play) 기본 시작 위치 태그 "Start" 사용
+	const FName SearchTag = EntryTag.IsEmpty() ? FName(TEXT("Start")) : FName(*EntryTag);
+
+	for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
+	{
+		if (It->PlayerStartTag == SearchTag)
+		{
+			// Log Test
+			UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ChoosePlayerStart: Tag = %s"), *SearchTag.ToString());
+			return *It;
+		}
+	}
+
+	// 맵 이동인데 태그를 못 찾은 경우만 경고 (Start 태그는 없어도 정상)
 	if (!EntryTag.IsEmpty())
 	{
-		for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
-		{
-			if (It->PlayerStartTag == FName(*EntryTag))
-			{
-				// Log Test
-				UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ChoosePlayerStart: Entry = %s"), *EntryTag);
-				return *It;
-			}
-		}
-
 		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] ChoosePlayerStart: no PlayerStart with tag %s -> default"), *EntryTag);
 	}
 

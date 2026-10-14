@@ -11,6 +11,9 @@
 #include "InputAction.h"
 #include "Localization/LCOLocalizationSubsystem.h"
 #include "TimerManager.h"
+#include "GameFramework/Pawn.h"
+#include "Kismet/GameplayStatics.h"
+#include "QuickSlot/LCOQuickSlotComponent.h"
 
 ULCOCameraUIWidget::ULCOCameraUIWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -58,6 +61,37 @@ void ULCOCameraUIWidget::NativeDestruct()
 	UnbindCloseInput();
 
 	Super::NativeDestruct();
+}
+
+void ULCOCameraUIWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	if (!bCameraMode)
+	{
+		return;
+	}
+
+	// 인벤토리 / 수첩 / 대화 / 상자 / 일시정지 UI는 모두 마우스 커서를 켜거나 게임을 일시정지함
+	// (위젯 Tick은 일시정지 중에도 돌아서 수첩·일시정지 메뉴도 바로 감지됨)
+	const APlayerController* PlayerController = GetOwningPlayer();
+	const bool bUIOpen = (PlayerController && PlayerController->bShowMouseCursor) || UGameplayStatics::IsGamePaused(this);
+	if (!bUIOpen)
+	{
+		return;
+	}
+
+	// 카메라 내리기 → 퀵슬롯 OnCameraEquipChanged(false) → 서브시스템이 SetCameraMode(false) 호출
+	const APawn* Pawn = GetOwningPlayerPawn();
+	if (ULCOQuickSlotComponent* QuickSlot = Pawn ? Pawn->FindComponentByClass<ULCOQuickSlotComponent>() : nullptr)
+	{
+		QuickSlot->SetCameraEquipped(false);
+	}
+	else
+	{
+		// 퀵슬롯이 없으면 화면만 정리
+		SetCameraMode(false);
+	}
 }
 
 // ---------- 사진 팝업 ----------

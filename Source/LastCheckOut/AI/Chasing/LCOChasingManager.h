@@ -53,7 +53,7 @@ public:
 
 	// 은신처(옷장 등)에 숨을 때 은신 시스템이 호출한다. (HidingSpot은 은신처 액터)
 	// 관리인에게 보이는 상태로 숨으면 실패(false)이고 체이싱은 계속된다.
-	// 관리인의 시야 밖(벽에 가려졌거나 HideSpotDistance보다 멀리)에서 숨으면 체이싱을 종료하고 true를 반환한다.
+	// 관리인의 시야 밖(벽에 가려졌거나 시야 거리·시야각 밖)에서 숨으면 체이싱을 종료하고 true를 반환한다.
 	UFUNCTION(BlueprintCallable, Category = "Chasing")
 	bool TryEndChasingByHiding(AActor* HidingSpot);
 
@@ -93,10 +93,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Chasing")
 	float FoundCheckInterval = 0.2f;
-
-	// 이 거리(cm) 안에서 관리인과 시야가 뚫려 있으면 숨어도 따돌린 것으로 인정하지 않는다.
-	UPROPERTY(EditAnywhere, Category = "Chasing")
-	float HideSpotDistance = 1500.f;
 
 	// 체이싱이 끝난 직후 이 시간(초) 동안 의심도를 고정해 바로 다시 추격되지 않게 한다.
 	UPROPERTY(EditAnywhere, Category = "Chasing")

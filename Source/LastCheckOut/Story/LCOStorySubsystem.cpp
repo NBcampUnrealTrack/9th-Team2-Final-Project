@@ -10,6 +10,10 @@ namespace
 	{
 		return StaticEnum<ELCOStoryFlag>()->GetNameStringByValue(static_cast<int64>(Flag));
 	}
+
+	// 1막 / 2막 챕터 ID
+	const FName Chapter1ID(TEXT("Chapter1"));
+	const FName Chapter2ID(TEXT("Chapter2"));
 }
 
 void ULCOStorySubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -130,27 +134,33 @@ void ULCOStorySubsystem::BuildUnlockRules()
 	using F = ELCOStoryFlag;
 	UnlockRules.Empty();
 
-	// 증언
-	AddUnlockRule(F::T01, {}, {});                       // 기본 대화
+	// 증언 (대화로 해금)
+	AddUnlockRule(F::T01, {}, {});                         // 기본 대화
 	AddUnlockRule(F::T02, {}, { F::K01 });
-	AddUnlockRule(F::T03, {}, {});                       // 기본 대화
+	AddUnlockRule(F::T03, {}, {});                         // 기본 대화
 	AddUnlockRule(F::T04, { TEXT("E01") }, {});
 	AddUnlockRule(F::T05, { TEXT("E02") }, {});
 	AddUnlockRule(F::T06, { TEXT("E01") }, {});
 	AddUnlockRule(F::T07, { TEXT("E06") }, {});
-	AddUnlockRule(F::T08, {}, {});                       // 기본 대화
+	AddUnlockRule(F::T08, {}, { F::T01 });
 	AddUnlockRule(F::T09, {}, { F::K02 });
 	AddUnlockRule(F::T10, { TEXT("E03") }, {});
-	AddUnlockRule(F::T11, {}, { F::K04 });
-	AddUnlockRule(F::T12, {}, { F::K04 });
-	AddUnlockRule(F::T13, {}, { F::K04 });
+	AddUnlockRule(F::T11, {}, { F::T09 });
 
-	// 조합 키워드
+	// 조합 키워드 (수첩 추리로 해금)
+	// [407호 라인]
 	AddUnlockRule(F::K01, { TEXT("E04"), TEXT("E08") }, {});
 	AddUnlockRule(F::K02, { TEXT("E04"), TEXT("E05"), TEXT("E06") }, {});
-	AddUnlockRule(F::K03, { TEXT("E03"), TEXT("E07") }, {});
-	AddUnlockRule(F::K04, { TEXT("E01"), TEXT("E02") }, {});
-	AddUnlockRule(F::K05, {}, { F::K01, F::T02 });
+	AddUnlockRule(F::K05, {}, { F::T09, F::T02, F::T11 });                 // → 지배인에게 제시하면 1막 클리어
+
+	// [실족사 라인]
+	AddUnlockRule(F::K08, { TEXT("E01"), TEXT("E02") }, {});
+	AddUnlockRule(F::K04, {}, { F::K08, F::T04, F::T06 });
+	AddUnlockRule(F::K06, { TEXT("E09") }, { F::T05 });
+	AddUnlockRule(F::K07, { TEXT("E10") }, { F::K04, F::K06 });          // → 지배인에게 보고하면 END 3
+
+	// [심리 라인]
+	AddUnlockRule(F::K03, { TEXT("E03"), TEXT("E07") }, {});               // 있으면 END 3 보고 시 주인공이 멈춤
 }
 
 void ULCOStorySubsystem::AddUnlockRule(ELCOStoryFlag Flag, const TArray<FName>& RequiredEvidence, const TArray<ELCOStoryFlag>& RequiredFlags)
@@ -312,6 +322,48 @@ ELCODeductionResult ULCOStorySubsystem::TryDeduce(const TArray<FName>& SelectedI
 	return ELCODeductionResult::NoMatch;
 }
 
+bool ULCOStorySubsystem::CanReportToManager(ELCOStoryFlag PresentedKeyword) const
+{
+	// 1막 진행 중에만 (클리어 후 다시 보고하는 것 방지)
+	if (CurrentChapterID != Chapter1ID)
+	{
+		return false;
+	}
+
+	// 지배인에게 제시할 수 있는 추리는 K05(407호 조사 요청), K07(조사 종결 보고)만
+	const bool bIsReportKeyword = PresentedKeyword == ELCOStoryFlag::K05 || PresentedKeyword == ELCOStoryFlag::K07;
+	return bIsReportKeyword && HasFlag(PresentedKeyword);
+}
+
+ELCOReportResult ULCOStorySubsystem::ReportToManager(ELCOStoryFlag PresentedKeyword)
+{
+	ELCOReportResult Result = ELCOReportResult::NotEnough;
+
+	if (CanReportToManager(PresentedKeyword))
+	{
+		if (PresentedKeyword == ELCOStoryFlag::K05)
+		{
+			// 407호 조사 허가 → 1막 클리어, 바로 2막 시작 (이동·저장은 GameMode가 처리)
+			CompleteChapter(Chapter1ID);
+			StartChapter(Chapter2ID);
+			Result = ELCOReportResult::Chapter1Clear;
+		}
+		else
+		{
+			// 조사 종결 보고: K03이 있으면 주인공이 스스로 멈춤 (몇 번 골라도 동일)
+			// 어느 쪽이든 진행 상태는 바꾸지 않음 → END 3 엔딩 후에도 보고 직전 상태 그대로
+			Result = HasFlag(ELCOStoryFlag::K03) ? ELCOReportResult::Reconsidered : ELCOReportResult::End3;
+		}
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] ReportToManager: %s -> %s"),
+		*FlagToString(PresentedKeyword), *UEnum::GetValueAsString(Result));
+
+	OnReportResolved.Broadcast(PresentedKeyword, Result);
+	return Result;
+}
+
 void ULCOStorySubsystem::RecordFlagToNotebook(ELCOStoryFlag Flag) const
 {
 	ULCONotebookSubsystem* NotebookSubsystem = GetGameInstance()->GetSubsystem<ULCONotebookSubsystem>();
@@ -370,7 +422,7 @@ TArray<ELCOStoryFlag> ULCOStorySubsystem::GetUnlockableFlags() const
 		}
 	}
 
-	// enum 순서(T01 → K05)로 정렬
+	// enum 순서(T01 → K08)로 정렬
 	Result.Sort([](ELCOStoryFlag A, ELCOStoryFlag B) { return static_cast<uint8>(A) < static_cast<uint8>(B); });
 	return Result;
 }

@@ -14,6 +14,7 @@
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
 #include "QuickSlot/LCOQuickSlotComponent.h"
+#include "UI/LCOMonologueSubsystem.h"
 
 ULCOCameraUIWidget::ULCOCameraUIWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -166,7 +167,19 @@ void ULCOCameraUIWidget::ShowCaptureFailed(ELCOCameraCaptureResult Result)
 
 void ULCOCameraUIWidget::ShowMessage(const FText& Message)
 {
-	if (Message.IsEmpty() || !Txt_CaptureMessage)
+	if (Message.IsEmpty())
+	{
+		return;
+	}
+
+	// 주인공 독백 UI로 표시 (독백 위젯이 설정돼 있지 않을 때만 아래 기존 방식으로 표시)
+	if (bUseMonologueForMessages && ULCOMonologueSubsystem::ShowMonologue(this, Message))
+	{
+		BP_OnMessageShown(Message);
+		return;
+	}
+
+	if (!Txt_CaptureMessage)
 	{
 		return;
 	}

@@ -41,4 +41,12 @@ protected:
 	// false면 안에서 사용해도 실패 처리
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sense")
 	bool bSenseEnabled = true;
+
+	// 이 볼륨에서 감각 성공 시 띄울 독백 (UI.csv 키). 비우면 DefaultMonologueKey 사용
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sense|Monologue")
+	FName MonologueKey;
+
+	// 볼륨별 문구가 없을 때 기본 성공 독백 (None이면 표시 안 함)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sense|Monologue")
+	FName DefaultMonologueKey = TEXT("MONOLOGUE_SENSE_SUCCESS");
 };

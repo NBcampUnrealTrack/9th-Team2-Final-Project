@@ -50,6 +50,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
 	bool StartDialogue(FName DialogueID, FName StartNodeID, AActor* Interactor);
 
+	TArray<FName> GetCompletedFirstConversations() const
+	{
+		return CompletedFirstConversationNPCIds.Array();
+	}
+
+	void RestoreCompletedFirstConversations(const TArray<FName>& InIds)
+	{
+		CompletedFirstConversationNPCIds = TSet<FName>(InIds);
+	}
+
+	void ResetDialogueProgress()
+	{
+		CompletedFirstConversationNPCIds.Empty();
+	}
+
 	// 대화창이 닫힐 때 호출 (NPC 대화 포함)
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
 	FOnLCODialogueFinished OnDialogueFinished;

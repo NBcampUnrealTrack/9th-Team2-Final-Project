@@ -6,6 +6,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "LastCheckOut/Core/LCOGameInstance.h"
 #include "Localization/LCOLocalizationSubsystem.h"
+#include "Save/LCOSaveManager.h"
 
 void ULCOMainMenuWidget::NativeOnInitialized()
 {
@@ -53,7 +54,12 @@ void ULCOMainMenuWidget::NativeDestruct()
 
 bool ULCOMainMenuWidget::CanContinue() const
 {
-	return UGameplayStatics::DoesSaveGameExist(SaveSlotName, 0);
+	const UGameInstance* GameInstance = GetGameInstance();
+	const ULCOSaveManager* SaveManager = GameInstance
+		? GameInstance->GetSubsystem<ULCOSaveManager>()
+		: nullptr;
+
+	return SaveManager && SaveManager->HasSaveFile();
 }
 
 void ULCOMainMenuWidget::OpenSettings()
@@ -84,11 +90,30 @@ void ULCOMainMenuWidget::HandleNewGameClicked()
 
 void ULCOMainMenuWidget::HandleContinueClicked()
 {
-	if (!CanContinue())
+	if (bIsTransitioning || !CanContinue())
 	{
 		return;
 	}
-	StartGameWithMode(ELCOGameStartMode::Continue);
+
+	UGameInstance* GameInstance = GetGameInstance();
+	ULCOSaveManager* SaveManager = GameInstance
+		? GameInstance->GetSubsystem<ULCOSaveManager>()
+		: nullptr;
+	if (!SaveManager)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOMainMenu] SaveManager not found"));
+		return;
+	}
+
+	bIsTransitioning = true;
+	BP_OnStartTransition();
+
+	// 저장된 맵 선택과 이어하기 모드 설정은 SaveManager에서 처리한다.
+	if (!SaveManager->StartContinue())
+	{
+		bIsTransitioning = false;
+		UE_LOG(LogTemp, Warning, TEXT("[LCOMainMenu] StartContinue failed"));
+	}
 }
 
 void ULCOMainMenuWidget::HandleSettingsClicked()

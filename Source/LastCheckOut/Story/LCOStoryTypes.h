@@ -58,3 +58,13 @@ struct FLCOUnlockRule
 	UPROPERTY()
 	TArray<ELCOStoryFlag> RequiredFlags;
 };
+
+// 지배인에게 추리를 제시 / 보고한 결과
+UENUM(BlueprintType)
+enum class ELCOReportResult : uint8
+{
+	NotEnough      UMETA(DisplayName = "제시 불가"),        // 필요한 추리가 없거나 1막이 아님
+	Chapter1Clear  UMETA(DisplayName = "1막 클리어"),       // K05 제시 → 407호 조사 허가
+	End3           UMETA(DisplayName = "END 3"),          // K07 보고 (K03 없음) → 사고 조사 종결
+	Reconsidered   UMETA(DisplayName = "조사 종결 멈춤")    // K07 보고 (K03 있음) → 주인공이 멈추고 조사 계속
+};

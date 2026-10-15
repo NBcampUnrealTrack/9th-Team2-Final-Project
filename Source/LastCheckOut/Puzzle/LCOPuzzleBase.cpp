@@ -78,6 +78,28 @@ FText ALCOPuzzleBase::GetInteractionPrompt_Implementation(ULCOInteractComponent*
 	return bIsActive ? FText::GetEmpty() : InactivePrompt;
 }
 
+FLCOActorSaveState ALCOPuzzleBase::SaveActorState_Implementation() const
+{
+	FLCOActorSaveState State;
+	State.bIsEnabled = bIsActive;
+	return State;
+}
+
+void ALCOPuzzleBase::LoadActorState_Implementation(const FLCOActorSaveState& State)
+{
+	// 해결된 퍼즐은 활성 여부와 상관없이 잠김
+	if (bIsSolved)
+	{
+		return;
+	}
+
+	bIsActive = State.bIsEnabled;
+
+	UE_LOG(LogTemp, Log, TEXT("[LCOPuzzleBase] %s LoadActorState (Active: %d)"), *GetName(), bIsActive);
+
+	OnActiveStateRestored(bIsActive);
+}
+
 void ALCOPuzzleBase::HandlePuzzleInput_Implementation(ULCOInteractComponent* SourceComponent, FName InputID, AActor* Interactor)
 {
 	// 기본 동작은 로그만 출력. 실제 로직은 자식 클래스에서 구현
@@ -205,9 +227,11 @@ void ALCOPuzzleBase::TryRestoreSolvedState()
 	if (!PuzzleSubsystem || !PuzzleSubsystem->IsPuzzleSolved(PuzzleID))
 	{
 		// 선행 퍼즐이 복원으로 해결 처리됐을 수 있으므로 활성화 조건만 다시 확인
+		// 복원 과정이므로 활성화 연출(OnPuzzleActivated) 없이 모습만 맞춤
 		if (!bIsActive && !RequiredPuzzles.IsEmpty() && AreRequiredPuzzlesSolved())
 		{
-			Activate();
+			bIsActive = true;
+			OnActiveStateRestored(true);
 		}
 		return;
 	}

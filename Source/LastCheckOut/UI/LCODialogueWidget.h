@@ -6,9 +6,11 @@
 
 class ALCONPCBase;
 class UBorder;
+class UImage;
 class UPanelWidget;
 class USoundBase;
 class UTextBlock;
+class UTexture2D;
 class ULCODialogueChoiceWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnLCODialogueWidgetClosed, ALCONPCBase*, NPC, FName, DialogueID, bool, bCompletedNormally, bool, bCompletedFirstConversation);
@@ -114,6 +116,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Dialogue")
 	FText FallbackSpeakerName;
 
+	// CSV의 SpeakerID를 키로 사용한다. DialogueID와는 별개다.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Dialogue|Portrait")
+	TMap<FName, TObjectPtr<UTexture2D>> SpeakerPortraitsBySpeakerID;
+
+	// 미등록/빈 초상화는 이 이미지로 대체한다. 지정하지 않으면 초상화 영역을 숨긴다.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Dialogue|Portrait")
+	TObjectPtr<UTexture2D> DefaultSpeakerPortrait;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Dialogue|Typewriter", meta = (ClampMin = "0.0"))
 	float TypewriterInterval = 0.035f;
 
@@ -134,6 +144,10 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_SpeakerName;
+
+	// WBP_Dialogue의 Image_75를 이 이름으로 변경하면 자동 연결된다.
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UImage> Img_SpeakerPortrait;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_Dialogue;
@@ -165,6 +179,7 @@ private:
 	int32 GetNextTypewriterIndex() const;
 	void RefreshChoices();
 	void RefreshVisibleText();
+	void RefreshSpeakerPresentation(FName SpeakerID);
 	void SetChoicesVisible(bool bVisible);
 	bool IsEndNode(FName NodeID) const;
 	bool IsConditionMet(FName Condition) const;

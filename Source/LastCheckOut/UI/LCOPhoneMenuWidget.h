@@ -2,10 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "TimerManager.h"
 #include "LCOPhoneMenuWidget.generated.h"
 
 class ALCOPhone;
 class UButton;
+class UBorder;
+class UTextBlock;
 
 // OnMenuRequestedDelegate의 Phone을 전달한다. 위젯 생성은 BP에서 담당한다.
 UCLASS(Abstract)
@@ -31,6 +34,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|PhoneMenu")
 	void RefreshButtonStates();
 
+	// BP_TestPhone.OnGameSaved의 실제 결과만 전달한다. 저장 반환값으로 성공을 추정하지 않는다.
+	UFUNCTION(BlueprintCallable, Category = "LCO|PhoneMenu")
+	void ShowSaveResult(bool bSuccess);
+
+	UFUNCTION(BlueprintPure, Category = "LCO|PhoneMenu")
+	bool IsSaveFeedbackActive() const { return bWaitingForSaveResult || bShowingSaveResult; }
+
 	UFUNCTION(BlueprintPure, Category = "LCO|PhoneMenu")
 	ALCOPhone* GetPhone() const { return Phone.Get(); }
 
@@ -39,6 +49,7 @@ protected:
 	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply NativeOnPreviewMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Btn_Call;
@@ -48,6 +59,18 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Btn_Cancel;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> Txt_Description;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UBorder> Border_Choices;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UBorder> Border_Dialogue;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_MenuTitle;
 
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|PhoneMenu")
 	int32 ViewportZOrder = 19;
@@ -64,6 +87,14 @@ private:
 
 	void RestoreInput();
 	void NotifyPromptVisibility(bool bVisible);
+	void FinishSaveFeedback();
+	void ResetSaveFeedback();
+	void HandleMinimumSaveWaitElapsed();
+	void TryShowSaveResult();
+	void AdvanceSavePendingAnimation();
+	void RefreshSavePendingText();
+	void ApplySaveFeedbackLayout();
+	FText ResolveFeedbackText(FName Key, const FText& Fallback) const;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<ALCOPhone> Phone;
@@ -72,4 +103,14 @@ private:
 	bool bPreviousShowMouseCursor = false;
 	bool bMoveInputBlockedByThisWidget = false;
 	bool bLookInputBlockedByThisWidget = false;
+	bool bWaitingForSaveResult = false;
+	bool bShowingSaveResult = false;
+	bool bMinimumSaveWaitElapsed = false;
+	bool bHasReceivedSaveResult = false;
+	bool bPendingSaveSuccess = false;
+	FTimerHandle MinimumSaveWaitTimerHandle;
+	FTimerHandle SavePendingAnimationTimerHandle;
+	int32 SavePendingAnimationIndex = 0;
+	FText OriginalDescription;
+	TArray<TPair<TWeakObjectPtr<UWidget>, ESlateVisibility>> OriginalFeedbackVisibility;
 };

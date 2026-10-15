@@ -2,8 +2,10 @@
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Border.h"
+#include "Components/Image.h"
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
+#include "Engine/Texture2D.h"
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 #include "Inventory/InventoryComponent.h"
@@ -25,6 +27,7 @@ namespace
 {
 	const FName RowTypeLine = TEXT("Line");
 	const FName RowTypeChoice = TEXT("Choice");
+	const FName SystemSpeakerID = TEXT("System");
 	const FName FirstNodeID = TEXT("FIRST_01");
 	const FName DefaultNodeID = TEXT("DEFAULT_01");
 	const FName EndNodeID = TEXT("END");
@@ -588,6 +591,8 @@ bool ULCODialogueWidget::LoadFlowForDialogueID(FName DialogueID)
 
 bool ULCODialogueWidget::ValidateSpeakerNameKey(FName SpeakerID, const FString& Context) const
 {
+	if (SpeakerID == SystemSpeakerID) return true;
+
 	if (SpeakerID.IsNone())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] Missing SpeakerID in %s"), *Context);
@@ -662,10 +667,7 @@ void ULCODialogueWidget::ShowCurrentLine()
 		return;
 	}
 
-	if (Text_SpeakerName)
-	{
-		Text_SpeakerName->SetText(ResolveSpeakerName(Node->SpeakerID));
-	}
+	RefreshSpeakerPresentation(Node->SpeakerID);
 
 	StartTypewriter(ResolveDialogueText(Node->TextKey));
 
@@ -875,6 +877,8 @@ void ULCODialogueWidget::RefreshChoices()
 		return;
 	}
 
+	RefreshSpeakerPresentation(Node->SpeakerID);
+
 	TSubclassOf<ULCODialogueChoiceWidget> LoadedChoiceWidgetClass = ChoiceWidgetClass.IsNull() ? nullptr : ChoiceWidgetClass.LoadSynchronous();
 	if (!LoadedChoiceWidgetClass)
 	{
@@ -932,11 +936,48 @@ void ULCODialogueWidget::RefreshVisibleText()
 	}
 	else if (Node && Node->RowType == RowTypeChoice)
 	{
-		if (Text_SpeakerName)
-		{
-			Text_SpeakerName->SetText(ResolveSpeakerName(Node->SpeakerID));
-		}
 		RefreshChoices();
+	}
+}
+
+void ULCODialogueWidget::RefreshSpeakerPresentation(FName SpeakerID)
+{
+	if (SpeakerID == SystemSpeakerID)
+	{
+		if (Text_SpeakerName) Text_SpeakerName->SetText(FText::GetEmpty());
+		if (Img_SpeakerPortrait)
+		{
+			Img_SpeakerPortrait->SetBrushFromTexture(nullptr, false);
+			Img_SpeakerPortrait->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		return;
+	}
+
+	if (Text_SpeakerName)
+	{
+		Text_SpeakerName->SetText(ResolveSpeakerName(SpeakerID));
+	}
+	if (!Img_SpeakerPortrait)
+	{
+		return;
+	}
+
+	UTexture2D* Portrait = DefaultSpeakerPortrait.Get();
+	if (const TObjectPtr<UTexture2D>* SpeakerPortrait = SpeakerPortraitsBySpeakerID.Find(SpeakerID))
+	{
+		if (IsValid(SpeakerPortrait->Get())) Portrait = SpeakerPortrait->Get();
+	}
+	if (IsValid(Portrait))
+	{
+		// 디자이너에서 설정한 이미지 크기를 유지한다.
+		Img_SpeakerPortrait->SetBrushFromTexture(Portrait, false);
+		Img_SpeakerPortrait->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+	else
+	{
+		// 이전 화자의 이미지가 남지 않도록 브러시도 비운다.
+		Img_SpeakerPortrait->SetBrushFromTexture(nullptr, false);
+		Img_SpeakerPortrait->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 

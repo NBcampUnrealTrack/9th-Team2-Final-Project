@@ -65,10 +65,7 @@ void ALCONPCBase::SetRunSpeed()
 
 void ALCONPCBase::BeginConversation(AActor* Partner)
 {
-	if (!Partner || bInConversation)
-	{
-		return;
-	}
+	if (!Partner || bInConversation)	return;
 
 	bInConversation = true;
 	ConversationPartner = Partner;

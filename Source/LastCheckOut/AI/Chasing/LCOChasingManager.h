@@ -22,6 +22,12 @@ enum class ELCOChasingEndReason : uint8
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnChasingStarted, AActor*, SigolYouth);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnChasingEnded, ELCOChasingEndReason, Reason);
 
+// 관리인에게 잡혔을 때. 암전, 입력 잠금, 증거 몰수 등 연출이 바인딩하고, 끝나면 FinishCaughtSequence()를 호출한다.
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerCaught, AActor*, Player);
+
+// 잡기 처리가 모두 끝나 플레이어와 관리인이 초기화된 뒤. 암전 해제, 입력 복구 등이 바인딩한다.
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCaughtSequenceFinished, AActor*, Player);
+
 // 의심도가 100에 도달하면 시작되는 체이싱을 관리한다. (레벨에 하나 배치)
 // 시작: 플레이어에게서 가장 먼 위치에 시골청년을 스폰한다.
 // 종료: 잡힘 / 로비 진입 / 시골청년 발견 중 하나를 만족하면 즉시 종료한다.
@@ -44,6 +50,22 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Chasing")
 	bool IsChasing() const { return bIsChasing; }
 
+	// 잡기 연출을 시작한다. (관리인 컨트롤러가 호출) 관리인을 멈추고 의심도를 고정한 뒤 OnPlayerCaught를 알린다.
+	// OnPlayerCaught에 바인딩된 연출이 없으면 바로 FinishCaughtSequence()를 실행한다.
+	// 이미 진행 중이어도 true를 반환한다.
+	bool BeginCaughtSequence(AActor* CaughtPlayer);
+
+	// 잡기 연출이 끝나는 시점(예: 화면이 완전히 어두워졌을 때)에 호출한다.
+	// 플레이어를 시작 지점으로 옮기고, 관리인을 초기화하고, 체이싱을 종료한 뒤 OnCaughtSequenceFinished를 알린다.
+	UFUNCTION(BlueprintCallable, Category = "Chasing")
+	void FinishCaughtSequence();
+
+	UFUNCTION(BlueprintPure, Category = "Chasing")
+	bool IsCaughtSequenceActive() const { return bCaughtSequenceActive; }
+
+	// 플레이어를 PlayerStart 위치로 옮긴다.
+	static void TeleportPlayerToStart(UObject* WorldContextObject, APawn* PlayerPawn);
+
 	UFUNCTION(BlueprintPure, Category = "Chasing")
 	bool IsPlayerInSafeZone() const { return SafeZoneCount > 0; }
 
@@ -63,6 +85,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Chasing")
 	FOnChasingEnded OnChasingEnded;
+
+	UPROPERTY(BlueprintAssignable, Category = "Chasing")
+	FOnPlayerCaught OnPlayerCaught;
+
+	UPROPERTY(BlueprintAssignable, Category = "Chasing")
+	FOnCaughtSequenceFinished OnCaughtSequenceFinished;
 
 protected:
 	virtual void BeginPlay() override;
@@ -98,6 +126,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Chasing")
 	float PostChaseCooldown = 5.f;
 
+	// 잡기 연출에서 이 시간(초) 안에 FinishCaughtSequence()가 호출되지 않으면 강제로 진행한다. (연결 누락 대비)
+	UPROPERTY(EditAnywhere, Category = "Chasing")
+	float CaughtSequenceTimeout = 5.f;
+
 private:
 	// 플레이어의 SuspicionComponent를 찾아 OnSuspicionMax에 바인딩한다. 없으면 타이머로 재시도한다.
 	void TryBindSuspicion();
@@ -125,6 +157,10 @@ private:
 	FTimerHandle SuspicionBindTimer;
 	FTimerHandle FoundCheckTimer;
 	FTimerHandle CooldownTimer;
+	FTimerHandle CaughtTimeoutTimer;
+
+	bool bCaughtSequenceActive = false;
+	TWeakObjectPtr<AActor> CaughtPlayer;
 
 	bool bIsChasing = false;
 

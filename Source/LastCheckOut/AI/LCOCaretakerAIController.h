@@ -44,6 +44,12 @@ public:
 	// 들킨 채 숨은 플레이어를 끌어내러 간다. 은신처까지 이동한 뒤 ForceEject()로 끌어내고 다시 플레이어를 추격한다.
 	void StartExtractHider(ALCOHidingSpot* HidingSpot);
 
+	// 잡기 연출이 진행되는 동안 관리인을 멈춰 둔다. (체이싱 매니저가 호출)
+	void HoldForCaught();
+
+	// 잡기 연출이 끝난 뒤 관리인을 최초 위치로 되돌리고 순찰로 복귀시킨다. (체이싱 매니저가 호출)
+	void ResetAfterCaught();
+
 	// 은신처에 도착해 ForceEject() 하기 직전에 호출된다. 옷장 여는 연출을 여기에 연결한다.
 	UPROPERTY(BlueprintAssignable, Category = "AI|Catch")
 	FOnCaretakerExtractArrived OnExtractArrived;
@@ -80,7 +86,7 @@ protected:
 
 	// 추격 중 이 거리 안으로 들어오면 플레이어를 잡은 것으로 처리
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Catch")
-	float CatchDistance = 120.f;
+	float CatchDistance = 150.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Catch")
 	float CatchCheckInterval = 0.1f;
@@ -163,8 +169,11 @@ private:
 	// 추격 중인 대상과의 거리를 확인한다.
 	void CheckCatch();
 
-	// 임시 처리: 플레이어를 시작 지점으로, 관리인을 최초 위치로 되돌린다.
+	// 잡았을 때 체이싱 매니저의 잡기 연출을 시작한다. 매니저가 없으면 바로 초기화한다. (임시 동작)
 	void HandlePlayerCaught(AActor* CaughtPlayer);
+
+	// 잡기 연출 중인지 (연출 중에는 잡기 판정과 감지 처리를 하지 않는다)
+	bool bCaughtHold = false;
 
 	FTimerHandle CatchCheckTimer;
 	FTimerHandle LostGraceTimer;

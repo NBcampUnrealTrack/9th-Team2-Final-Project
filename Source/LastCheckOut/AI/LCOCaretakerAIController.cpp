@@ -160,8 +160,8 @@ void ALCOCaretakerAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStim
 		return;
 	}
 
-	// 숨은 플레이어를 끌어내는 중에는 감지 결과로 타겟/상태를 바꾸지 않는다.
-	if (ExtractSpot.IsValid())
+	// 숨은 플레이어를 끌어내는 중이거나 잡기 연출 중에는 감지 결과로 타겟/상태를 바꾸지 않는다.
+	if (ExtractSpot.IsValid() || bCaughtHold)
 	{
 		return;
 	}
@@ -206,7 +206,7 @@ void ALCOCaretakerAIController::FinishLostGrace()
 
 void ALCOCaretakerAIController::CheckCatch()
 {
-	if (!GetPawn())
+	if (!GetPawn() || bCaughtHold)
 	{
 		return;
 	}
@@ -272,35 +272,57 @@ void ALCOCaretakerAIController::CheckCatch()
 
 void ALCOCaretakerAIController::HandlePlayerCaught(AActor* CaughtPlayer)
 {
-	// 체이싱이 끝났으므로 의심도를 초기화한다.
+	if (bCaughtHold)
+	{
+		return;
+	}
+
+	// 체이싱 매니저가 잡기 연출을 진행한다. (관리인 정지 -> 연출 -> 위치 초기화 -> 순찰 복귀)
+	if (ChasingManager.IsValid() && ChasingManager->BeginCaughtSequence(CaughtPlayer))
+	{
+		return;
+	}
+
+	// 매니저가 없으면 연출 없이 바로 초기화한다. (임시 동작)
+	ALCOChasingManager::TeleportPlayerToStart(this, Cast<APawn>(CaughtPlayer));
 	if (BoundSuspicion.IsValid())
 	{
 		BoundSuspicion->ResetSuspicion();
 	}
+	ResetAfterCaught();
+}
+
+void ALCOCaretakerAIController::HoldForCaught()
+{
+	bCaughtHold = true;
+	ClearExtractState();
+	GetWorldTimerManager().ClearTimer(LostGraceTimer);
+	StopMovement();
+
+	if (BrainComponent)
+	{
+		BrainComponent->PauseLogic(TEXT("Caught"));
+	}
+}
+
+void ALCOCaretakerAIController::ResetAfterCaught()
+{
+	if (bCaughtHold && BrainComponent)
+	{
+		BrainComponent->ResumeLogic(TEXT("Caught"));
+	}
+	bCaughtHold = false;
+
 	WarningCount = 0;
 	ClearExtractState();
-
-	// 플레이어를 Player Start 위치로 이동
-	APawn* PlayerPawn = Cast<APawn>(CaughtPlayer);
-	AGameModeBase* GameMode = UGameplayStatics::GetGameMode(this);
-	const AActor* PlayerStart = (GameMode && PlayerPawn) ? GameMode->FindPlayerStart(PlayerPawn->GetController()) : nullptr;
-	if (PlayerPawn && PlayerStart)
-	{
-		PlayerPawn->TeleportTo(PlayerStart->GetActorLocation(), PlayerStart->GetActorRotation());
-		if (UPawnMovementComponent* PlayerMovement = PlayerPawn->GetMovementComponent())
-		{
-			PlayerMovement->StopMovementImmediately();
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[LCOCaretakerAIController] Player Start not found. Player was not reset."));
-	}
 
 	// 관리인을 최초 위치로 되돌리고 순찰 상태로 복귀
 	GetWorldTimerManager().ClearTimer(LostGraceTimer);
 	StopMovement();
-	GetPawn()->TeleportTo(InitialTransform.GetLocation(), InitialTransform.GetRotation().Rotator());
+	if (GetPawn())
+	{
+		GetPawn()->TeleportTo(InitialTransform.GetLocation(), InitialTransform.GetRotation().Rotator());
+	}
 	AIPerception->ForgetAll();
 
 	if (UBlackboardComponent* BB = GetBlackboardComponent())
@@ -308,12 +330,6 @@ void ALCOCaretakerAIController::HandlePlayerCaught(AActor* CaughtPlayer)
 		BB->ClearValue(LCOBlackboardKeys::TargetActor);
 	}
 	SetState(ELCOCaretakerState::Patrol);
-
-	// 체이싱 중이었다면 실패로 종료한다. (시골청년 제거, 의심도 초기화)
-	if (ChasingManager.IsValid())
-	{
-		ChasingManager->EndChasing(ELCOChasingEndReason::Caught);
-	}
 }
 
 void ALCOCaretakerAIController::StartExtractHider(ALCOHidingSpot* HidingSpot)

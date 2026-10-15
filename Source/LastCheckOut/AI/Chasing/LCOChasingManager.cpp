@@ -3,6 +3,9 @@
 #include "AI/LCOCaretakerAIController.h"
 #include "AI/SuspicionComponent.h"
 #include "Engine/TargetPoint.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "Interaction/LCOHidingSpot.h"
 #include "Kismet/GameplayStatics.h"
 #include "NPC/LCOCaretaker.h"
@@ -170,6 +173,106 @@ void ALCOChasingManager::EndChasing(ELCOChasingEndReason Reason)
 	}
 
 	OnChasingEnded.Broadcast(Reason);
+}
+
+bool ALCOChasingManager::BeginCaughtSequence(AActor* InCaughtPlayer)
+{
+	if (bCaughtSequenceActive)
+	{
+		return true;
+	}
+
+	bCaughtSequenceActive = true;
+	CaughtPlayer = InCaughtPlayer;
+
+	// 관리인을 멈추고 의심도를 고정해 연출 중에 상태가 바뀌지 않게 한다.
+	TArray<AActor*> Caretakers;
+	UGameplayStatics::GetAllActorsOfClass(this, ALCOCaretaker::StaticClass(), Caretakers);
+	for (const AActor* Caretaker : Caretakers)
+	{
+		if (const APawn* CaretakerPawn = Cast<APawn>(Caretaker))
+		{
+			if (ALCOCaretakerAIController* Controller = Cast<ALCOCaretakerAIController>(CaretakerPawn->GetController()))
+			{
+				Controller->HoldForCaught();
+			}
+		}
+	}
+
+	if (BoundSuspicion.IsValid())
+	{
+		BoundSuspicion->SetFrozen(true);
+	}
+
+	// 연출이 연결되어 있으면 FinishCaughtSequence()가 호출되기를 기다린다. 없으면 바로 진행한다.
+	if (OnPlayerCaught.IsBound())
+	{
+		GetWorldTimerManager().SetTimer(CaughtTimeoutTimer, this, &ALCOChasingManager::FinishCaughtSequence, CaughtSequenceTimeout, false);
+		OnPlayerCaught.Broadcast(InCaughtPlayer);
+	}
+	else
+	{
+		FinishCaughtSequence();
+	}
+
+	return true;
+}
+
+void ALCOChasingManager::FinishCaughtSequence()
+{
+	if (!bCaughtSequenceActive)
+	{
+		return;
+	}
+
+	bCaughtSequenceActive = false;
+	GetWorldTimerManager().ClearTimer(CaughtTimeoutTimer);
+
+	// 플레이어를 시작 지점으로 이동
+	AActor* Player = CaughtPlayer.Get();
+	CaughtPlayer.Reset();
+	TeleportPlayerToStart(this, Cast<APawn>(Player));
+
+	// 관리인을 최초 위치로 되돌리고 순찰로 복귀
+	TArray<AActor*> Caretakers;
+	UGameplayStatics::GetAllActorsOfClass(this, ALCOCaretaker::StaticClass(), Caretakers);
+	for (const AActor* Caretaker : Caretakers)
+	{
+		if (const APawn* CaretakerPawn = Cast<APawn>(Caretaker))
+		{
+			if (ALCOCaretakerAIController* Controller = Cast<ALCOCaretakerAIController>(CaretakerPawn->GetController()))
+			{
+				Controller->ResetAfterCaught();
+			}
+		}
+	}
+
+	// 의심도 초기화. 체이싱 중이었다면 종료 처리(시골청년 제거 등)를 하고, 아니면 의심도만 초기화한다.
+	if (USuspicionComponent* Suspicion = BoundSuspicion.Get())
+	{
+		Suspicion->SetFrozen(false);
+		Suspicion->ResetSuspicion();
+	}
+	EndChasing(ELCOChasingEndReason::Caught);
+
+	OnCaughtSequenceFinished.Broadcast(Player);
+}
+
+void ALCOChasingManager::TeleportPlayerToStart(UObject* WorldContextObject, APawn* PlayerPawn)
+{
+	AGameModeBase* GameMode = UGameplayStatics::GetGameMode(WorldContextObject);
+	const AActor* PlayerStart = (GameMode && PlayerPawn) ? GameMode->FindPlayerStart(PlayerPawn->GetController()) : nullptr;
+	if (!PlayerPawn || !PlayerStart)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOChasingManager] Player Start not found. Player was not reset."));
+		return;
+	}
+
+	PlayerPawn->TeleportTo(PlayerStart->GetActorLocation(), PlayerStart->GetActorRotation());
+	if (UPawnMovementComponent* PlayerMovement = PlayerPawn->GetMovementComponent())
+	{
+		PlayerMovement->StopMovementImmediately();
+	}
 }
 
 void ALCOChasingManager::NotifyPlayerEnteredSafeZone()

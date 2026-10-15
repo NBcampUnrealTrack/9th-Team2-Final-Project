@@ -12,6 +12,8 @@
 #include "Save/LCOSaveManager.h"
 #include "Save/LCOWorldStateSubsystem.h"
 #include "Puzzle/LCOPuzzleSubsystem.h"
+#include "UI/LCODialogueSubsystem.h"
+#include "Engine/LocalPlayer.h"
 
 ALCOGameMode::ALCOGameMode()
 {
@@ -163,8 +165,17 @@ void ALCOGameMode::StartNewGameProgress(ULCOGameInstance* LCOGameInstance)
 		StorySubsystem->StartNewStory();
 	}
 
+	// 6) NPC 첫 대화 완료 기록 삭제 (대화 서브시스템은 LocalPlayer 단위)
+	if (const ULocalPlayer* LocalPlayer = LCOGameInstance->GetFirstGamePlayer())
+	{
+		if (ULCODialogueSubsystem* DialogueSubsystem = LocalPlayer->GetSubsystem<ULCODialogueSubsystem>())
+		{
+			DialogueSubsystem->ResetDialogueProgress();
+		}
+	}
+
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartNewGameProgress: Notebook / Carry / WorldState / Puzzle / Story reset"));
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartNewGameProgress: Notebook / Carry / WorldState / Puzzle / Story / Dialogue reset"));
 }
 
 void ALCOGameMode::TravelToLevel(TSoftObjectPtr<UWorld> Level, FName PlayerStartTag, bool bAutoSaveOnArrival)

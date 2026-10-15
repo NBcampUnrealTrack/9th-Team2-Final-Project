@@ -99,6 +99,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|CameraUI", meta = (ClampMin = "0.1"))
 	float MessageDisplayTime = 2.f;
 
+	// true면 촬영 실패 문구를 카메라 UI 대신 주인공 독백 UI(LCOMonologueSubsystem)로 표시
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Camera")
+	bool bUseMonologueForMessages = true;
+
 	// 사진 팝업 닫기 키 (IMC에 키 매핑 필요). 비워두면 자동 닫힘만 사용
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|CameraUI")
 	TObjectPtr<UInputAction> ClosePhotoAction;

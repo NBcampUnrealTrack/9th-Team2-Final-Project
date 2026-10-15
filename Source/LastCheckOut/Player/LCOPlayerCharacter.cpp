@@ -289,7 +289,12 @@ void ALCOPlayerCharacter::SetViewMode(ELCOViewMode NewMode)
 void ALCOPlayerCharacter::UpdateCameraFOV(float DeltaSeconds)
 {
 	// 평상시 / 달리기 FOV에 이동속도 버프 FOV를 더함 (버프 시작 / 종료 시 MoveSpeedBuffAlpha로 서서히)
-	const float TargetFOV = (bIsSprinting ? SprintFOV : DefaultFOV) + MoveSpeedBuffFOV * MoveSpeedBuffAlpha;
+	float TargetFOV = (bIsSprinting ? SprintFOV : DefaultFOV) + MoveSpeedBuffFOV * MoveSpeedBuffAlpha;
+
+	// 감각 홀드 중에는 진행도에 따라 줌인 (발동 / 취소되면 진행도가 0이 되어 원래 FOV로 풀림)
+	const float SenseZoomAlpha = FMath::InterpEaseInOut(0.f, 1.f, GetSenseHoldProgress(), 2.f);
+	TargetFOV -= SenseZoomFOV * SenseZoomAlpha;
+
 	Camera->SetFieldOfView(FMath::FInterpTo(Camera->FieldOfView, TargetFOV, DeltaSeconds, FOVInterpSpeed));
 }
 

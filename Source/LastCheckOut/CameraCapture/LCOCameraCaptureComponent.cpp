@@ -10,6 +10,7 @@
 #include "Notebook/LCONotebookTypes.h"
 #include "Engine/DataTable.h"
 #include "Engine/GameInstance.h"
+#include "Localization/LCOLocalizationSubsystem.h"
 
 
 ULCOCameraCaptureComponent::ULCOCameraCaptureComponent()
@@ -244,12 +245,20 @@ ULCOCameraCaptureComponent::ProcessCapture(
     // 13. 촬영 완료 상태 기록
     CapturePoint->MarkCaptured();
 
-    // 14. UI에 사진 정보 전달
+    // 14. UI에 사진 정보 전달 (Notebook.csv 번역이 있으면 현재 언어로)
+    FText PhotoTitle = NotebookRow->Title;
+    FText PhotoDescription = NotebookRow->Description;
+    if (const ULCOLocalizationSubsystem* Localization = GameInstance->GetSubsystem<ULCOLocalizationSubsystem>())
+    {
+        PhotoTitle = Localization->GetNotebookEntryTitle(EntryID, PhotoTitle);
+        PhotoDescription = Localization->GetNotebookEntryDescription(EntryID, PhotoDescription);
+    }
+
     OnPhotoCaptured.Broadcast(
         EntryID,
         NotebookRow->Image,
-        NotebookRow->Title,
-        NotebookRow->Description
+        PhotoTitle,
+        PhotoDescription
     );
 
     // 15. 촬영 성공

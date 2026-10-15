@@ -28,6 +28,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Localization")
 	FText GetItemText(FName ItemID) const;
 
+	// Notebook.csv text (empty if the key is missing)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Localization")
+	FText GetNotebookText(FName Key) const;
+
+	// Notebook entry title / description: Notebook.csv "<EntryID>_TITLE" / "<EntryID>_DESC", Fallback (DataTable text) if missing
+	UFUNCTION(BlueprintCallable, Category = "LCO|Localization")
+	FText GetNotebookEntryTitle(FName EntryID, const FText& Fallback) const;
+
+	UFUNCTION(BlueprintCallable, Category = "LCO|Localization")
+	FText GetNotebookEntryDescription(FName EntryID, const FText& Fallback) const;
+
 	UFUNCTION(BlueprintCallable, Category = "LCO|Localization")
 	void SetLanguage(FName LanguageCode);
 
@@ -64,4 +75,5 @@ private:
 	TMap<FName, FLCOLocalizedTextRow> UITextRows;
 	TMap<FName, FLCOLocalizedTextRow> DialogueTextRows;
 	TMap<FName, FLCOLocalizedTextRow> ItemTextRows;
+	TMap<FName, FLCOLocalizedTextRow> NotebookTextRows;
 };

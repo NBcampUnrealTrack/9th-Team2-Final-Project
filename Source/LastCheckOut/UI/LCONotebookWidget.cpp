@@ -392,7 +392,7 @@ void ULCONotebookWidget::RebuildEntryList()
 			continue;
 		}
 
-		Item->SetItemData(i, CurrentEntries[i].Title, CurrentEntries[i].bIsNew);
+		Item->SetItemData(i, GetEntryTitle(CurrentEntries[i]), CurrentEntries[i].bIsNew);
 		Item->OnItemClicked.AddUniqueDynamic(this, &ThisClass::HandleEntryClicked);
 		Panel_EntryList->AddChild(Item);
 		EntryItemWidgets.Add(Item);
@@ -433,12 +433,12 @@ void ULCONotebookWidget::SelectEntry(int32 ItemIndex)
 
 	if (Txt_DetailTitle)
 	{
-		Txt_DetailTitle->SetText(Entry.Title);
+		Txt_DetailTitle->SetText(GetEntryTitle(Entry));
 	}
 
 	if (Txt_DetailDescription)
 	{
-		Txt_DetailDescription->SetText(Entry.Description);
+		Txt_DetailDescription->SetText(GetEntryDescription(Entry));
 	}
 
 	if (Img_DetailImage)
@@ -641,6 +641,34 @@ FText ULCONotebookWidget::GetUITextOrDefault(FName Key, const FText& DefaultText
 	return Text;
 }
 
+FText ULCONotebookWidget::GetEntryTitle(const FLCONotebookEntry& Entry) const
+{
+	const UGameInstance* GameInstance = GetGameInstance();
+	if (const ULCOLocalizationSubsystem* Localization = GameInstance ? GameInstance->GetSubsystem<ULCOLocalizationSubsystem>() : nullptr)
+	{
+		return Localization->GetNotebookEntryTitle(Entry.EntryID, Entry.Title);
+	}
+	return Entry.Title;
+}
+
+FText ULCONotebookWidget::GetEntryDescription(const FLCONotebookEntry& Entry) const
+{
+	const UGameInstance* GameInstance = GetGameInstance();
+	if (const ULCOLocalizationSubsystem* Localization = GameInstance ? GameInstance->GetSubsystem<ULCOLocalizationSubsystem>() : nullptr)
+	{
+		return Localization->GetNotebookEntryDescription(Entry.EntryID, Entry.Description);
+	}
+	return Entry.Description;
+}
+
+void ULCONotebookWidget::RefreshLocalizedEntries()
+{
+	if (IsInViewport())
+	{
+		SelectTab(CurrentTab);
+	}
+}
+
 FText ULCONotebookWidget::GetDeductionHeaderText(ELCONotebookCategory Category) const
 {
 	FText DefaultText;
@@ -771,7 +799,7 @@ void ULCONotebookWidget::RebuildDeductionCandidates()
 				continue;
 			}
 
-			Item->SetItemData(i, DeductionCandidates[i].Title, DeductionCandidates[i].bIsNew);
+			Item->SetItemData(i, GetEntryTitle(DeductionCandidates[i]), DeductionCandidates[i].bIsNew);
 			Item->SetSelected(SelectedDeductionIDs.Contains(DeductionCandidates[i].EntryID));
 			Item->OnItemClicked.AddUniqueDynamic(this, &ThisClass::HandleDeductionCandidateClicked);
 			Panel_DeductionCandidates->AddChild(Item);
@@ -808,7 +836,7 @@ void ULCONotebookWidget::RefreshDeductionSlots()
 			const FName ID = SelectedDeductionIDs[SlotIndex];
 			if (const FLCONotebookEntry* Entry = DeductionCandidates.FindByPredicate([ID](const FLCONotebookEntry& E) { return E.EntryID == ID; }))
 			{
-				SlotText = Entry->Title;
+				SlotText = GetEntryTitle(*Entry);
 			}
 		}
 		SlotTexts[SlotIndex]->SetText(SlotText);
@@ -844,7 +872,7 @@ void ULCONotebookWidget::HandleDeductionCandidateClicked(int32 ItemIndex)
 	}
 
 	// 클릭한 항목 내용 보여주기 (추리 항목이면 예전 독백 다시 읽기)
-	SetDeductionResultText(Entry.Description, Entry.Title);
+	SetDeductionResultText(GetEntryDescription(Entry), GetEntryTitle(Entry));
 
 	// 읽음 처리
 	if (Entry.bIsNew)
@@ -950,11 +978,11 @@ void ULCONotebookWidget::HandleDeductionCombineClicked()
 		if (const ULCONotebookSubsystem* Notebook = GetNotebookSubsystem();
 			Notebook && Notebook->FindEntry(NewDeductionID, DeductionEntry))
 		{
-			ResultText = DeductionEntry.Description;
+			ResultText = GetEntryDescription(DeductionEntry);
 
 			// 결과 제목: "새로운 추리 — 제목"
 			const FText TitleFormat = GetUITextOrDefault(DeductionSuccessTitleTextKey, FText::FromString(TEXT("새로운 추리 — {0}")));
-			ResultTitle = FText::Format(TitleFormat, DeductionEntry.Title);
+			ResultTitle = FText::Format(TitleFormat, GetEntryTitle(DeductionEntry));
 		}
 		SelectedDeductionIDs.Reset();
 		break;

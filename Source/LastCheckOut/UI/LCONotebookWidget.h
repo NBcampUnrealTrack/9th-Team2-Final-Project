@@ -76,6 +76,9 @@ public:
 
 	void UnbindFromNotebookInput();
 
+	// 언어 변경 시 열려 있는 수첩 내용을 다시 그림 (LCONotebookUISubsystem에서 호출)
+	void RefreshLocalizedEntries();
+
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeDestruct() override;
@@ -349,6 +352,10 @@ private:
 	FText GetUIText(FName Key) const;
 	FText GetUITextOrDefault(FName Key, const FText& DefaultText) const;
 	FText GetDeductionHeaderText(ELCONotebookCategory Category) const;
+
+	// 항목 제목 / 본문 (Notebook.csv 번역 우선, 없으면 DataTable 원문)
+	FText GetEntryTitle(const FLCONotebookEntry& Entry) const;
+	FText GetEntryDescription(const FLCONotebookEntry& Entry) const;
 
 	// 아직 얻지 않은 추리 중 지금 조합 가능한 것이 있는지
 	bool HasAvailableDeduction() const;

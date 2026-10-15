@@ -25,6 +25,12 @@ void ALCOGameMode::StartPlay()
 	InitializeCurrentMap();
 	StartGame();
 
+	// 지배인 보고 결과 알림 받기 (1막 클리어 처리)
+	if (ULCOStorySubsystem* StorySubsystem = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>())
+	{
+		StorySubsystem->OnReportResolved.AddUniqueDynamic(this, &ThisClass::HandleReportResolved);
+	}
+
 	// 여기서 HandleMatchHasStarted → 플레이어 생성 → 모든 액터 BeginPlay 진행
 	Super::StartPlay();
 }
@@ -161,7 +167,7 @@ void ALCOGameMode::StartNewGameProgress(ULCOGameInstance* LCOGameInstance)
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartNewGameProgress: Notebook / Carry / WorldState / Puzzle / Story reset"));
 }
 
-void ALCOGameMode::TravelToLevel(TSoftObjectPtr<UWorld> Level, FName PlayerStartTag)
+void ALCOGameMode::TravelToLevel(TSoftObjectPtr<UWorld> Level, FName PlayerStartTag, bool bAutoSaveOnArrival)
 {
 	if (Level.IsNull())
 	{
@@ -179,11 +185,21 @@ void ALCOGameMode::TravelToLevel(TSoftObjectPtr<UWorld> Level, FName PlayerStart
 		WorldState->CaptureWorldState(GetWorld());
 	}
 
-	// 도착 위치는 URL 옵션으로 전달 → 새 맵 GameMode의 ChoosePlayerStart에서 읽음
-	const FString Options = PlayerStartTag.IsNone() ? FString() : FString::Printf(TEXT("Entry=%s"), *PlayerStartTag.ToString());
+	// 도착 위치 / 도착 후 자동 저장은 URL 옵션으로 전달 → 새 맵 GameMode가 읽음
+	// 예: "Entry=Room407?AutoSave"
+	FString Options;
+	if (!PlayerStartTag.IsNone())
+	{
+		Options = FString::Printf(TEXT("Entry=%s"), *PlayerStartTag.ToString());
+	}
+	if (bAutoSaveOnArrival)
+	{
+		Options += Options.IsEmpty() ? TEXT("AutoSave") : TEXT("?AutoSave");
+	}
 
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] TravelToLevel: %s (Entry = %s)"), *Level.ToString(), *PlayerStartTag.ToString());
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] TravelToLevel: %s (Entry = %s, AutoSave = %s)"),
+		*Level.ToString(), *PlayerStartTag.ToString(), bAutoSaveOnArrival ? TEXT("true") : TEXT("false"));
 	UGameplayStatics::OpenLevelBySoftObjectPtr(this, Level, true, Options);
 }
 
@@ -200,6 +216,9 @@ void ALCOGameMode::HandleMatchHasStarted()
 
 	// 캐릭터 BeginPlay의 SetViewMode(DefaultViewMode) 이후에 복원해야 시점이 덮어써지지 않음
 	RestorePlayerCarryData();
+
+	// 챕터 전환 등으로 AutoSave 옵션이 붙어 왔으면, 모든 복원이 끝난 지금 저장
+	TryAutoSaveOnArrival();
 }
 
 bool ALCOGameMode::CapturePlayerCarryData(FLCOPlayerCarryData& OutData) const
@@ -325,4 +344,66 @@ AActor* ALCOGameMode::ChoosePlayerStart_Implementation(AController* Player)
 
 	// 태그가 없거나 못 찾으면 엔진 기본 방식
 	return Super::ChoosePlayerStart_Implementation(Player);
+}
+
+void ALCOGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// 스토리 서브시스템은 맵을 옮겨도 남아 있으므로, 사라지는 GameMode의 연결은 끊어 둠
+	if (const UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (ULCOStorySubsystem* StorySubsystem = GameInstance->GetSubsystem<ULCOStorySubsystem>())
+		{
+			StorySubsystem->OnReportResolved.RemoveDynamic(this, &ThisClass::HandleReportResolved);
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
+void ALCOGameMode::HandleReportResolved(ELCOStoryFlag PresentedKeyword, ELCOReportResult Result)
+{
+	switch (Result)
+	{
+	case ELCOReportResult::Chapter1Clear:
+		if (!Chapter2StartLevel.IsNull())
+		{
+			// 2막 시작 맵(별관 407호 앞)으로 이동 → 도착 후 자동 저장
+			UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] Chapter1 clear -> Travel to Chapter2 start"));
+			TravelToLevel(Chapter2StartLevel, Chapter2StartTag, true);
+		}
+		else
+		{
+			// 2막 시작 맵 미설정: 이동 없이 그 자리에서 자동 저장
+			UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] Chapter1 clear: Chapter2StartLevel not set -> AutoSave here"));
+			if (ULCOSaveManager* SaveManager = GetGameInstance()->GetSubsystem<ULCOSaveManager>())
+			{
+				SaveManager->SaveGame();
+			}
+		}
+		break;
+
+	case ELCOReportResult::End3:
+		// 엔딩 화면은 UI가 OnReportResolved로 처리
+		// 진행 상태를 바꾸지 않았으므로 엔딩 후 그대로 이어서 진행 = 보고 직전 상태
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] END 3 reached (state unchanged)"));
+		break;
+
+	default:
+		break;
+	}
+}
+
+void ALCOGameMode::TryAutoSaveOnArrival()
+{
+	if (!UGameplayStatics::HasOption(OptionsString, TEXT("AutoSave")))
+	{
+		return;
+	}
+
+	if (ULCOSaveManager* SaveManager = GetGameInstance()->GetSubsystem<ULCOSaveManager>())
+	{
+		// Log Test
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] AutoSave on arrival"));
+		SaveManager->SaveGame();
+	}
 }

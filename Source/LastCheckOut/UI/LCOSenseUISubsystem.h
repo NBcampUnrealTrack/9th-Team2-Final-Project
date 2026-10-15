@@ -81,6 +81,10 @@ private:
 	UPROPERTY(Config, EditDefaultsOnly, Category = "LCO|SenseUI")
 	TArray<FName> ExcludedMapNames;
 
+	// 감각 실패 시 독백 (UI.csv 키, None이면 표시 안 함). 성공 독백은 LCOSenseVolume에서 표시
+	UPROPERTY(Config, EditDefaultsOnly, Category = "LCO|SenseUI|Monologue")
+	FName SenseFailMonologueKey = TEXT("MONOLOGUE_SENSE_FAIL");
+
 	UPROPERTY(Config, EditDefaultsOnly, Category = "LCO|SenseUI")
 	int32 ViewportZOrder = 4;
 

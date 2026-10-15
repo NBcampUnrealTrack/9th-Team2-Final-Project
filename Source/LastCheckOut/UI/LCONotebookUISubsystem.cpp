@@ -49,6 +49,12 @@ void ULCONotebookUISubsystem::PlayerControllerChanged(APlayerController* NewPlay
 void ULCONotebookUISubsystem::HandleLanguageChanged(FName NewLanguage)
 {
 	RefreshNotebookLocalizedTexts();
+
+	// 열려 있는 수첩의 항목 제목 / 본문도 새 언어로
+	if (NotebookWidget)
+	{
+		NotebookWidget->RefreshLocalizedEntries();
+	}
 }
 
 void ULCONotebookUISubsystem::HandleWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources)

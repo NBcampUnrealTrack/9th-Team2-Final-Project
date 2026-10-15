@@ -13,6 +13,7 @@
 #include "Player/LCOPlayerCharacter.h"
 #include "TimerManager.h"
 #include "UI/LCOSenseWidget.h"
+#include "UI/LCOMonologueSubsystem.h"
 #include "UObject/SoftObjectPath.h"
 #include "UObject/UObjectGlobals.h"
 
@@ -352,6 +353,12 @@ void ULCOSenseUISubsystem::HandleSenseUsed(bool bSuccess)
 {
 	UE_LOG(LogTemp, Log, TEXT("[LCOSenseUISubsystem] OnSenseUsed received. Success=%s"), bSuccess ? TEXT("true") : TEXT("false"));
 	StartSensePostProcessEffect();
+
+	// 실패 독백 (성공 독백은 감각 볼륨이 볼륨별 문구로 표시)
+	if (!bSuccess && !SenseFailMonologueKey.IsNone())
+	{
+		ULCOMonologueSubsystem::ShowMonologueByKey(BoundPlayerController.Get(), SenseFailMonologueKey);
+	}
 }
 
 void ULCOSenseUISubsystem::StartSensePostProcessEffect()

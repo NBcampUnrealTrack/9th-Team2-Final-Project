@@ -40,6 +40,33 @@ FText ULCOLocalizationSubsystem::GetItemText(FName ItemID) const
 	return GetLocalizedText(ItemTextRows, ItemID, false);
 }
 
+FText ULCOLocalizationSubsystem::GetNotebookText(FName Key) const
+{
+	return GetLocalizedText(NotebookTextRows, Key, false);
+}
+
+FText ULCOLocalizationSubsystem::GetNotebookEntryTitle(FName EntryID, const FText& Fallback) const
+{
+	if (EntryID.IsNone())
+	{
+		return Fallback;
+	}
+
+	const FText Text = GetNotebookText(FName(*(EntryID.ToString() + TEXT("_TITLE"))));
+	return Text.IsEmpty() ? Fallback : Text;
+}
+
+FText ULCOLocalizationSubsystem::GetNotebookEntryDescription(FName EntryID, const FText& Fallback) const
+{
+	if (EntryID.IsNone())
+	{
+		return Fallback;
+	}
+
+	const FText Text = GetNotebookText(FName(*(EntryID.ToString() + TEXT("_DESC"))));
+	return Text.IsEmpty() ? Fallback : Text;
+}
+
 void ULCOLocalizationSubsystem::SetLanguage(FName LanguageCode)
 {
 	if (!IsSupportedLanguage(LanguageCode))
@@ -66,6 +93,7 @@ void ULCOLocalizationSubsystem::LoadLocalizationFiles()
 	LoadCsvFile(TEXT("Localization/UI.csv"), UITextRows);
 	LoadDialogueCsvFiles();
 	LoadCsvFile(TEXT("Localization/Items.csv"), ItemTextRows);
+	LoadCsvFile(TEXT("Localization/Notebook.csv"), NotebookTextRows);
 }
 
 void ULCOLocalizationSubsystem::LoadDialogueCsvFiles()

@@ -28,6 +28,8 @@ namespace
 	const FName RowTypeLine = TEXT("Line");
 	const FName RowTypeChoice = TEXT("Choice");
 	const FName SystemSpeakerID = TEXT("System");
+	const FName WorkSeniorDialogueID = TEXT("WorkSenior");
+	const FName ProtagonistSpeakerID = TEXT("Protagonist");
 	const FName FirstNodeID = TEXT("FIRST_01");
 	const FName DefaultNodeID = TEXT("DEFAULT_01");
 	const FName EndNodeID = TEXT("END");
@@ -103,6 +105,14 @@ namespace
 		const FString CellValue = FString(Row[*ColumnIndex]).TrimStartAndEnd();
 		return CellValue.Equals(TEXT("true"), ESearchCase::IgnoreCase) || CellValue == TEXT("1");
 	}
+
+	float CsvCellAsDuration(const TArray<const TCHAR*>& Row, const TMap<FString, int32>& ColumnIndices, const TCHAR* ColumnName)
+	{
+		const int32* ColumnIndex = ColumnIndices.Find(FString(ColumnName));
+		if (!ColumnIndex || !Row.IsValidIndex(*ColumnIndex)) return 0.f;
+		const float Duration = FCString::Atof(Row[*ColumnIndex]);
+		return FMath::IsFinite(Duration) && Duration > 0.f ? Duration : 0.f;
+	}
 }
 
 ULCODialogueWidget::ULCODialogueWidget(const FObjectInitializer& ObjectInitializer)
@@ -110,6 +120,8 @@ ULCODialogueWidget::ULCODialogueWidget(const FObjectInitializer& ObjectInitializ
 {
 	ChoiceWidgetClass = TSoftClassPtr<ULCODialogueChoiceWidget>(FSoftObjectPath(TEXT("/Game/HJ/UI_Test/Widget_Test/WBP_DialogueChoice.WBP_DialogueChoice_C")));
 	FallbackSpeakerName = NSLOCTEXT("LCODialogue", "FallbackSpeakerName", "NPC");
+	WorkSeniorVoiceSettingsBySpeakerID.Add(WorkSeniorDialogueID, FLCODialogueVoiceSettings());
+	WorkSeniorVoiceSettingsBySpeakerID.Add(ProtagonistSpeakerID, FLCODialogueVoiceSettings());
 }
 
 void ULCODialogueWidget::NativeOnInitialized()
@@ -136,21 +148,11 @@ void ULCODialogueWidget::NativeConstruct()
 
 void ULCODialogueWidget::NativeDestruct()
 {
+	ClearAutoAdvanceTimer();
 	ClearTypewriterTimer();
 	UnbindLocalizationEvents();
 
-	if (bDialogueInputModeApplied && bRestoreGameInputOnClose)
-	{
-		if (bClosingFromOptionsRequest && UGameplayStatics::IsGamePaused(this))
-		{
-			bDialogueInputModeApplied = false;
-			bLookInputBlockedByThisWidget = false;
-		}
-		else
-		{
-			RestoreGameInputMode();
-		}
-	}
+	RestoreGameInputMode();
 
 	ActiveNPC.Reset();
 	Interactor.Reset();
@@ -162,6 +164,7 @@ FReply ULCODialogueWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FK
 {
 	if (IsInViewport() && (InKeyEvent.GetKey() == EKeys::F || InKeyEvent.GetKey() == EKeys::Enter || InKeyEvent.GetKey() == EKeys::SpaceBar))
 	{
+		if (bAutoAdvanceActive) return FReply::Handled();
 		if (bIsTypewriting)
 		{
 			FinishTypewriter();
@@ -180,6 +183,7 @@ FReply ULCODialogueWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, 
 {
 	if (IsInViewport() && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && !ActiveNodeID.IsNone())
 	{
+		if (bAutoAdvanceActive) return FReply::Handled();
 		if (bIsTypewriting)
 		{
 			FinishTypewriter();
@@ -296,12 +300,10 @@ void ULCODialogueWidget::CloseDialogue(bool bEndNPCConversation)
 	const bool bCompletedNormally = bActiveDialogueCompletedNormally;
 	const bool bCompletedFirstConversation = bActiveDialogueStartedAsFirstConversation && bCompletedNormally;
 
+	ClearAutoAdvanceTimer();
 	ClearTypewriterTimer();
 
-	if (bDialogueInputModeApplied && bRestoreGameInputOnClose)
-	{
-		RestoreGameInputMode();
-	}
+	RestoreGameInputMode();
 
 	ActiveNodeID = NAME_None;
 	ActiveDialogueID = NAME_None;
@@ -469,6 +471,7 @@ bool ULCODialogueWidget::LoadFlowForDialogueID(FName DialogueID)
 			Node.bEndConversation = CsvCellAsBool(CsvRow, ColumnIndices, TEXT("EndConversation"));
 			// 선택 열 (없는 CSV는 그대로 동작)
 			Node.UnlockFlag = CsvCellAsName(CsvRow, ColumnIndices, TEXT("UnlockFlag"));
+			Node.AutoAdvanceSeconds = CsvCellAsDuration(CsvRow, ColumnIndices, TEXT("AutoAdvanceSeconds"));
 			ValidateDialogueTextKey(Node.TextKey, FString::Printf(TEXT("%s row %d"), *FlowPath, RowIndex + 1));
 			ActiveFlow.Nodes.Add(NodeID, MoveTemp(Node));
 		}
@@ -618,6 +621,7 @@ bool ULCODialogueWidget::ValidateSpeakerNameKey(FName SpeakerID, const FString& 
 
 void ULCODialogueWidget::StartNode(FName NodeID)
 {
+	ClearAutoAdvanceTimer();
 	if (IsEndNode(NodeID))
 	{
 		CompleteActiveConversation();
@@ -638,7 +642,16 @@ void ULCODialogueWidget::StartNode(FName NodeID)
 
 	if (Node->RowType == RowTypeLine)
 	{
+		bAutoAdvanceActive = Node->AutoAdvanceSeconds > 0.f;
 		ShowCurrentLine();
+		if (bAutoAdvanceActive)
+		{
+			if (UWorld* World = GetWorld())
+			{
+				World->GetTimerManager().SetTimer(AutoAdvanceTimerHandle, this,
+					&ThisClass::HandleAutoAdvance, Node->AutoAdvanceSeconds, false);
+			}
+		}
 	}
 	else if (Node->RowType == RowTypeChoice)
 	{
@@ -669,7 +682,16 @@ void ULCODialogueWidget::ShowCurrentLine()
 
 	RefreshSpeakerPresentation(Node->SpeakerID);
 
-	StartTypewriter(ResolveDialogueText(Node->TextKey));
+	if (bAutoAdvanceActive)
+	{
+		// 연결 문구는 타이핑 없이 즉시 표시한다. 언어 변경으로 진행 타이머를 다시 시작하지 않는다.
+		bIsTypewriting = false;
+		if (Text_Dialogue) Text_Dialogue->SetText(ResolveDialogueText(Node->TextKey));
+	}
+	else
+	{
+		StartTypewriter(ResolveDialogueText(Node->TextKey));
+	}
 
 	// 증언 획득 (조건 검사 후 수첩 증언 탭에 자동 기록, 이미 있으면 무시)
 	if (!Node->UnlockFlag.IsNone())
@@ -682,12 +704,13 @@ void ULCODialogueWidget::ShowCurrentLine()
 
 	if (Text_ContinueHint)
 	{
-		Text_ContinueHint->SetVisibility(!ActiveNodeID.IsNone() ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		Text_ContinueHint->SetVisibility(!bAutoAdvanceActive && !ActiveNodeID.IsNone() ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	}
 }
 
 void ULCODialogueWidget::AdvanceDialogue()
 {
+	if (bAutoAdvanceActive) return;
 	if (bIsTypewriting)
 	{
 		FinishTypewriter();
@@ -728,6 +751,19 @@ void ULCODialogueWidget::AdvanceDialogue()
 	}
 
 	StartNode(Node->NextNodeID);
+}
+
+void ULCODialogueWidget::HandleAutoAdvance()
+{
+	if (!bAutoAdvanceActive || !IsInViewport()) return;
+	bAutoAdvanceActive = false;
+	AdvanceDialogue();
+}
+
+void ULCODialogueWidget::ClearAutoAdvanceTimer()
+{
+	if (UWorld* World = GetWorld()) World->GetTimerManager().ClearTimer(AutoAdvanceTimerHandle);
+	bAutoAdvanceActive = false;
 }
 
 void ULCODialogueWidget::CompleteActiveConversation()
@@ -1082,6 +1118,19 @@ bool ULCODialogueWidget::ShouldPlayDialogueCharacterSound(const FString& Reveale
 
 const FLCODialogueVoiceSettings* ULCODialogueWidget::GetActiveVoiceSettings() const
 {
+	if (ActiveDialogueID == WorkSeniorDialogueID)
+	{
+		const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID);
+		if (!Node || Node->RowType != RowTypeLine || Node->SpeakerID == SystemSpeakerID
+			|| Node->AutoAdvanceSeconds > 0.f)
+		{
+			return nullptr;
+		}
+
+		// Keep phone voices separate from the existing per-dialogue NPC settings.
+		return WorkSeniorVoiceSettingsBySpeakerID.Find(Node->SpeakerID);
+	}
+
 	return VoiceSettingsByDialogueID.Find(ActiveDialogueID);
 }
 
@@ -1105,7 +1154,11 @@ void ULCODialogueWidget::UnbindLocalizationEvents()
 void ULCODialogueWidget::ApplyDialogueInputMode()
 {
 	APlayerController* PC = GetOwningPlayer();
-	if (!PC)
+	if (bDialogueInputModeApplied && InputModePlayerController.Get() != PC)
+	{
+		RestoreGameInputMode();
+	}
+	if (!PC || !PC->IsLocalPlayerController())
 	{
 		return;
 	}
@@ -1117,13 +1170,14 @@ void ULCODialogueWidget::ApplyDialogueInputMode()
 
 	if (!bDialogueInputModeApplied)
 	{
+		InputModePlayerController = PC;
 		bPreviousShowMouseCursor = PC->bShowMouseCursor;
 
-		if (bBlockLookInputWhileOpen && !PC->IsLookInputIgnored())
-		{
-			PC->SetIgnoreLookInput(true);
-			bLookInputBlockedByThisWidget = true;
-		}
+		// 입력 차단은 누적된다. 기존 차단과 별개로 한 번 추가하고 종료 시 한 번만 해제한다.
+		PC->SetIgnoreMoveInput(true);
+		bMoveInputBlockedByThisWidget = true;
+		PC->SetIgnoreLookInput(true);
+		bLookInputBlockedByThisWidget = true;
 	}
 
 	PC->SetInputMode(InputMode);
@@ -1133,24 +1187,25 @@ void ULCODialogueWidget::ApplyDialogueInputMode()
 
 void ULCODialogueWidget::RestoreGameInputMode()
 {
-	APlayerController* PC = GetOwningPlayer();
-	if (!PC)
+	// OwningPlayer가 바뀌어도 실제 차단을 적용한 컨트롤러에서 해제한다.
+	if (APlayerController* PC = InputModePlayerController.Get())
 	{
-		return;
+		if (bMoveInputBlockedByThisWidget) PC->SetIgnoreMoveInput(false);
+		if (bLookInputBlockedByThisWidget) PC->SetIgnoreLookInput(false);
+
+		// 커서/모드 복구 옵션과 무관하게 위의 이동/시점 차단은 항상 정리한다.
+		if (bDialogueInputModeApplied && bRestoreGameInputOnClose
+			&& !(bClosingFromOptionsRequest && UGameplayStatics::IsGamePaused(this))
+			&& ShouldRestoreGameOnlyInputMode(PC))
+		{
+			UWidgetBlueprintLibrary::SetInputMode_GameOnly(PC);
+			PC->SetShowMouseCursor(bPreviousShowMouseCursor);
+		}
 	}
 
-	if (bLookInputBlockedByThisWidget)
-	{
-		PC->SetIgnoreLookInput(false);
-		bLookInputBlockedByThisWidget = false;
-	}
-
-	if (ShouldRestoreGameOnlyInputMode(PC))
-	{
-		UWidgetBlueprintLibrary::SetInputMode_GameOnly(PC);
-		PC->SetShowMouseCursor(bPreviousShowMouseCursor);
-	}
-
+	bMoveInputBlockedByThisWidget = false;
+	bLookInputBlockedByThisWidget = false;
+	InputModePlayerController.Reset();
 	bDialogueInputModeApplied = false;
 }
 

@@ -40,10 +40,7 @@ void ULCOContainerWidget::NativeDestruct()
 {
 	UnbindLocalizationEvents();
 
-	if (bContainerInputModeApplied && bRestoreGameInputOnClose)
-	{
-		RestoreGameInputMode();
-	}
+	RestoreGameInputMode();
 
 	Container.Reset();
 	Interactor.Reset();
@@ -100,10 +97,7 @@ void ULCOContainerWidget::CloseContainer()
 
 	if (!IsInViewport())
 	{
-		if (bContainerInputModeApplied && bRestoreGameInputOnClose)
-		{
-			RestoreGameInputMode();
-		}
+		RestoreGameInputMode();
 
 		Container.Reset();
 		Interactor.Reset();
@@ -117,10 +111,7 @@ void ULCOContainerWidget::CloseContainer()
 		return;
 	}
 
-	if (bContainerInputModeApplied && bRestoreGameInputOnClose)
-	{
-		RestoreGameInputMode();
-	}
+	RestoreGameInputMode();
 
 	Container.Reset();
 	Interactor.Reset();
@@ -298,7 +289,11 @@ void ULCOContainerWidget::RefreshLocalizedTexts()
 void ULCOContainerWidget::ApplyContainerInputMode()
 {
 	APlayerController* PC = GetOwningPlayer();
-	if (!PC)
+	if (bContainerInputModeApplied && InputModePlayerController.Get() != PC)
+	{
+		RestoreGameInputMode();
+	}
+	if (!PC || !PC->IsLocalPlayerController())
 	{
 		return;
 	}
@@ -310,13 +305,14 @@ void ULCOContainerWidget::ApplyContainerInputMode()
 
 	if (!bContainerInputModeApplied)
 	{
+		InputModePlayerController = PC;
 		bPreviousShowMouseCursor = PC->bShowMouseCursor;
 
-		if (bBlockLookInputWhileOpen && !PC->IsLookInputIgnored())
-		{
-			PC->SetIgnoreLookInput(true);
-			bLookInputBlockedByThisWidget = true;
-		}
+		// 기존 차단과 별개로 한 번만 추가하고, 닫을 때 추가한 한 번만 해제한다.
+		PC->SetIgnoreMoveInput(true);
+		bMoveInputBlockedByThisWidget = true;
+		PC->SetIgnoreLookInput(true);
+		bLookInputBlockedByThisWidget = true;
 	}
 
 	PC->SetInputMode(InputMode);
@@ -326,24 +322,23 @@ void ULCOContainerWidget::ApplyContainerInputMode()
 
 void ULCOContainerWidget::RestoreGameInputMode()
 {
-	APlayerController* PC = GetOwningPlayer();
-	if (!PC)
+	// OwningPlayer가 바뀌더라도 실제 차단을 적용한 컨트롤러에서 정리한다.
+	if (APlayerController* PC = InputModePlayerController.Get())
 	{
-		return;
+		if (bMoveInputBlockedByThisWidget) PC->SetIgnoreMoveInput(false);
+		if (bLookInputBlockedByThisWidget) PC->SetIgnoreLookInput(false);
+
+		// 입력 차단 해제는 커서/모드 복구 옵션과 무관하게 수행한다.
+		if (bContainerInputModeApplied && bRestoreGameInputOnClose && ShouldRestoreGameOnlyInputMode(PC))
+		{
+			UWidgetBlueprintLibrary::SetInputMode_GameOnly(PC);
+			PC->SetShowMouseCursor(bPreviousShowMouseCursor);
+		}
 	}
 
-	if (bLookInputBlockedByThisWidget)
-	{
-		PC->SetIgnoreLookInput(false);
-		bLookInputBlockedByThisWidget = false;
-	}
-
-	if (ShouldRestoreGameOnlyInputMode(PC))
-	{
-		UWidgetBlueprintLibrary::SetInputMode_GameOnly(PC);
-		PC->SetShowMouseCursor(bPreviousShowMouseCursor);
-	}
-
+	bMoveInputBlockedByThisWidget = false;
+	bLookInputBlockedByThisWidget = false;
+	InputModePlayerController.Reset();
 	bContainerInputModeApplied = false;
 }
 

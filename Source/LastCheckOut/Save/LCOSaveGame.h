@@ -61,4 +61,8 @@ public:
 	// [퍼즐] 해결한 퍼즐 ID 목록 (LCOPuzzleSubsystem)
 	UPROPERTY()
 	TArray<FName> SolvedPuzzleIDs;
+
+	// [대화] 첫 대화를 끝까지 본 NPC ID 목록 (LCODialogueSubsystem)
+	UPROPERTY()
+	TArray<FName> CompletedFirstConversations;
 };

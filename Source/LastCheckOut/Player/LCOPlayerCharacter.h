@@ -426,6 +426,10 @@ protected:
 	// 이동속도 버프 중 추가 시야각 (평상시 / 달리기 FOV에 더해짐)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FOV")
 	float MoveSpeedBuffFOV = 5.f;
+	
+	// 감각(Tab) 홀드 중 줄어드는 시야각 (줌인). 홀드 진행도에 따라 점점 줌인, 발동 / 취소되면 원래대로 풀림
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FOV")
+	float SenseZoomFOV = 25.f;
 
 	// ---------- 버프 화면 효과 ----------
 	// 버프 시작 / 종료 시 효과가 완전히 켜지거나 꺼지는 데 걸리는 시간(초)

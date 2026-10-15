@@ -10,6 +10,9 @@ class UDataTable;
 // 증언 / 키워드 획득 시 (알림 팝업 등에 사용)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOStoryFlagUnlocked, ELCOStoryFlag, Flag);
 
+// 지배인 보고 결과 (GameMode: 2막 이동·자동 저장 / 대화: 독백 / UI: 엔딩 화면 / 레벨: 407호 문 열기 등)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOReportResolved, ELCOStoryFlag, PresentedKeyword, ELCOReportResult, Result);
+
 /**
  * 스토리 진행 (챕터, 목표, 증언·키워드 플래그)
  *
@@ -101,6 +104,23 @@ public:
 	// 플래그 이름 ("T02")
 	UFUNCTION(BlueprintPure, Category = "LCO|Story|Flag")
 	static FName GetFlagName(ELCOStoryFlag Flag);
+
+	// 1막 결말 (지배인 보고)
+
+	// 지배인 대화 선택지 표시용: 이 추리(K05 / K07)를 지금 제시할 수 있는지
+	// K05, K07을 둘 다 가지고 있으면 두 선택지 모두 표시
+	UFUNCTION(BlueprintPure, Category = "LCO|Story|Ending")
+	bool CanReportToManager(ELCOStoryFlag PresentedKeyword) const;
+
+	// 지배인에게 추리 제시 / 보고. 결과 판정 + 스토리 상태 변경 후 OnReportResolved 알림
+	// K05 → 1막 클리어 (Chapter1 완료, Chapter2 시작)
+	// K07 → END 3 / K03이 있으면 멈춤 (몇 번 골라도 동일). 둘 다 진행 상태는 바꾸지 않음
+	UFUNCTION(BlueprintCallable, Category = "LCO|Story|Ending")
+	ELCOReportResult ReportToManager(ELCOStoryFlag PresentedKeyword);
+
+	// 보고 결과 알림
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Story|Ending")
+	FOnLCOReportResolved OnReportResolved;
 
 	// Save
 

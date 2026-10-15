@@ -60,3 +60,11 @@ CAMERA_FAIL_ERROR,제대로 찍히지 않았다,The shot didn't come out.,うま
 CAMERA_PHOTO_CLOSE_HINT,[E] 닫기,[E] Close,[E] 閉じる,[E] 关闭,[E] 關閉,[E] Cerrar,[E] Fermer,[E] Schließen,[E] Fechar,[E] Sulje
 QUICKSLOT_BARE_HAND,맨손,Bare Hands,素手,空手,空手,Manos vacías,Mains nues,Leere Hände,Mãos vazias,Paljain käsin
 NOTIFICATION_ITEM_ACQUIRED_FORMAT,{0} 획득,Acquired {0},{0}を入手,获得{0},獲得{0},{0} obtenido,{0} obtenu,{0} erhalten,{0} adquirido,{0} saatu
+MONOLOGUE_SENSE_SUCCESS,여기… 뭔가 중요한 단서가 있는 것 같다.,There's something important here...,ここに…何か重要な手がかりがある気がする。,这里……好像有什么重要的线索。,這裡……好像有什麼重要的線索。,Aquí... hay algo importante.,Il y a quelque chose d'important ici...,Hier... ist etwas Wichtiges.,Aqui... há algo importante.,Täällä... on jotain tärkeää.
+MONOLOGUE_SENSE_FAIL,…아무것도 느껴지지 않는다.,...I don't sense anything.,…何も感じない。,……什么也感觉不到。,……什麼也感覺不到。,...No siento nada.,...Je ne ressens rien.,...Ich spüre nichts.,...Não sinto nada.,...En tunne mitään.
+NOTEBOOK_DEDUCTION_HINT,흠… 뭔가 이어 볼 만한 단서가 있을 것 같은데.,Hmm... I feel like some of these clues connect.,うーん…結びつけられそうな手がかりがある気がする。,嗯……感觉有些线索可以联系起来。,嗯……感覺有些線索可以聯繫起來。,Mmm... creo que algunas pistas encajan.,Hmm... certains indices pourraient se relier.,Hm... einige Hinweise könnten zusammenpassen.,Hmm... acho que algumas pistas se conectam.,Hmm... jotkin vihjeet saattavat liittyä toisiinsa.
+NOTEBOOK_DEDUCTION_SUCCESS_TITLE,새로운 추리 — {0},New Deduction — {0},新たな推理 — {0},新的推理 — {0},新的推理 — {0},Nueva deducción — {0},Nouvelle déduction — {0},Neue Schlussfolgerung — {0},Nova dedução — {0},Uusi päätelmä — {0}
+NOTEBOOK_DEDUCTION_HEADER_CLUE,증거,Evidence,証拠,证据,證據,Pruebas,Preuves,Beweise,Provas,Todisteet
+NOTEBOOK_DEDUCTION_HEADER_PHOTO,사진,Photos,写真,照片,照片,Fotos,Photos,Fotos,Fotos,Valokuvat
+NOTEBOOK_DEDUCTION_HEADER_TESTIMONY,증언,Testimonies,証言,证词,證詞,Testimonios,Témoignages,Aussagen,Depoimentos,Todistukset
+NOTEBOOK_DEDUCTION_HEADER_DEDUCTION,추리,Deductions,推理,推理,推理,Deducciones,Déductions,Schlussfolgerungen,Deduções,Päätelmät

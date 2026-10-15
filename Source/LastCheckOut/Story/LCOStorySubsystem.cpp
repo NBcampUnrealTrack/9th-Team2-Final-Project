@@ -10,6 +10,10 @@ namespace
 	{
 		return StaticEnum<ELCOStoryFlag>()->GetNameStringByValue(static_cast<int64>(Flag));
 	}
+
+	// 1막 / 2막 챕터 ID
+	const FName Chapter1ID(TEXT("Chapter1"));
+	const FName Chapter2ID(TEXT("Chapter2"));
 }
 
 void ULCOStorySubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -316,6 +320,48 @@ ELCODeductionResult ULCOStorySubsystem::TryDeduce(const TArray<FName>& SelectedI
 	}
 
 	return ELCODeductionResult::NoMatch;
+}
+
+bool ULCOStorySubsystem::CanReportToManager(ELCOStoryFlag PresentedKeyword) const
+{
+	// 1막 진행 중에만 (클리어 후 다시 보고하는 것 방지)
+	if (CurrentChapterID != Chapter1ID)
+	{
+		return false;
+	}
+
+	// 지배인에게 제시할 수 있는 추리는 K05(407호 조사 요청), K07(조사 종결 보고)만
+	const bool bIsReportKeyword = PresentedKeyword == ELCOStoryFlag::K05 || PresentedKeyword == ELCOStoryFlag::K07;
+	return bIsReportKeyword && HasFlag(PresentedKeyword);
+}
+
+ELCOReportResult ULCOStorySubsystem::ReportToManager(ELCOStoryFlag PresentedKeyword)
+{
+	ELCOReportResult Result = ELCOReportResult::NotEnough;
+
+	if (CanReportToManager(PresentedKeyword))
+	{
+		if (PresentedKeyword == ELCOStoryFlag::K05)
+		{
+			// 407호 조사 허가 → 1막 클리어, 바로 2막 시작 (이동·저장은 GameMode가 처리)
+			CompleteChapter(Chapter1ID);
+			StartChapter(Chapter2ID);
+			Result = ELCOReportResult::Chapter1Clear;
+		}
+		else
+		{
+			// 조사 종결 보고: K03이 있으면 주인공이 스스로 멈춤 (몇 번 골라도 동일)
+			// 어느 쪽이든 진행 상태는 바꾸지 않음 → END 3 엔딩 후에도 보고 직전 상태 그대로
+			Result = HasFlag(ELCOStoryFlag::K03) ? ELCOReportResult::Reconsidered : ELCOReportResult::End3;
+		}
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] ReportToManager: %s -> %s"),
+		*FlagToString(PresentedKeyword), *UEnum::GetValueAsString(Result));
+
+	OnReportResolved.Broadcast(PresentedKeyword, Result);
+	return Result;
 }
 
 void ULCOStorySubsystem::RecordFlagToNotebook(ELCOStoryFlag Flag) const

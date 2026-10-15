@@ -1,5 +1,6 @@
 #include "Player/LCOSenseVolume.h"
 #include "Components/BoxComponent.h"
+#include "UI/LCOMonologueSubsystem.h"
 
 ALCOSenseVolume::ALCOSenseVolume()
 {
@@ -25,6 +26,13 @@ bool ALCOSenseVolume::IsLocationInside(const FVector& Location) const
 void ALCOSenseVolume::NotifySensed(AActor* Sensor)
 {
 	UE_LOG(LogTemp, Log, TEXT("[LCOSenseVolume] %s Sensed by %s"), *GetName(), *GetNameSafe(Sensor));
+
+	// 성공 독백 (볼륨별 문구 우선)
+	const FName Key = !MonologueKey.IsNone() ? MonologueKey : DefaultMonologueKey;
+	if (!Key.IsNone())
+	{
+		ULCOMonologueSubsystem::ShowMonologueByKey(this, Key);
+	}
 
 	OnSensed(Sensor);
 }

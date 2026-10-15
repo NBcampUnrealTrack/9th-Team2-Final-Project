@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Interaction/LCOInteractionReceiver.h"
 #include "Interaction/LCOInteractionTypes.h"
+#include "Save/LCOSaveableActor.h"
 #include "LCOPuzzleBase.generated.h"
 
 class ALCOOpenableBase;
@@ -14,9 +15,11 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPuzzleActivated, ALCOPuzzleBase*,
 
 // 모든 퍼즐의 부모 클래스
 // 상호작용 → 해결 / 비활성 검사 → HandlePuzzleInput(자식 구현) → 자식이 정답이면 SolvePuzzle(), 틀리면 FailPuzzle() 호출
-// 공통 처리: 활성화 조건(선행 퍼즐), 실패 / 리셋, 해결 결과(잠금 해제 대상, 스토리 결과), 저장 복원(ULCOPuzzleSubsystem)
+// 공통 처리: 활성화 조건(선행 퍼즐), 실패 / 리셋, 해결 결과(잠금 해제 대상, 스토리 결과), 저장 복원
+// 저장: 해결 여부는 ULCOPuzzleSubsystem(퍼즐 ID 기준), 활성 상태는 LCOWorldStateSubsystem(ILCOSaveableActor)
+//       → Activate() / Deactivate()로 바꾼 활성 상태도 맵 이동 / 이어하기 후 유지됨
 UCLASS(Abstract, Blueprintable)
-class LASTCHECKOUT_API ALCOPuzzleBase : public AActor, public ILCOInteractionReceiver
+class LASTCHECKOUT_API ALCOPuzzleBase : public AActor, public ILCOInteractionReceiver, public ILCOSaveableActor
 {
 	GENERATED_BODY()
 
@@ -32,6 +35,13 @@ public:
 
 	// 비활성 상태면 InactivePrompt, 그 외에는 컴포넌트 기본 문구
 	virtual FText GetInteractionPrompt_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const override;
+
+	// ILCOSaveableActor
+	// 활성 상태 저장 (FLCOActorSaveState::bIsEnabled 사용). 해결 여부는 ULCOPuzzleSubsystem이 따로 저장
+	virtual FLCOActorSaveState SaveActorState_Implementation() const override;
+
+	// 활성 상태 복원. 활성화 연출 없이 OnActiveStateRestored로 모습만 맞춤
+	virtual void LoadActorState_Implementation(const FLCOActorSaveState& State) override;
 
 	// ---------- 상태 변경 ----------
 
@@ -118,6 +128,11 @@ protected:
 	// 세이브에서 해결 상태로 복원됐을 때. 연출 없이 해결된 모습으로 바꾼다
 	UFUNCTION(BlueprintImplementableEvent, Category = "Puzzle")
 	void OnPuzzleRestored();
+
+	// 맵 이동 / 이어하기로 활성 상태가 복원됐을 때. 연출 없이 켜진 / 꺼진 모습으로 바꾼다
+	// (OnPuzzleActivated는 실제로 켜지는 순간에만 호출되므로, 복원 시 모습은 여기서 맞출 것)
+	UFUNCTION(BlueprintImplementableEvent, Category = "Puzzle")
+	void OnActiveStateRestored(bool bActive);
 
 	// ---------- 설정값 ----------
 

@@ -101,6 +101,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Openable")
 	bool bCanClose = true;
 
+	// 플레이어 상호작용 쿨타임(초). 열림 / 닫힘 애니메이션 도중 연타 방지용으로 애니메이션 길이에 맞출 것. 0이면 사용 안 함
+	// 코드에서 직접 호출하는 Open() / Close() (퍼즐, 스위치, 창고 UI 등)에는 적용되지 않음
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Openable", meta = (ClampMin = "0.0", Units = "s"))
+	float InteractionCooldown = 1.f;
+
 	// 잠금 해제에 필요한 아이템 ID. 비워두면 열쇠로 열 수 없음 (퍼즐, 이벤트로만 해제)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Openable|Lock", meta = (EditCondition = "bIsLocked"))
 	FName RequiredItemID;
@@ -133,4 +138,7 @@ protected:
 private:
 	// 상호작용한 액터의 인벤토리에서 열쇠를 확인하고, 있으면 잠금 해제
 	bool TryUnlockWithKey(AActor* Interactor);
+
+	// 마지막으로 플레이어 상호작용을 처리한 시각 (월드 시간). 음수면 아직 없음
+	float LastInteractionTime = -1.f;
 };

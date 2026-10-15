@@ -22,6 +22,15 @@ void ALCOOpenableBase::BeginPlay()
 
 void ALCOOpenableBase::HandleInteraction_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor)
 {
+	// 쿨타임 중이면 입력만 무시 (포커스 / 문구는 유지). 코드에서 직접 부르는 Open() / Close()에는 적용하지 않음
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (InteractionCooldown > 0.f && LastInteractionTime >= 0.f && CurrentTime - LastInteractionTime < InteractionCooldown)
+	{
+		return;
+	}
+
+	LastInteractionTime = CurrentTime;
+
 	// 잠겨 있고 열쇠도 없으면 잠김 피드백만 주고 종료
 	if (bIsLocked && !TryUnlockWithKey(Interactor))
 	{

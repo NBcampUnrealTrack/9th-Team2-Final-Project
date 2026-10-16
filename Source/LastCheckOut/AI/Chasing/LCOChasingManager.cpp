@@ -1,7 +1,9 @@
 #include "AI/Chasing/LCOChasingManager.h"
 
 #include "AI/LCOCaretakerAIController.h"
+#include "AIController.h"
 #include "AI/SuspicionComponent.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Engine/TargetPoint.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/Pawn.h"
@@ -109,6 +111,9 @@ void ALCOChasingManager::StartChasing()
 
 	bIsChasing = true;
 
+	// 이전 체이싱에서 남은 청년이 있으면 정리한다.
+	CleanupYouth();
+
 	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
 	FVector SpawnLocation;
 	if (PlayerPawn && FindSpawnLocation(PlayerPawn->GetActorLocation(), SpawnLocation))
@@ -134,7 +139,12 @@ void ALCOChasingManager::EndChasing(ELCOChasingEndReason Reason)
 	bIsChasing = false;
 	GetWorldTimerManager().ClearTimer(FoundCheckTimer);
 
-	if (ALCOSigolYouth* Youth = SpawnedYouth.Get())
+	// 시골청년을 발견한 경우에는 청년을 지우지 않고 대화 흐름으로 넘긴다. 그 외에는 바로 제거한다.
+	if (Reason == ELCOChasingEndReason::FoundYouth && SpawnedYouth.IsValid())
+	{
+		BeginYouthEncounter();
+	}
+	else if (ALCOSigolYouth* Youth = SpawnedYouth.Get())
 	{
 		Youth->Destroy();
 	}
@@ -363,6 +373,223 @@ void ALCOChasingManager::CheckFoundYouth()
 	}
 
 	EndChasing(ELCOChasingEndReason::FoundYouth);
+}
+
+void ALCOChasingManager::BeginYouthEncounter()
+{
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	ALCOSigolYouth* Youth = SpawnedYouth.Get();
+	if (!PlayerPawn || !Youth)
+	{
+		return;
+	}
+
+	// 한 번에 한 명만 대화 흐름을 타는다.
+	CleanupYouth();
+	EncounterYouth = Youth;
+
+	// 청년이 플레이어에게 다가온다.
+	Youth->SetRunSpeed();
+	if (AAIController* AI = Cast<AAIController>(Youth->GetController()))
+	{
+		AI->MoveToActor(PlayerPawn, YouthTalkDistance * 0.5f);
+	}
+
+	YouthPhaseStartTime = GetWorld()->GetTimeSeconds();
+	GetWorldTimerManager().SetTimer(YouthApproachTimer, this, &ALCOChasingManager::CheckYouthApproach, 0.2f, true);
+}
+
+void ALCOChasingManager::CheckYouthApproach()
+{
+	const ALCOSigolYouth* Youth = EncounterYouth.Get();
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Youth || !PlayerPawn)
+	{
+		CleanupYouth();
+		return;
+	}
+
+	// 가까워졌거나, 이동에 실패해 시간이 지나면 그 자리에서 대화를 시작한다.
+	if (FVector::Dist(Youth->GetActorLocation(), PlayerPawn->GetActorLocation()) <= YouthTalkDistance
+		|| GetWorld()->GetTimeSeconds() - YouthPhaseStartTime >= YouthApproachTimeout)
+	{
+		GetWorldTimerManager().ClearTimer(YouthApproachTimer);
+		StartYouthTalk();
+	}
+}
+
+void ALCOChasingManager::StartYouthTalk()
+{
+	ALCOSigolYouth* Youth = EncounterYouth.Get();
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Youth || !PlayerPawn)
+	{
+		CleanupYouth();
+		return;
+	}
+
+	if (AAIController* AI = Cast<AAIController>(Youth->GetController()))
+	{
+		AI->StopMovement();
+	}
+	Youth->SetWalkSpeed();
+
+	Youth->OnConversationEnded.AddUniqueDynamic(this, &ALCOChasingManager::HandleYouthConversationEnded);
+	Youth->BeginConversation(PlayerPawn);
+
+	// 대화 UI가 연결되기 전 테스트용 자동 종료
+	if (YouthTestAutoEndTime > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(YouthAutoEndTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			if (ALCOSigolYouth* EncounterNPC = EncounterYouth.Get())
+			{
+				EncounterNPC->EndConversation();
+			}
+		}), YouthTestAutoEndTime, false);
+	}
+}
+
+void ALCOChasingManager::HandleYouthConversationEnded()
+{
+	GetWorldTimerManager().ClearTimer(YouthAutoEndTimer);
+
+	if (ALCOSigolYouth* Youth = EncounterYouth.Get())
+	{
+		Youth->OnConversationEnded.RemoveDynamic(this, &ALCOChasingManager::HandleYouthConversationEnded);
+	}
+
+	StartYouthLeave();
+}
+
+void ALCOChasingManager::StartYouthLeave()
+{
+	ALCOSigolYouth* Youth = EncounterYouth.Get();
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Youth || !PlayerPawn)
+	{
+		CleanupYouth();
+		return;
+	}
+
+	// 퇴장 지점 중 플레이어에게서 가장 멀고 청년이 도달할 수 있는 곳을 고른다.
+	ATargetPoint* BestPoint = nullptr;
+	double BestDistance = -1.0;
+	for (ATargetPoint* Point : LeavePoints)
+	{
+		if (!Point)
+		{
+			continue;
+		}
+
+		double PathLength = 0.0;
+		if (UNavigationSystemV1::GetPathLength(GetWorld(), Youth->GetActorLocation(), Point->GetActorLocation(), PathLength) != ENavigationQueryResult::Success)
+		{
+			continue;
+		}
+
+		const double Distance = FVector::Dist(Point->GetActorLocation(), PlayerPawn->GetActorLocation());
+		if (Distance > BestDistance)
+		{
+			BestDistance = Distance;
+			BestPoint = Point;
+		}
+	}
+
+	YouthLeaveTarget = BestPoint;
+	if (BestPoint)
+	{
+		if (AAIController* AI = Cast<AAIController>(Youth->GetController()))
+		{
+			AI->MoveToLocation(BestPoint->GetActorLocation(), 100.f);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOChasingManager] No valid LeavePoint. The youth disappears after the timeout."));
+	}
+
+	// 퇴장 지점 도착 / 시야 밖 / 시간 초과 중 먼저 만족하는 조건으로 제거한다.
+	YouthPhaseStartTime = GetWorld()->GetTimeSeconds();
+	GetWorldTimerManager().SetTimer(YouthLeaveTimer, this, &ALCOChasingManager::CheckYouthLeave, 0.3f, true);
+}
+
+void ALCOChasingManager::CheckYouthLeave()
+{
+	const ALCOSigolYouth* Youth = EncounterYouth.Get();
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Youth || !PlayerPawn)
+	{
+		CleanupYouth();
+		return;
+	}
+
+	// 1) 시간 초과
+	if (GetWorld()->GetTimeSeconds() - YouthPhaseStartTime >= YouthLeaveTimeout)
+	{
+		CleanupYouth();
+		return;
+	}
+
+	// 2) 퇴장 지점 도착
+	if (const ATargetPoint* Target = YouthLeaveTarget.Get())
+	{
+		if (FVector::Dist(Youth->GetActorLocation(), Target->GetActorLocation()) <= 150.f)
+		{
+			CleanupYouth();
+			return;
+		}
+	}
+
+	// 3) 플레이어 시야 밖에서 충분히 멀리 떨어짐 (눈앞에서 사라지는 어색함 방지)
+	if (FVector::Dist(Youth->GetActorLocation(), PlayerPawn->GetActorLocation()) >= YouthDespawnDistance && IsOutOfPlayerView(Youth))
+	{
+		CleanupYouth();
+	}
+}
+
+void ALCOChasingManager::CleanupYouth()
+{
+	GetWorldTimerManager().ClearTimer(YouthApproachTimer);
+	GetWorldTimerManager().ClearTimer(YouthAutoEndTimer);
+	GetWorldTimerManager().ClearTimer(YouthLeaveTimer);
+	YouthLeaveTarget.Reset();
+
+	if (ALCOSigolYouth* Youth = EncounterYouth.Get())
+	{
+		Youth->OnConversationEnded.RemoveDynamic(this, &ALCOChasingManager::HandleYouthConversationEnded);
+		if (Youth->IsInConversation())
+		{
+			Youth->EndConversation();
+		}
+		Youth->Destroy();
+	}
+	EncounterYouth.Reset();
+}
+
+bool ALCOChasingManager::IsOutOfPlayerView(const AActor* Target) const
+{
+	const APlayerCameraManager* Camera = UGameplayStatics::GetPlayerCameraManager(this, 0);
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Camera || !PlayerPawn || !Target)
+	{
+		return true;
+	}
+
+	// 카메라 정면에서 크게 벗어난 각도면 화면 밖이다.
+	const FVector ToTarget = (Target->GetActorLocation() - Camera->GetCameraLocation()).GetSafeNormal();
+	const float AngleDeg = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(Camera->GetCameraRotation().Vector(), ToTarget)));
+	if (AngleDeg > 70.f)
+	{
+		return true;
+	}
+
+	// 화면 안이라도 사이에 벽이 있으면 보이지 않는다.
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(LCOYouthViewTrace), false, PlayerPawn);
+	Params.AddIgnoredActor(Target);
+
+	FHitResult Hit;
+	return GetWorld()->LineTraceSingleByChannel(Hit, Camera->GetCameraLocation(), Target->GetActorLocation(), ECC_Visibility, Params);
 }
 
 bool ALCOChasingManager::TryEndChasingByHiding(AActor* HidingSpot)

@@ -63,9 +63,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Container")
 	bool bRestoreGameInputOnClose = true;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Container")
-	bool bBlockLookInputWhileOpen = true;
-
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UPanelWidget> ItemsPanel;
 
@@ -108,6 +105,12 @@ private:
 
 	UPROPERTY(Transient)
 	bool bPreviousShowMouseCursor = false;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<APlayerController> InputModePlayerController;
+
+	UPROPERTY(Transient)
+	bool bMoveInputBlockedByThisWidget = false;
 
 	UPROPERTY(Transient)
 	bool bLookInputBlockedByThisWidget = false;

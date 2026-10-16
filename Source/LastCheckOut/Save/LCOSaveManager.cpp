@@ -7,10 +7,27 @@
 #include "Notebook/LCONotebookSubsystem.h"
 #include "Save/LCOWorldStateSubsystem.h"
 #include "Puzzle/LCOPuzzleSubsystem.h"
+#include "UI/LCODialogueSubsystem.h"
+#include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 
 const FString ULCOSaveManager::SaveSlotName(TEXT("LCO_Save_0"));
+
+namespace
+{
+	// 대화 서브시스템은 LocalPlayer 단위라 첫 번째 로컬 플레이어에서 꺼냄
+	ULCODialogueSubsystem* GetDialogueSubsystem(const UGameInstance* GameInstance)
+	{
+		if (!GameInstance)
+		{
+			return nullptr;
+		}
+
+		const ULocalPlayer* LocalPlayer = GameInstance->GetFirstGamePlayer();
+		return LocalPlayer ? LocalPlayer->GetSubsystem<ULCODialogueSubsystem>() : nullptr;
+	}
+}
 
 void ULCOSaveManager::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -102,14 +119,21 @@ bool ULCOSaveManager::SaveGame()
 		SaveData->SolvedPuzzleIDs = PuzzleSubsystem->GetSolvedPuzzleIDs();
 	}
 
+	// [대화] 첫 대화 완료 NPC ID
+	if (const ULCODialogueSubsystem* DialogueSubsystem = GetDialogueSubsystem(GetGameInstance()))
+	{
+		SaveData->CompletedFirstConversations = DialogueSubsystem->GetCompletedFirstConversations();
+	}
+
 	bIsSaving = true;
 	OnSaveStarted.Broadcast();
 
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] SaveGame start: Map = %s, Chapter = %s, Objective = %s, Completed = %d, Notebook = %d, PlayerData = %s, Items = %d"),
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] SaveGame start: Map = %s, Chapter = %s, Objective = %s, Completed = %d, Notebook = %d, PlayerData = %s, Items = %d, FirstConversations = %d"),
 		*SaveData->MapName, *SaveData->ChapterID.ToString(), *SaveData->ObjectiveID.ToString(),
 		SaveData->CompletedObjectives.Num(), SaveData->NotebookEntries.Num(),
-		SaveData->bHasPlayerData ? TEXT("true") : TEXT("false"), SaveData->PlayerData.InventorySlots.Num());
+		SaveData->bHasPlayerData ? TEXT("true") : TEXT("false"), SaveData->PlayerData.InventorySlots.Num(),
+		SaveData->CompletedFirstConversations.Num());
 
 	// 비동기 저장 (게임이 멈추지 않음). 완료되면 HandleAsyncSaveFinished 호출
 	FAsyncSaveGameToSlotDelegate SavedDelegate;
@@ -224,6 +248,16 @@ bool ULCOSaveManager::ApplyLoadedData()
 		PuzzleSubsystem->RestoreSolvedPuzzles(LoadedSaveGame->SolvedPuzzleIDs);
 	}
 
+	// [대화] 첫 대화 완료 기록 복원 (이미 본 NPC는 첫 대화를 다시 재생하지 않음)
+	if (ULCODialogueSubsystem* DialogueSubsystem = GetDialogueSubsystem(GetGameInstance()))
+	{
+		DialogueSubsystem->RestoreCompletedFirstConversations(LoadedSaveGame->CompletedFirstConversations);
+	}
+	else
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOSaveManager] ApplyLoadedData: LCODialogueSubsystem not found -> first conversations not restored"));
+	}
+
 	// [Player] 맵 이동용 보관함에 넣어 둠 → 캐릭터 생성 후 LCOGameMode가 복원
 	if (LoadedSaveGame->bHasPlayerData)
 	{
@@ -234,8 +268,9 @@ bool ULCOSaveManager::ApplyLoadedData()
 	}
 
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] ApplyLoadedData done: Notebook = %d, PlayerData = %s"),
-		LoadedSaveGame->NotebookEntries.Num(), LoadedSaveGame->bHasPlayerData ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] ApplyLoadedData done: Notebook = %d, PlayerData = %s, FirstConversations = %d"),
+		LoadedSaveGame->NotebookEntries.Num(), LoadedSaveGame->bHasPlayerData ? TEXT("true") : TEXT("false"),
+		LoadedSaveGame->CompletedFirstConversations.Num());
 	return true;
 }
 

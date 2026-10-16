@@ -5,6 +5,7 @@
 #include "LCODialogueWidget.generated.h"
 
 class ALCONPCBase;
+class APlayerController;
 class UBorder;
 class UImage;
 class UPanelWidget;
@@ -58,6 +59,8 @@ struct FLCODialogueNode
 	bool bEndConversation = false;
 	// 이 대사가 나올 때 획득하는 증언 / 키워드 (CSV의 UnlockFlag 열, 예: T04). 비어 있으면 없음
 	FName UnlockFlag = NAME_None;
+	// 선택 CSV 열. 0이면 기존 수동 진행, 양수이면 입력 없이 지정 시간 후 진행한다.
+	float AutoAdvanceSeconds = 0.f;
 	TArray<FLCODialogueChoiceRow> Choices;
 };
 
@@ -111,9 +114,6 @@ protected:
 	bool bRestoreGameInputOnClose = true;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Dialogue")
-	bool bBlockLookInputWhileOpen = true;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Dialogue")
 	FText FallbackSpeakerName;
 
 	// CSV의 SpeakerID를 키로 사용한다. DialogueID와는 별개다.
@@ -132,6 +132,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Dialogue|Voice")
 	TMap<FName, FLCODialogueVoiceSettings> VoiceSettingsByDialogueID;
+
+	// WorkSenior phone dialogue only: keys are CSV SpeakerIDs (WorkSenior / Protagonist).
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Dialogue|Voice")
+	TMap<FName, FLCODialogueVoiceSettings> WorkSeniorVoiceSettingsBySpeakerID;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UBorder> Border_Choices;
@@ -169,6 +173,8 @@ private:
 	void StartNode(FName NodeID);
 	void ShowCurrentLine();
 	void AdvanceDialogue();
+	void HandleAutoAdvance();
+	void ClearAutoAdvanceTimer();
 	void CompleteActiveConversation();
 	void EndActiveConversation();
 	void StartTypewriter(const FText& FullText);
@@ -225,6 +231,8 @@ private:
 	float LastVoicePlaybackTime = -FLT_MAX;
 
 	FTimerHandle TypewriterTimerHandle;
+	FTimerHandle AutoAdvanceTimerHandle;
+	bool bAutoAdvanceActive = false;
 
 	FLCODialogueFlow ActiveFlow;
 
@@ -236,6 +244,12 @@ private:
 
 	UPROPERTY(Transient)
 	bool bPreviousShowMouseCursor = false;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<APlayerController> InputModePlayerController;
+
+	UPROPERTY(Transient)
+	bool bMoveInputBlockedByThisWidget = false;
 
 	UPROPERTY(Transient)
 	bool bLookInputBlockedByThisWidget = false;

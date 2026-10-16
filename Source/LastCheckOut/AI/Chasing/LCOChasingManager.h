@@ -6,6 +6,8 @@
 
 class ALCOHidingSpot;
 class ALCOSigolYouth;
+class UDecalComponent;
+class UMaterialInterface;
 class ATargetPoint;
 class USuspicionComponent;
 
@@ -109,11 +111,11 @@ protected:
 
 	// 이 경로 길이(cm)보다 가까운 후보는 제외한다.
 	UPROPERTY(EditAnywhere, Category = "Chasing")
-	float MinSpawnPathLength = 3000.f;
+	float MinSpawnPathLength = 500.f;
 
 	// 시골청년을 발견한 것으로 보는 거리(cm)
 	UPROPERTY(EditAnywhere, Category = "Chasing")
-	float FoundDistance = 300.f;
+	float FoundDistance = 500.f;
 
 	// true면 사이에 장애물이 없을 때만 발견으로 인정한다.
 	UPROPERTY(EditAnywhere, Category = "Chasing")
@@ -129,6 +131,65 @@ protected:
 	// 잡기 연출에서 이 시간(초) 안에 FinishCaughtSequence()가 호출되지 않으면 강제로 진행한다. (연결 누락 대비)
 	UPROPERTY(EditAnywhere, Category = "Chasing")
 	float CaughtSequenceTimeout = 5.f;
+
+	// 시골청년을 발견한 뒤 청년이 플레이어에게 다가가 대화를 시작하는 거리(cm)
+	UPROPERTY(EditAnywhere, Category = "Chasing|Youth")
+	float YouthTalkDistance = 120.f;
+
+	// 청년이 플레이어에게 다가가는 최대 시간(초). 지나면 그 자리에서 대화를 시작한다.
+	UPROPERTY(EditAnywhere, Category = "Chasing|Youth")
+	float YouthApproachTimeout = 6.f;
+
+	// 대화 UI가 연결되기 전 테스트용: 이 시간(초) 뒤 대화를 자동으로 끝낸다. 0이면 UI가 EndConversation()을 호출할 때까지 기다린다.
+	UPROPERTY(EditAnywhere, Category = "Chasing|Youth")
+	float YouthTestAutoEndTime = 3.f;
+
+	// 대화가 끝난 뒤 청년이 퇴장할 지점. 이 중 플레이어에게서 가장 멀고 도달 가능한 곳으로 간다.
+	UPROPERTY(EditInstanceOnly, Category = "Chasing|Youth")
+	TArray<TObjectPtr<ATargetPoint>> LeavePoints;
+
+	// 퇴장을 시작한 뒤 이 시간(초)이 지나면 어디에 있든 사라진다.
+	UPROPERTY(EditAnywhere, Category = "Chasing|Youth")
+	float YouthLeaveTimeout = 10.f;
+
+	// 플레이어 시야 밖이면서 이 거리(cm) 이상 떨어지면 사라진다.
+	UPROPERTY(EditAnywhere, Category = "Chasing|Youth")
+	float YouthDespawnDistance = 800.f;
+
+	// 체이싱 중 플레이어에서 시골청년까지의 최단 경로를 바닥 발자국으로 안내한다.
+	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
+	bool bShowPathGuide = true;
+
+	// 왼발/오른발 발자국 데칼 머티리얼. 둘 다 비어 있으면 디버그 점으로 대신 표시한다. (에셋이 나오면 지정)
+	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
+	TObjectPtr<UMaterialInterface> FootprintMaterialLeft;
+
+	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
+	TObjectPtr<UMaterialInterface> FootprintMaterialRight;
+
+	// 발자국 텍스처가 진행 방향과 어긋날 때 보정하는 회전(도). 발끝이 진행 방향을 향하게 맞춘다.
+	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
+	float FootprintYawOffset = 0.f;
+
+	// 데칼 크기 (X: 투영 깊이, Y/Z: 절반 크기, cm)
+	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
+	FVector FootprintDecalSize = FVector(20.f, 12.f, 12.f);
+
+	// 발자국 간격(cm)
+	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
+	float FootprintSpacing = 70.f;
+
+	// 왼발/오른발을 경로 좌우로 벌리는 거리(cm)
+	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
+	float FootprintSideOffset = 15.f;
+
+	// 플레이어에서 경로를 따라 이 거리(cm)까지만 발자국을 표시한다.
+	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
+	float GuideRange = 1000.f;
+
+	// 경로를 다시 계산해 발자국을 갱신하는 주기(초)
+	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
+	float GuideUpdateInterval = 0.5f;
 
 private:
 	// 플레이어의 SuspicionComponent를 찾아 OnSuspicionMax에 바인딩한다. 없으면 타이머로 재시도한다.
@@ -148,16 +209,63 @@ private:
 	void SpawnYouth(const FVector& Location);
 	void CheckFoundYouth();
 
+	// 시골청년 발견 후 흐름: 청년이 다가옴 -> 대화 -> 퇴장 지점으로 걸어가 사라짐
+	void BeginYouthEncounter();
+	void CheckYouthApproach();
+	void StartYouthTalk();
+	void StartYouthLeave();
+	void CheckYouthLeave();
+	void CleanupYouth();
+
+	UFUNCTION()
+	void HandleYouthConversationEnded();
+
+	// 플레이어에서 청년까지의 최단 경로를 다시 계산해 발자국을 갱신한다.
+	void UpdatePathGuide();
+	void HidePathGuide();
+	void ResetPathGuide();
+
+	// 플레이어 카메라 기준으로 화면 밖이거나 벽에 가려 보이지 않는지 확인한다.
+	bool IsOutOfPlayerView(const AActor* Target) const;
+
 	// 관리인 중 한 명이라도 플레이어를 볼 수 있는 거리와 시야에 있는지 확인한다.
 	bool IsPlayerSpottedByCaretaker(const AActor* HidingSpot) const;
 
 	TWeakObjectPtr<USuspicionComponent> BoundSuspicion;
 	TWeakObjectPtr<ALCOSigolYouth> SpawnedYouth;
 
+	// 발견 후 플레이어와 대화하고 퇴장하는 중인 청년 (체이싱이 끝난 뒤에도 유지된다)
+	TWeakObjectPtr<ALCOSigolYouth> EncounterYouth;
+	TWeakObjectPtr<ATargetPoint> YouthLeaveTarget;
+	double YouthPhaseStartTime = 0.0;
+
 	FTimerHandle SuspicionBindTimer;
 	FTimerHandle FoundCheckTimer;
 	FTimerHandle CooldownTimer;
 	FTimerHandle CaughtTimeoutTimer;
+	FTimerHandle YouthApproachTimer;
+	FTimerHandle YouthAutoEndTimer;
+	FTimerHandle YouthLeaveTimer;
+	FTimerHandle PathGuideTimer;
+
+	// 발자국 데칼을 재사용한다. (사용하지 않는 것은 숨김)
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UDecalComponent>> FootprintPool;
+
+	// 한 번 찍힌 발자국은 위치를 유지한다. 발자국은 플레이어 쪽에서 청년 쪽으로 이어서 그린다.
+	struct FPlacedFootprint
+	{
+		FVector Location = FVector::ZeroVector;
+		float Yaw = 0.f;
+		bool bLeft = true;
+	};
+	TArray<FPlacedFootprint> PlacedFootprints;
+
+	// 발자국 행렬의 끝(마지막으로 찍은 경로상 위치). 새 발자국은 여기서부터 이어서 그린다. 지나간 발자국을 지워도 유지된다.
+	FVector GuideTip = FVector::ZeroVector;
+	bool bGuideStarted = false;
+	bool bGuideNextLeft = true;
+	bool bGuideReachedYouth = false;
 
 	bool bCaughtSequenceActive = false;
 	TWeakObjectPtr<AActor> CaughtPlayer;

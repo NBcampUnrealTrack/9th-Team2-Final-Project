@@ -4,6 +4,8 @@
 #include "AIController.h"
 #include "AI/SuspicionComponent.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Components/DecalComponent.h"
+#include "DrawDebugHelpers.h"
 #include "Engine/TargetPoint.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/Pawn.h"
@@ -12,6 +14,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NPC/LCOCaretaker.h"
 #include "NPC/LCOSigolYouth.h"
+#include "NavigationPath.h"
 #include "NavigationSystem.h"
 #include "TimerManager.h"
 
@@ -126,6 +129,14 @@ void ALCOChasingManager::StartChasing()
 	}
 
 	GetWorldTimerManager().SetTimer(FoundCheckTimer, this, &ALCOChasingManager::CheckFoundYouth, FoundCheckInterval, true);
+
+	// 플레이어에게 청년까지의 최단 경로를 발자국으로 안내한다.
+	if (bShowPathGuide && SpawnedYouth.IsValid())
+	{
+		ResetPathGuide();
+		UpdatePathGuide();
+		GetWorldTimerManager().SetTimer(PathGuideTimer, this, &ALCOChasingManager::UpdatePathGuide, GuideUpdateInterval, true);
+	}
 	OnChasingStarted.Broadcast(SpawnedYouth.Get());
 }
 
@@ -138,6 +149,8 @@ void ALCOChasingManager::EndChasing(ELCOChasingEndReason Reason)
 
 	bIsChasing = false;
 	GetWorldTimerManager().ClearTimer(FoundCheckTimer);
+	GetWorldTimerManager().ClearTimer(PathGuideTimer);
+	ResetPathGuide();
 
 	// 시골청년을 발견한 경우에는 청년을 지우지 않고 대화 흐름으로 넘긴다. 그 외에는 바로 제거한다.
 	if (Reason == ELCOChasingEndReason::FoundYouth && SpawnedYouth.IsValid())
@@ -373,6 +386,173 @@ void ALCOChasingManager::CheckFoundYouth()
 	}
 
 	EndChasing(ELCOChasingEndReason::FoundYouth);
+}
+
+void ALCOChasingManager::UpdatePathGuide()
+{
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	const ALCOSigolYouth* Youth = SpawnedYouth.Get();
+	if (!bIsChasing || !PlayerPawn || !Youth)
+	{
+		ResetPathGuide();
+		return;
+	}
+
+	const FVector PlayerLocation = PlayerPawn->GetActorLocation();
+
+	// 1) 플레이어가 지나간(가까이 간) 발자국은 지운다. 끝 위치(GuideTip)는 유지된다.
+	const float PassDistance = 80.f;
+	PlacedFootprints.RemoveAll([&PlayerLocation, PassDistance](const FPlacedFootprint& Footprint)
+	{
+		return FVector::Dist2D(Footprint.Location, PlayerLocation) < PassDistance;
+	});
+
+	// 2) 발자국이 끝나는 위치에서 이어서 그린다. 플레이어가 끝에서 GuideRange보다 멀면 새로 그리지 않는다.
+	const bool bCanExtend = !bGuideReachedYouth && (!bGuideStarted || FVector::Dist2D(PlayerLocation, GuideTip) <= GuideRange);
+	if (bCanExtend)
+	{
+		// 시작 전에는 플레이어 위치에서, 시작한 뒤에는 끝 위치에서 청년까지의 NavMesh 최단 경로를 구한다.
+		const FVector StartLocation = bGuideStarted ? GuideTip : PlayerLocation;
+		const UNavigationPath* Path = UNavigationSystemV1::FindPathToLocationSynchronously(GetWorld(), StartLocation, Youth->GetActorLocation());
+		if (Path && Path->IsValid() && Path->PathPoints.Num() >= 2)
+		{
+			const TArray<FVector>& Points = Path->PathPoints;
+			TArray<float> Cumulative;
+			Cumulative.Add(0.f);
+			for (int32 i = 1; i < Points.Num(); ++i)
+			{
+				Cumulative.Add(Cumulative.Last() + FVector::Dist(Points[i - 1], Points[i]));
+			}
+			const float TotalLength = Cumulative.Last();
+
+			// 경로상 거리 D에 해당하는 위치와 진행 방향
+			auto GetPointAtDistance = [&Points, &Cumulative](float Distance, FVector& OutLocation, FVector& OutDirection)
+			{
+				int32 Index = 0;
+				while (Index < Points.Num() - 2 && Cumulative[Index + 1] < Distance)
+				{
+					++Index;
+				}
+
+				const float SegmentLength = FMath::Max(Cumulative[Index + 1] - Cumulative[Index], KINDA_SMALL_NUMBER);
+				const float Alpha = FMath::Clamp((Distance - Cumulative[Index]) / SegmentLength, 0.f, 1.f);
+				OutLocation = FMath::Lerp(Points[Index], Points[Index + 1], Alpha);
+				OutDirection = (Points[Index + 1] - Points[Index]).GetSafeNormal();
+			};
+
+			// 처음에는 플레이어 바로 앞(MinAheadDistance)부터, 이후에는 끝에서 간격 만큼 떨어진 곳부터 찍는다.
+			const float MinAheadDistance = 100.f;
+			float Distance = bGuideStarted ? FootprintSpacing : MinAheadDistance;
+
+			for (int32 Guard = 0; Guard < 100; ++Guard)
+			{
+				// 청년 근처에 도달하면 그만 그린다.
+				if (Distance > TotalLength - FootprintSpacing * 0.5f)
+				{
+					bGuideReachedYouth = true;
+					break;
+				}
+
+				FVector Location, Direction;
+				GetPointAtDistance(Distance, Location, Direction);
+
+				// 플레이어에게서 GuideRange보다 멀어지면 여기서 멈춘다. (플레이어가 다가오면 이어서 그린다)
+				if (FVector::Dist2D(PlayerLocation, Location) > GuideRange)
+				{
+					break;
+				}
+
+				// Direction x Up은 진행 방향의 왼쪽이다. (언리얼은 앞 +X, 오른쪽 +Y, 위 +Z라서 X x Z = -Y = 왼쪽)
+				const FVector Left = FVector::CrossProduct(Direction, FVector::UpVector).GetSafeNormal();
+
+				FPlacedFootprint Footprint;
+				Footprint.Location = Location + Left * (bGuideNextLeft ? FootprintSideOffset : -FootprintSideOffset);
+				Footprint.Yaw = Direction.Rotation().Yaw + FootprintYawOffset;
+				Footprint.bLeft = bGuideNextLeft;
+				PlacedFootprints.Add(Footprint);
+
+				GuideTip = Location;
+				bGuideStarted = true;
+				bGuideNextLeft = !bGuideNextLeft;
+				Distance += FootprintSpacing;
+			}
+		}
+	}
+
+	// 머티리얼이 없으면 디버그 표시로 대신한다. (에셋이 나오기 전 확인용, 왼발 초록 / 오른발 파랑)
+	if (!FootprintMaterialLeft && !FootprintMaterialRight)
+	{
+#if ENABLE_DRAW_DEBUG
+		for (const FPlacedFootprint& Footprint : PlacedFootprints)
+		{
+			DrawDebugSphere(GetWorld(), Footprint.Location + FVector(0.f, 0.f, 5.f), 8.f, 8, Footprint.bLeft ? FColor::Green : FColor::Cyan, false, GuideUpdateInterval + 0.05f);
+		}
+#endif
+		return;
+	}
+
+	// 데칼을 필요한 만큼 만들어 재사용한다.
+	while (FootprintPool.Num() < PlacedFootprints.Num())
+	{
+		UDecalComponent* Decal = NewObject<UDecalComponent>(this);
+		Decal->DecalSize = FootprintDecalSize;
+		Decal->RegisterComponent();
+		FootprintPool.Add(Decal);
+	}
+
+	for (int32 i = 0; i < FootprintPool.Num(); ++i)
+	{
+		UDecalComponent* Decal = FootprintPool[i];
+		if (!Decal)
+		{
+			continue;
+		}
+
+		if (i < PlacedFootprints.Num())
+		{
+			const FPlacedFootprint& Footprint = PlacedFootprints[i];
+
+			// 왼발/오른발 머티리얼이 바뀔 때만 다시 지정한다. 한쪽만 있으면 그것을 쓴다.
+			UMaterialInterface* Material = Footprint.bLeft ? FootprintMaterialLeft.Get() : FootprintMaterialRight.Get();
+			if (!Material)
+			{
+				Material = FootprintMaterialLeft ? FootprintMaterialLeft.Get() : FootprintMaterialRight.Get();
+			}
+			if (Decal->GetDecalMaterial() != Material)
+			{
+				Decal->SetDecalMaterial(Material);
+			}
+
+			// 바닥에 투영되도록 아래를 향하게 한다.
+			Decal->SetWorldLocationAndRotation(Footprint.Location, FRotator(-90.f, Footprint.Yaw, 0.f));
+			Decal->SetVisibility(true);
+		}
+		else
+		{
+			Decal->SetVisibility(false);
+		}
+	}
+}
+
+void ALCOChasingManager::HidePathGuide()
+{
+	for (UDecalComponent* Decal : FootprintPool)
+	{
+		if (Decal)
+		{
+			Decal->SetVisibility(false);
+		}
+	}
+}
+
+void ALCOChasingManager::ResetPathGuide()
+{
+	PlacedFootprints.Empty();
+	GuideTip = FVector::ZeroVector;
+	bGuideStarted = false;
+	bGuideNextLeft = true;
+	bGuideReachedYouth = false;
+	HidePathGuide();
 }
 
 void ALCOChasingManager::BeginYouthEncounter()

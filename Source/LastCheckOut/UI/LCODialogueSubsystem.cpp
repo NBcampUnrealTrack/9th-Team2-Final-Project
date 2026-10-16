@@ -77,7 +77,23 @@ bool ULCODialogueSubsystem::StartDialogue(FName DialogueID, FName StartNodeID, A
 		return false;
 	}
 
-	return DialogueWidget->OpenDialogueByID(DialogueID, StartNodeID, Interactor);
+	if (DialogueID != FName(TEXT("WorkSenior")))
+	{
+		return DialogueWidget->OpenDialogueByID(DialogueID, StartNodeID, Interactor);
+	}
+
+	// Do not replace the transaction belonging to an already active conversation.
+	if (DialogueWidget->IsDialogueActive()) return false;
+	const bool bFirstCall = !CompletedFirstConversationNPCIds.Contains(DialogueID);
+	const FName CallStartNode = bFirstCall ? FName(TEXT("FIRST_001")) : FName(TEXT("SECOND_001"));
+	BeginDialogueProgressTransaction(DialogueID, bFirstCall);
+	if (!DialogueWidget->OpenDialogueByID(DialogueID, CallStartNode, Interactor, bFirstCall))
+	{
+		DiscardDialogueProgressTransaction(DialogueID);
+		return false;
+	}
+	// HandleDialogueClosed commits this transaction before broadcasting OnDialogueFinished.
+	return true;
 }
 
 void ULCODialogueSubsystem::HandlePossessedPawnChanged(APawn* OldPawn, APawn* NewPawn)

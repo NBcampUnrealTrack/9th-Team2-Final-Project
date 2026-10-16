@@ -1,4 +1,12 @@
 Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
+PHONE_CALL_OFFICE,회사에 전화하기,Call the Office,,,,,,,,
+PHONE_HANG_UP,수화기 내려놓기,Hang Up,,,,,,,,
+PHONE_SAVE_PENDING_ONE_DOT,보고 중.,Reporting.,報告中.,正在报告.,正在報告.,Informando.,Rapport en cours.,Bericht wird erstattet.,Relatando.,Raportoidaan.
+PHONE_SAVE_PENDING_TWO_DOTS,보고 중..,Reporting..,報告中..,正在报告..,正在報告..,Informando..,Rapport en cours..,Bericht wird erstattet..,Relatando..,Raportoidaan..
+PHONE_SAVE_PENDING,보고 중...,Reporting...,報告中...,正在报告...,正在報告...,Informando...,Rapport en cours...,Bericht wird erstattet...,Relatando...,Raportoidaan...
+PHONE_SAVE_SUCCESS,회사에 조사 상황을 보고했다.,I reported the investigation's progress to the company.,会社に調査状況を報告した。,已向公司报告调查情况。,已向公司報告調查情況。,Informé a la empresa del progreso de la investigación.,J'ai fait mon rapport à l'entreprise sur l'enquête.,Ich habe der Firma den Stand der Untersuchung gemeldet.,Relatei o andamento da investigação à empresa.,Raportoin tutkinnan edistymisestä yritykselle.
+PHONE_SAVE_FAILED,회사에 보고하지 못했다. 다시 시도해야겠다.,I couldn't report to the company. I'll have to try again.,会社に報告できなかった。もう一度試そう。,未能向公司报告。得再试一次。,未能向公司報告。得再試一次。,No pude informar a la empresa. Tendré que intentarlo de nuevo.,Je n'ai pas pu faire mon rapport à l'entreprise. Je devrai réessayer.,Ich konnte der Firma keinen Bericht erstatten. Ich muss es erneut versuchen.,Não consegui relatar à empresa. Terei que tentar novamente.,En saanut raportoitua yritykselle. Minun on yritettävä uudelleen.
+PHONE_REPORT_REST,그리고 당신은 잠시 숨을 고르며 피로를 풀었다.,And you took a moment to catch your breath and recover.,少し息を整えて疲れを癒やした。,稍作喘息缓解了疲劳。,稍作喘息緩解了疲勞。,Recuperé el aliento y descansé un momento.,J'ai repris mon souffle et me suis reposé un instant.,Ich habe kurz durchgeatmet und mich ausgeruht.,Recuperei o fôlego e descansei por um momento.,Vedähdin henkeä ja lepäsin hetken.
 INTERACT_OPEN_DOOR,문 열기,Open Door,ドアを開ける,开门,開門,Abrir puerta,Ouvrir la porte,Tür öffnen,Abrir porta,Avaa ovi
 INTERACT_CLOSE_DOOR,문 닫기,Close Door,ドアを閉める,关门,關門,Cerrar puerta,Fermer la porte,Tür schließen,Fechar porta,Sulje ovi
 INTERACT_EXAMINE,조사하기,Examine,調べる,调查,調查,Examinar,Examiner,Untersuchen,Examinar,Tutki

@@ -84,7 +84,7 @@ public:
 	// NPC 없이 대화 열기 (전화기 등). DialogueFlow_<DialogueID>.csv를 StartNodeID부터 재생
 	// 이미 대화 중이거나 CSV / 노드가 없으면 false
 	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
-	bool OpenDialogueByID(FName DialogueID, FName StartNodeID, AActor* InInteractor);
+	bool OpenDialogueByID(FName DialogueID, FName StartNodeID, AActor* InInteractor, bool bPlayFirstConversation = false);
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Dialogue")
 	bool IsDialogueActive() const { return !ActiveDialogueID.IsNone(); }
@@ -201,6 +201,8 @@ private:
 	bool ShouldRestoreGameOnlyInputMode(APlayerController* PC) const;
 	bool HasEvidenceToken(FName EvidenceID) const;
 	FText ResolveDialogueText(FName Key) const;
+	FText ReplaceDialogueKeyPlaceholders(const FText& LocalizedText) const;
+	FString ResolveDialogueKeyBinding(FName BindingName) const;
 	FText ResolveSpeakerName(FName SpeakerID) const;
 
 	// OpenDialogue / OpenDialogueByID 공통 처리. InNPC는 NPC 없는 대화면 nullptr

@@ -215,7 +215,7 @@ bool ULCODialogueWidget::OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, 
 	return OpenDialogueInternal(InNPC, InInteractor, InNPC->GetNPCId(), InitialNodeID, bPlayFirstConversation);
 }
 
-bool ULCODialogueWidget::OpenDialogueByID(FName DialogueID, FName StartNodeID, AActor* InInteractor)
+bool ULCODialogueWidget::OpenDialogueByID(FName DialogueID, FName StartNodeID, AActor* InInteractor, bool bPlayFirstConversation)
 {
 	if (DialogueID.IsNone() || StartNodeID.IsNone())
 	{
@@ -232,7 +232,7 @@ bool ULCODialogueWidget::OpenDialogueByID(FName DialogueID, FName StartNodeID, A
 		return false;
 	}
 
-	return OpenDialogueInternal(nullptr, InInteractor, DialogueID, StartNodeID, false);
+	return OpenDialogueInternal(nullptr, InInteractor, DialogueID, StartNodeID, bPlayFirstConversation);
 }
 
 bool ULCODialogueWidget::OpenDialogueInternal(ALCONPCBase* InNPC, AActor* InInteractor, FName DialogueID, FName InitialNodeID, bool bPlayFirstConversation)
@@ -681,16 +681,17 @@ void ULCODialogueWidget::ShowCurrentLine()
 	}
 
 	RefreshSpeakerPresentation(Node->SpeakerID);
+	const FText DisplayText = ReplaceDialogueKeyPlaceholders(ResolveDialogueText(Node->TextKey));
 
 	if (bAutoAdvanceActive)
 	{
 		// 연결 문구는 타이핑 없이 즉시 표시한다. 언어 변경으로 진행 타이머를 다시 시작하지 않는다.
 		bIsTypewriting = false;
-		if (Text_Dialogue) Text_Dialogue->SetText(ResolveDialogueText(Node->TextKey));
+		if (Text_Dialogue) Text_Dialogue->SetText(DisplayText);
 	}
 	else
 	{
-		StartTypewriter(ResolveDialogueText(Node->TextKey));
+		StartTypewriter(DisplayText);
 	}
 
 	// 증언 획득 (조건 검사 후 수첩 증언 탭에 자동 기록, 이미 있으면 무시)
@@ -1251,6 +1252,43 @@ FText ULCODialogueWidget::ResolveDialogueText(FName Key) const
 	}
 
 	return FText::FromName(Key);
+}
+
+FText ULCODialogueWidget::ReplaceDialogueKeyPlaceholders(const FText& LocalizedText) const
+{
+	struct FKeyPlaceholder
+	{
+		const TCHAR* Token;
+		FName BindingName;
+	};
+	const FKeyPlaceholder Placeholders[] =
+	{
+		{ TEXT("{퀵슬롯키}"), FName(TEXT("QuickSlot")) },
+		{ TEXT("{능력키}"), FName(TEXT("Sense")) },
+		{ TEXT("{수첩키}"), FName(TEXT("Notebook")) }
+	};
+	FString DisplayString = LocalizedText.ToString();
+	bool bReplaced = false;
+	for (const FKeyPlaceholder& Placeholder : Placeholders)
+	{
+		if (DisplayString.Contains(Placeholder.Token, ESearchCase::CaseSensitive))
+		{
+			DisplayString.ReplaceInline(Placeholder.Token, *ResolveDialogueKeyBinding(Placeholder.BindingName), ESearchCase::CaseSensitive);
+			bReplaced = true;
+		}
+	}
+	// Preserve the original FText, including its localization history, when no token is present.
+	return bReplaced ? FText::FromString(DisplayString) : LocalizedText;
+}
+
+FString ULCODialogueWidget::ResolveDialogueKeyBinding(FName BindingName) const
+{
+	// Future Enhanced Input lookup belongs here, using the owning local player's mappings.
+	// Keep these defaults as the fallback when no runtime mapping is available.
+	if (BindingName == FName(TEXT("QuickSlot"))) return TEXT("Q");
+	if (BindingName == FName(TEXT("Sense"))) return TEXT("Tab");
+	if (BindingName == FName(TEXT("Notebook"))) return TEXT("J");
+	return BindingName.ToString();
 }
 
 FText ULCODialogueWidget::ResolveSpeakerName(FName SpeakerID) const

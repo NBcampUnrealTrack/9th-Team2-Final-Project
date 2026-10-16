@@ -138,6 +138,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Dialogue|Voice")
 	TMap<FName, FLCODialogueVoiceSettings> VoiceSettingsByDialogueID;
 
+	// General dialogue: SpeakerID override. An entry with no Sound intentionally stays silent.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Dialogue|Voice")
+	TMap<FName, FLCODialogueVoiceSettings> VoiceSettingsBySpeakerID;
+
 	// WorkSenior phone dialogue only: keys are CSV SpeakerIDs (WorkSenior / Protagonist).
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Dialogue|Voice")
 	TMap<FName, FLCODialogueVoiceSettings> WorkSeniorVoiceSettingsBySpeakerID;

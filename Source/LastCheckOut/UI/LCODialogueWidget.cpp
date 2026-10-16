@@ -1269,6 +1269,17 @@ const FLCODialogueVoiceSettings* ULCODialogueWidget::GetActiveVoiceSettings() co
 		return WorkSeniorVoiceSettingsBySpeakerID.Find(Node->SpeakerID);
 	}
 
+	if (const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID))
+	{
+		if (Node->RowType == RowTypeLine)
+		{
+			if (const FLCODialogueVoiceSettings* SpeakerSettings = VoiceSettingsBySpeakerID.Find(Node->SpeakerID))
+			{
+				// Return the entry even without Sound: an explicit silent override must not fall back.
+				return SpeakerSettings;
+			}
+		}
+	}
 	return VoiceSettingsByDialogueID.Find(ActiveDialogueID);
 }
 

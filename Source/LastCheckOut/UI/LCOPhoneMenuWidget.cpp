@@ -58,10 +58,22 @@ void ULCOPhoneMenuWidget::HandleLanguageChanged(FName Language)
 
 void ULCOPhoneMenuWidget::RefreshMenuTexts()
 {
+	if (Txt_MenuTitle)
+	{
+		Txt_MenuTitle->SetText(ResolveFeedbackText(TEXT("PHONE_TITLE"),
+			NSLOCTEXT("LCOPhoneMenu", "Title", "전화기")));
+	}
 	SetPhoneButtonText(Btn_Call, ResolveFeedbackText(TEXT("PHONE_CALL_OFFICE"),
 		NSLOCTEXT("LCOPhoneMenu", "CallOffice", "회사에 전화하기")));
 	SetPhoneButtonText(Btn_Cancel, ResolveFeedbackText(TEXT("PHONE_HANG_UP"),
 		NSLOCTEXT("LCOPhoneMenu", "HangUp", "수화기 내려놓기")));
+	OriginalDescription = ResolveFeedbackText(TEXT("PHONE_DESCRIPTION"),
+		NSLOCTEXT("LCOPhoneMenu", "Description", "평범한 전화기다."));
+	// Keep report/save/rest text intact when the language changes during that sequence.
+	if (Txt_Description && !IsSaveFeedbackActive() && !bWaitingForCall)
+	{
+		Txt_Description->SetText(OriginalDescription);
+	}
 	if (Btn_Save) Btn_Save->SetVisibility(ESlateVisibility::Collapsed);
 }
 

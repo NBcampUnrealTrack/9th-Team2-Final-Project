@@ -1,0 +1,11 @@
+NodeID,RowType,SpeakerID,TextKey,NextNodeID,ChoiceID,ChoiceTextKey,ChoiceTargetNodeID,Condition,EndConversation,UnlockFlag,ReportKeyword
+FIRST_01,Line,FrontDesk,FRONTDESK_FIRST_01,,,,,,true,,
+DEFAULT_01,Line,FrontDesk,FRONTDESK_DEFAULT_01,DEFAULT_CHOICES,,,,,false,,
+DEFAULT_CHOICES,Choice,FrontDesk,,,T06,FRONTDESK_CHOICE_T06,T06_01,E01,false,,
+T06_01,Line,FrontDesk,FRONTDESK_T06_01,DEFAULT_CHOICES,,,,,false,T06,
+DEFAULT_CHOICES,Choice,FrontDesk,,,T10,FRONTDESK_CHOICE_T10,T10_01,E03,false,,
+T10_01,Line,FrontDesk,FRONTDESK_T10_01,DEFAULT_CHOICES,,,,,false,T10,
+DEFAULT_CHOICES,Choice,FrontDesk,,,T11,FRONTDESK_CHOICE_T11,T11_01,T09,false,,
+T11_01,Line,FrontDesk,FRONTDESK_T11_01,DEFAULT_CHOICES,,,,,false,T11,
+DEFAULT_CHOICES,Choice,FrontDesk,,,BYE,FRONTDESK_CHOICE_BYE,BYE_01,,false,,
+BYE_01,Line,FrontDesk,FRONTDESK_BYE_01,,,,,,true,,

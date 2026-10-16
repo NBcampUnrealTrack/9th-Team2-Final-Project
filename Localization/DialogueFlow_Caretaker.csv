@@ -1,0 +1,7 @@
+NodeID,RowType,SpeakerID,TextKey,NextNodeID,ChoiceID,ChoiceTextKey,ChoiceTargetNodeID,Condition,EndConversation,UnlockFlag,ReportKeyword
+FIRST_01,Line,Caretaker,CARETAKER_FIRST_01,,,,,,true,,
+DEFAULT_01,Line,Caretaker,CARETAKER_DEFAULT_01,DEFAULT_CHOICES,,,,,false,,
+DEFAULT_CHOICES,Choice,Caretaker,,,T05,CARETAKER_CHOICE_T05,T05_01,E02,false,,
+T05_01,Line,Caretaker,CARETAKER_T05_01,DEFAULT_CHOICES,,,,,false,T05,
+DEFAULT_CHOICES,Choice,Caretaker,,,BYE,CARETAKER_CHOICE_BYE,BYE_01,,false,,
+BYE_01,Line,Caretaker,CARETAKER_BYE_01,,,,,,true,,

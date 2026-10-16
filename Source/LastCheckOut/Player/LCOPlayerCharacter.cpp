@@ -19,6 +19,7 @@
 #include "EngineUtils.h"
 #include "TimerManager.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/CollisionProfile.h"
 
 ALCOPlayerCharacter::ALCOPlayerCharacter()
 {
@@ -45,6 +46,16 @@ ALCOPlayerCharacter::ALCOPlayerCharacter()
 	SuspicionComponent = CreateDefaultSubobject<USuspicionComponent>(TEXT("SuspicionComponent"));
 	QuickSlotComponent = CreateDefaultSubobject<ULCOQuickSlotComponent>(TEXT("QuickSlot"));
 	HidingComponent = CreateDefaultSubobject<ULCOHidingComponent>(TEXT("Hiding"));
+	// 1인칭 전용 몸 메시 (내 화면에서만 보임, 3인칭 메시 포즈를 복사)
+	FirstPersonMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+	FirstPersonMesh->SetupAttachment(GetMesh());
+	FirstPersonMesh->SetOnlyOwnerSee(true);
+	FirstPersonMesh->FirstPersonPrimitiveType = EFirstPersonPrimitiveType::FirstPerson;
+	FirstPersonMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	FirstPersonMesh->CastShadow = false; // 그림자는 3인칭 메시가 담당
+	// 1인칭 메시는 별도 시야각 / 크기로 그려서 벽에 팔이 파묻히지 않게 함
+	Camera->bEnableFirstPersonFieldOfView = true;
+	Camera->bEnableFirstPersonScale = true;
 	HeldCameraMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeldCameraMesh"));
 	HeldCameraMesh->SetupAttachment(GetMesh());
 	HeldCameraMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -77,8 +88,9 @@ void ALCOPlayerCharacter::BeginPlay()
 	// BP에서 바꾼 값 반영
 	UpdateMoveSpeed();
 	Camera->SetFieldOfView(DefaultFOV);
-	// BP에서 바꾼 소켓 반영 (BP에서 조정한 오프셋 유지)
-	HeldCameraMesh->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, HeldCameraSocket);
+	// 1인칭 팔 시야각 / 크기 (BP 값 반영)
+	Camera->SetFirstPersonFieldOfView(FirstPersonArmsFOV);
+	Camera->SetFirstPersonScale(FirstPersonArmsScale);
 
 	QuickSlotComponent->OnCameraEquipChanged.AddDynamic(this, &ALCOPlayerCharacter::HandleCameraEquipChanged);
 	SetViewMode(DefaultViewMode);
@@ -280,10 +292,12 @@ void ALCOPlayerCharacter::SetViewMode(ELCOViewMode NewMode)
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->bUseControllerDesiredRotation = !bFirstPerson;
 
-	// 1인칭에서는 내 화면에서 내 메시 숨김 (카메라가 머리 안에 들어가는 문제 방지)
+	// 1인칭: 1인칭 메시(팔)만 내 화면에 보이고, 3인칭 메시는 숨김 (그림자는 3인칭 메시가 계속 담당)
 	GetMesh()->SetOwnerNoSee(bFirstPerson);
-	// 1인칭에서는 몸과 함께 손 카메라도 숨김 (그림자는 유지)
-	HeldCameraMesh->SetOwnerNoSee(bFirstPerson);
+	FirstPersonMesh->SetVisibility(bFirstPerson);
+
+	// 손 카메라를 시점에 맞는 손에 부착
+	AttachHeldCamera();
 }
 
 void ALCOPlayerCharacter::UpdateCameraFOV(float DeltaSeconds)
@@ -742,4 +756,19 @@ void ALCOPlayerCharacter::HandleHidingChanged(bool bIsHiding, ALCOHidingSpot* Hi
 		GetWorldTimerManager().ClearTimer(SenseHoldTimer);
 		UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Sense canceled (hiding)"));
 	}
+}
+
+// ---------- 1인칭 팔 ----------
+
+void ALCOPlayerCharacter::AttachHeldCamera()
+{
+	const bool bFirstPerson = (ViewMode == ELCOViewMode::FirstPerson);
+
+	// BP에서 조정한 상대 위치 / 회전은 유지한 채 손만 바꿈
+	USkeletalMeshComponent* HandMesh = bFirstPerson ? FirstPersonMesh.Get() : GetMesh();
+	HeldCameraMesh->AttachToComponent(HandMesh, FAttachmentTransformRules::KeepRelativeTransform, HeldCameraSocket);
+
+	// 1인칭에서는 팔과 같은 방식으로 그려야 손에 붙어 보임 (시야각 / 크기 동일)
+	HeldCameraMesh->SetFirstPersonPrimitiveType(bFirstPerson ? EFirstPersonPrimitiveType::FirstPerson : EFirstPersonPrimitiveType::None);
+	HeldCameraMesh->SetOwnerNoSee(false);
 }

@@ -36,6 +36,19 @@ struct FLCOPlayerCarryData
 	UPROPERTY()
 	ELCOViewMode ViewMode = ELCOViewMode::FirstPerson;
 
+	// 버프 (커피 등). 남은 시간이 0이면 버프 없음 → 새 맵에서 남은 시간만큼 다시 적용
+	UPROPERTY()
+	float MoveSpeedBuffAmount = 0.f;
+
+	UPROPERTY()
+	float MoveSpeedBuffRemainingTime = 0.f;
+
+	UPROPERTY()
+	int32 MaxStaminaBuffAmount = 0;
+
+	UPROPERTY()
+	float MaxStaminaBuffRemainingTime = 0.f;
+
 	// 보관된 데이터가 있는지
 	UPROPERTY()
 	bool bHasData = false;

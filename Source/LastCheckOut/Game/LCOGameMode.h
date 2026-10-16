@@ -46,6 +46,14 @@ protected:
 	// 2막 시작 맵에서 도착할 PlayerStart 태그 (별관 407호 앞)
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|Story")
 	FName Chapter2StartTag = TEXT("Room407");
+
+	// END 3 등 엔딩 후 돌아갈 메인 메뉴 맵 (프로토타입: 엔딩 화면 대신 메인 메뉴로 복귀)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Story")
+	TSoftObjectPtr<UWorld> MainMenuLevel;
+
+	// END 3 판정 후 메인 메뉴로 이동하기까지 기다리는 시간
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Story", meta = (ClampMin = "0.0", Units = "s"))
+	float End3ReturnDelay = 1.f;
 	
 private:
 	void InitializeCurrentMap();
@@ -67,4 +75,9 @@ private:
 
 	// 맵 주소에 AutoSave 옵션이 붙어 왔으면 자동 저장 (HandleMatchHasStarted에서 호출)
 	void TryAutoSaveOnArrival();
+
+	// 메인 메뉴로 이동 (END 3 후). 저장하지 않음 → 이어하기는 마지막 저장 시점부터
+	void ReturnToMainMenu();
+
+	FTimerHandle ReturnToMainMenuTimer;
 };

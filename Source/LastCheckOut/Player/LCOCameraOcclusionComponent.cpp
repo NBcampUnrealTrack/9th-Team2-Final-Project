@@ -92,12 +92,18 @@ void ULCOCameraOcclusionComponent::SetSelfHidden(bool bHide)
 	GetOwner()->GetComponents<UMeshComponent>(Meshes);
 	for (UMeshComponent* Mesh : Meshes)
 	{
+		// 1인칭 팔 / 손 카메라는 카메라 가림 처리에서 제외 (1인칭에서도 보여야 함)
+		if (Mesh->FirstPersonPrimitiveType == EFirstPersonPrimitiveType::FirstPerson)
+		{
+			continue;
+		}
 		SetRenderHidden(Mesh, bHide);
 	}
 }
 
 void ULCOCameraOcclusionComponent::SetSelfOpacity(float Opacity)
 {
+	// 1인칭 팔 / 손 카메라는 카메라 가림 처리에서 제외 (1인칭에서도 보여야 함)
 	if (SelfOpacity == Opacity || !GetOwner())
 	{
 		return;
@@ -110,6 +116,11 @@ void ULCOCameraOcclusionComponent::SetSelfOpacity(float Opacity)
 	GetOwner()->GetComponents<UMeshComponent>(Meshes);
 	for (UMeshComponent* Mesh : Meshes)
 	{
+		// 1인칭 팔 / 손 카메라는 카메라 가림 처리에서 제외 (1인칭에서도 보여야 함)
+		if (Mesh->FirstPersonPrimitiveType == EFirstPersonPrimitiveType::FirstPerson)
+		{
+			continue;
+		}
 		Mesh->SetScalarParameterValueOnMaterials(FadeParamName, SelfOpacity);
 	}
 }

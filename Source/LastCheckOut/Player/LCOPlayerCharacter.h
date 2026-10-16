@@ -97,6 +97,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "LCO|Camera")
 	ULCOCameraCaptureComponent* GetCameraCapture() const { return CameraCaptureComponent; }
 	
+	UFUNCTION(BlueprintPure, Category = "LCO|Camera")
+   	USkeletalMeshComponent* GetFirstPersonMesh() const { return FirstPersonMesh; }
+	
 	UFUNCTION(BlueprintPure, Category = "LCO|Hiding")
 	ULCOHidingComponent* GetHiding() const { return HidingComponent; }
 
@@ -168,6 +171,13 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Buff")
 	float GetMaxStaminaBuffRemainingTime() const;
+	
+	// 현재 적용 중인 버프 수치. 버프가 없으면 0 (맵 이동 시 버프 유지용, LCOGameMode에서 사용)
+	UFUNCTION(BlueprintPure, Category = "LCO|Buff")
+	float GetMoveSpeedBuffAmount() const { return MoveSpeedBonus; }
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Buff")
+	int32 GetMaxStaminaBuffAmount() const { return MaxStaminaBonus; }
 	
 		// 버프 화면 효과 진행도 0 ~ 1 (시작 / 종료 시 BuffEffectBlendTime 동안 서서히 변함). BP 추가 연출용
 	UFUNCTION(BlueprintPure, Category = "LCO|Buff")
@@ -262,6 +272,8 @@ protected:
 	// 웅크리기 / 일어서기에 맞춰 카메라 높이를 부드럽게 변경
 	void UpdateCameraHeight(float DeltaSeconds);
 	void ApplyCameraHeight();
+	// 시점에 맞는 메시의 손에 손 카메라 부착 (1인칭: 1인칭 메시 / 3인칭: 3인칭 메시)
+	void AttachHeldCamera();
 
 	// 달리기 조건(Shift, 이동 중, 지면, 스태미나)을 확인해서 상태 갱신
 	void UpdateSprint();
@@ -332,6 +344,10 @@ protected:
 	// 숨기 (옷장 등 LCOHidingSpot과 상호작용). 숨은 상태에서는 상호작용 키가 나오기로 동작
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hiding")
 	TObjectPtr<ULCOHidingComponent> HidingComponent;
+	
+		// 1인칭 전용 몸 메시 (내 화면에서만 보임). ABP_FP_Copy로 3인칭 메시 포즈를 복사해서 팔이 보이게 함
+    	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mesh")
+    	TObjectPtr<USkeletalMeshComponent> FirstPersonMesh;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UStaticMeshComponent> HeldCameraMesh;
@@ -430,7 +446,15 @@ protected:
 	// 감각(Tab) 홀드 중 줄어드는 시야각 (줌인). 홀드 진행도에 따라 점점 줌인, 발동 / 취소되면 원래대로 풀림
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FOV")
 	float SenseZoomFOV = 25.f;
-
+	
+	// 1인칭 팔을 그릴 때 쓰는 시야각 (카메라 FOV와 별개라 줌인해도 팔은 그대로)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FirstPerson")
+    float FirstPersonArmsFOV = 70.f;
+    
+    // 1인칭 팔 크기 (작을수록 벽에 덜 파묻힘)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FirstPerson", meta = (ClampMin = "0.01", ClampMax = "1.0"))
+    float FirstPersonArmsScale = 0.6f;
+	
 	// ---------- 버프 화면 효과 ----------
 	// 버프 시작 / 종료 시 효과가 완전히 켜지거나 꺼지는 데 걸리는 시간(초)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|BuffEffect", meta = (ClampMin = "0.01"))

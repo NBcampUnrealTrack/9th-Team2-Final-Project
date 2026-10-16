@@ -1,0 +1,7 @@
+NodeID,RowType,SpeakerID,TextKey,NextNodeID,ChoiceID,ChoiceTextKey,ChoiceTargetNodeID,Condition,EndConversation,UnlockFlag,ReportKeyword
+FIRST_01,Line,Bellboy,BELLBOY_FIRST_01,,,,,,true,,
+DEFAULT_01,Line,Bellboy,BELLBOY_DEFAULT_01,DEFAULT_CHOICES,,,,,false,,
+DEFAULT_CHOICES,Choice,Bellboy,,,T04,BELLBOY_CHOICE_T04,T04_01,E01,false,,
+T04_01,Line,Bellboy,BELLBOY_T04_01,DEFAULT_CHOICES,,,,,false,T04,
+DEFAULT_CHOICES,Choice,Bellboy,,,BYE,BELLBOY_CHOICE_BYE,BYE_01,,false,,
+BYE_01,Line,Bellboy,BELLBOY_BYE_01,,,,,,true,,

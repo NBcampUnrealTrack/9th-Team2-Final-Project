@@ -11,6 +11,7 @@
 #include "Interaction/LCOContainer.h"
 #include "Interaction/LCODoor.h"
 #include "Interaction/LCOInteractComponent.h"
+#include "Interaction/LCOPhone.h"
 #include "Localization/LCOLocalizationSubsystem.h"
 #include "NPC/LCONPCBase.h"
 #include "Player/LCOPlayerCharacter.h"
@@ -517,6 +518,16 @@ FText ULCOInteractionPromptSubsystem::GetPromptText(ULCOInteractComponent* Focus
 	}
 
 	AActor* InteractionTarget = FocusedComponent->GetInteractionTarget();
+	if (Cast<ALCOPhone>(InteractionTarget ? InteractionTarget : FocusedActor))
+	{
+		if (LocalizationSubsystem)
+		{
+			const FName TextKey(TEXT("INTERACT_USE_PHONE"));
+			const FText LocalizedPrompt = LocalizationSubsystem->GetUIText(TextKey);
+			if (!LocalizedPrompt.IsEmpty() && LocalizedPrompt.ToString() != TextKey.ToString()) return LocalizedPrompt;
+		}
+		return FocusedComponent->GetInteractPrompt(Interactor);
+	}
 	if (Cast<ALCONPCBase>(InteractionTarget ? InteractionTarget : FocusedActor))
 	{
 		return LocalizationSubsystem

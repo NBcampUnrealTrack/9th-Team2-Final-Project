@@ -259,7 +259,6 @@ bool ALCOGameMode::CapturePlayerCarryData(FLCOPlayerCarryData& OutData) const
 
 	// 시점
 	OutData.ViewMode = Player->GetViewMode();
-
 	return true;
 }
 
@@ -314,7 +313,6 @@ void ALCOGameMode::RestorePlayerCarryData()
 
 	// 3) 시점
 	Player->SetViewMode(Data.ViewMode);
-
 	// Log Test
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] RestorePlayerCarryData: Items = %d"), Data.InventorySlots.Num());
 }
@@ -394,14 +392,46 @@ void ALCOGameMode::HandleReportResolved(ELCOStoryFlag PresentedKeyword, ELCORepo
 		break;
 
 	case ELCOReportResult::End3:
-		// 엔딩 화면은 UI가 OnReportResolved로 처리
-		// 진행 상태를 바꾸지 않았으므로 엔딩 후 그대로 이어서 진행 = 보고 직전 상태
-		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] END 3 reached (state unchanged)"));
+		// 프로토타입: 엔딩 화면 대신 End3ReturnDelay 후 메인 메뉴로 이동 (저장하지 않음)
+		// 진행 상태를 바꾸지 않았으므로 이어하기 = 마지막 저장 시점
+		// TODO: UI 담당 END 3 화면이 완성되면 화면 표시 후 이동으로 변경
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] END 3 reached -> Return to main menu in %.1fs"), End3ReturnDelay);
+		if (End3ReturnDelay > 0.f)
+		{
+			GetWorldTimerManager().SetTimer(ReturnToMainMenuTimer, this, &ThisClass::ReturnToMainMenu, End3ReturnDelay, false);
+		}
+		else
+		{
+			ReturnToMainMenu();
+		}
 		break;
 
 	default:
 		break;
 	}
+}
+
+void ALCOGameMode::ReturnToMainMenu()
+{
+	if (MainMenuLevel.IsNull())
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] ReturnToMainMenu: MainMenuLevel not set (GameMode BP Class Defaults)"));
+		return;
+	}
+
+	// 일시정지 상태로 레벨을 넘기지 않도록 해제
+	UGameplayStatics::SetGamePaused(this, false);
+
+	// 메인 메뉴 복귀 시 시작 방식 초기화 (일시정지 메뉴의 메인 메뉴 버튼과 같은 처리)
+	if (ULCOGameInstance* LCOGameInstance = GetGameInstance<ULCOGameInstance>())
+	{
+		LCOGameInstance->ResetStartMode();
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ReturnToMainMenu: Open %s"), *MainMenuLevel.ToString());
+
+	UGameplayStatics::OpenLevelBySoftObjectPtr(this, MainMenuLevel);
 }
 
 void ALCOGameMode::TryAutoSaveOnArrival()

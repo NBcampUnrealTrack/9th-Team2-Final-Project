@@ -14,6 +14,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Notebook/NotebookComponent.h"
+#include "Notebook/LCONotebookSubsystem.h"
 #include "NPC/LCONPCBase.h"
 #include "Player/LCOPlayerController.h"
 #include "Serialization/Csv/CsvParser.h"
@@ -32,6 +33,7 @@ namespace
 	const FName ProtagonistSpeakerID = TEXT("Protagonist");
 	const FName FirstNodeID = TEXT("FIRST_01");
 	const FName DefaultNodeID = TEXT("DEFAULT_01");
+	const FName NoQuestionsNodeID = TEXT("__LCO_NO_QUESTIONS__");
 	const FName EndNodeID = TEXT("END");
 
 	bool IsHighSurrogate(TCHAR Character)
@@ -215,7 +217,7 @@ bool ULCODialogueWidget::OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, 
 	return OpenDialogueInternal(InNPC, InInteractor, InNPC->GetNPCId(), InitialNodeID, bPlayFirstConversation);
 }
 
-bool ULCODialogueWidget::OpenDialogueByID(FName DialogueID, FName StartNodeID, AActor* InInteractor)
+bool ULCODialogueWidget::OpenDialogueByID(FName DialogueID, FName StartNodeID, AActor* InInteractor, bool bPlayFirstConversation)
 {
 	if (DialogueID.IsNone() || StartNodeID.IsNone())
 	{
@@ -232,7 +234,7 @@ bool ULCODialogueWidget::OpenDialogueByID(FName DialogueID, FName StartNodeID, A
 		return false;
 	}
 
-	return OpenDialogueInternal(nullptr, InInteractor, DialogueID, StartNodeID, false);
+	return OpenDialogueInternal(nullptr, InInteractor, DialogueID, StartNodeID, bPlayFirstConversation);
 }
 
 bool ULCODialogueWidget::OpenDialogueInternal(ALCONPCBase* InNPC, AActor* InInteractor, FName DialogueID, FName InitialNodeID, bool bPlayFirstConversation)
@@ -265,6 +267,17 @@ bool ULCODialogueWidget::OpenDialogueInternal(ALCONPCBase* InNPC, AActor* InInte
 		ActiveFlow = FLCODialogueFlow();
 		bActiveDialogueStartedAsFirstConversation = false;
 		return false;
+	}
+
+	if (IsValid(InNPC) && !bPlayFirstConversation)
+	{
+		// Register before playback so switching to this line never invalidates pointers into Nodes.
+		FLCODialogueNode Fallback;
+		Fallback.NodeID = NoQuestionsNodeID;
+		Fallback.RowType = RowTypeLine;
+		Fallback.TextKey = TEXT("NPC_NO_QUESTIONS");
+		Fallback.bEndConversation = true;
+		ActiveFlow.Nodes.Add(NoQuestionsNodeID, MoveTemp(Fallback));
 	}
 
 	if (!IsInViewport())
@@ -374,13 +387,27 @@ void ULCODialogueWidget::HandleChoiceSelected(FName ChoiceID)
 		return;
 	}
 
-	if (IsEndNode(*TargetNodeID))
+	FName SelectedTarget = *TargetNodeID;
+	const FLCODialogueNode* ChoiceNode = ActiveFlow.Nodes.Find(ActiveNodeID);
+	const FLCODialogueChoiceRow* Choice = ChoiceNode ? ChoiceNode->Choices.FindByPredicate([ChoiceID](const FLCODialogueChoiceRow& Row)
+	{
+		return Row.ChoiceID == ChoiceID;
+	}) : nullptr;
+	if (Choice)
+	{
+		if (!Choice->AlternateCondition.IsNone() && IsConditionMet(Choice->AlternateCondition))
+		{
+			SelectedTarget = Choice->AlternateTargetNodeID;
+		}
+	}
+
+	if (IsEndNode(SelectedTarget))
 	{
 		CompleteActiveConversation();
 		return;
 	}
 
-	StartNode(*TargetNodeID);
+	StartNode(SelectedTarget);
 }
 
 bool ULCODialogueWidget::LoadFlowForDialogueID(FName DialogueID)
@@ -471,6 +498,7 @@ bool ULCODialogueWidget::LoadFlowForDialogueID(FName DialogueID)
 			Node.bEndConversation = CsvCellAsBool(CsvRow, ColumnIndices, TEXT("EndConversation"));
 			// 선택 열 (없는 CSV는 그대로 동작)
 			Node.UnlockFlag = CsvCellAsName(CsvRow, ColumnIndices, TEXT("UnlockFlag"));
+			Node.ReportKeyword = CsvCellAsName(CsvRow, ColumnIndices, TEXT("ReportKeyword"));
 			Node.AutoAdvanceSeconds = CsvCellAsDuration(CsvRow, ColumnIndices, TEXT("AutoAdvanceSeconds"));
 			ValidateDialogueTextKey(Node.TextKey, FString::Printf(TEXT("%s row %d"), *FlowPath, RowIndex + 1));
 			ActiveFlow.Nodes.Add(NodeID, MoveTemp(Node));
@@ -500,6 +528,8 @@ bool ULCODialogueWidget::LoadFlowForDialogueID(FName DialogueID)
 			Choice.ChoiceTextKey = CsvCellAsName(CsvRow, ColumnIndices, TEXT("ChoiceTextKey"));
 			Choice.ChoiceTargetNodeID = CsvCellAsName(CsvRow, ColumnIndices, TEXT("ChoiceTargetNodeID"));
 			Choice.Condition = CsvCellAsName(CsvRow, ColumnIndices, TEXT("Condition"));
+			Choice.AlternateCondition = CsvCellAsName(CsvRow, ColumnIndices, TEXT("AlternateCondition"));
+			Choice.AlternateTargetNodeID = CsvCellAsName(CsvRow, ColumnIndices, TEXT("AlternateTargetNodeID"));
 			Choice.bEndConversation = CsvCellAsBool(CsvRow, ColumnIndices, TEXT("EndConversation"));
 
 			if (Choice.ChoiceID.IsNone())
@@ -518,6 +548,12 @@ bool ULCODialogueWidget::LoadFlowForDialogueID(FName DialogueID)
 					*NodeID.ToString(),
 					RowIndex + 1,
 					*FlowPath);
+			}
+			if (Choice.AlternateCondition.IsNone() != Choice.AlternateTargetNodeID.IsNone())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] Choice '%s' requires both AlternateCondition and AlternateTargetNodeID: %s"),
+				*Choice.ChoiceID.ToString(), *FlowPath);
+				return false;
 			}
 
 			if (Node->Choices.ContainsByPredicate([&Choice](const FLCODialogueChoiceRow& ExistingChoice)
@@ -574,6 +610,13 @@ bool ULCODialogueWidget::LoadFlowForDialogueID(FName DialogueID)
 						*Node.NodeID.ToString(),
 						*Choice.ChoiceTargetNodeID.ToString(),
 						*FlowPath);
+				}
+				if (!Choice.AlternateTargetNodeID.IsNone() && !IsEndNode(Choice.AlternateTargetNodeID)
+					&& !ActiveFlow.Nodes.Contains(Choice.AlternateTargetNodeID))
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] Choice '%s' points to missing alternate node '%s': %s"),
+						*Choice.ChoiceID.ToString(), *Choice.AlternateTargetNodeID.ToString(), *FlowPath);
+					return false;
 				}
 			}
 		}
@@ -636,6 +679,8 @@ void ULCODialogueWidget::StartNode(FName NodeID)
 		return;
 	}
 
+	if (TryStartNoQuestionsDialogue(*Node)) return;
+
 	ActiveNodeID = NodeID;
 	SetChoicesVisible(false);
 	VisibleChoiceTargets.Empty();
@@ -681,16 +726,17 @@ void ULCODialogueWidget::ShowCurrentLine()
 	}
 
 	RefreshSpeakerPresentation(Node->SpeakerID);
+	const FText DisplayText = ReplaceDialogueKeyPlaceholders(ResolveDialogueText(Node->TextKey));
 
 	if (bAutoAdvanceActive)
 	{
 		// 연결 문구는 타이핑 없이 즉시 표시한다. 언어 변경으로 진행 타이머를 다시 시작하지 않는다.
 		bIsTypewriting = false;
-		if (Text_Dialogue) Text_Dialogue->SetText(ResolveDialogueText(Node->TextKey));
+		if (Text_Dialogue) Text_Dialogue->SetText(DisplayText);
 	}
 	else
 	{
-		StartTypewriter(ResolveDialogueText(Node->TextKey));
+		StartTypewriter(DisplayText);
 	}
 
 	// 증언 획득 (조건 검사 후 수첩 증언 탭에 자동 기록, 이미 있으면 무시)
@@ -768,8 +814,30 @@ void ULCODialogueWidget::ClearAutoAdvanceTimer()
 
 void ULCODialogueWidget::CompleteActiveConversation()
 {
+	const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID);
+	const FName ReportKeyword = ActiveDialogueID == FName(TEXT("Manager")) && Node
+		? Node->ReportKeyword : NAME_None;
+	const bool bHasReportEvidence = !ReportKeyword.IsNone() && IsConditionMet(ReportKeyword);
 	bActiveDialogueCompletedNormally = true;
 	CloseDialogue(true);
+
+	// Finish the dialogue and commit its progress before an existing report API can travel/save.
+	if (bHasReportEvidence && ReportKeyword == FName(TEXT("K05")))
+	{
+		if (ULCOStorySubsystem* Story = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>())
+		{
+			if (Story->CanReportToManager(ELCOStoryFlag::K05))
+			{
+				Story->ReportToManager(ELCOStoryFlag::K05);
+			}
+		}
+	}
+	else if (ReportKeyword == FName(TEXT("K07")))
+	{
+		// The existing API blocks END 3 when K03 is owned and has no ending checkpoint UI.
+		// Keep this branch as a dialogue skeleton until that external contract is updated.
+		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] Manager K07 report is not connected: END 3/checkpoint integration required"));
+	}
 }
 
 void ULCODialogueWidget::EndActiveConversation()
@@ -893,10 +961,47 @@ int32 ULCODialogueWidget::GetNextTypewriterIndex() const
 	return FMath::Min(NextIndex, FullTypewriterString.Len());
 }
 
+bool ULCODialogueWidget::IsExitChoice(const FLCODialogueChoiceRow& Choice) const
+{
+	// Support the existing BYE -> BYE_01 convention and explicit end choices.
+	return Choice.ChoiceID == FName(TEXT("BYE")) || Choice.bEndConversation || IsEndNode(Choice.ChoiceTargetNodeID);
+}
+
+bool ULCODialogueWidget::HasAvailableQuestions(const FLCODialogueNode& ChoiceNode) const
+{
+	return ChoiceNode.Choices.ContainsByPredicate([this](const FLCODialogueChoiceRow& Choice)
+	{
+		return !IsExitChoice(Choice) && IsConditionMet(Choice.Condition);
+	});
+}
+
+bool ULCODialogueWidget::TryStartNoQuestionsDialogue(const FLCODialogueNode& Node)
+{
+	// Only NPC repeat conversations with an actual choice step use this fallback.
+	// Phone dialogue, first conversations and ordinary line-only sequences retain their flow.
+	if (!ActiveNPC.IsValid() || bActiveDialogueStartedAsFirstConversation || Node.bEndConversation) return false;
+	const FLCODialogueNode* ChoiceNode = Node.RowType == RowTypeChoice ? &Node : nullptr;
+	if (Node.RowType == RowTypeLine && Node.UnlockFlag.IsNone() && Node.ReportKeyword.IsNone())
+	{
+		const FLCODialogueNode* NextNode = ActiveFlow.Nodes.Find(Node.NextNodeID);
+		if (NextNode && NextNode->RowType == RowTypeChoice) ChoiceNode = NextNode;
+	}
+	if (!ChoiceNode || HasAvailableQuestions(*ChoiceNode)) return false;
+
+	// Feed a side-effect-free terminal line through the existing typewriter/normal-close path.
+	FLCODialogueNode* Fallback = ActiveFlow.Nodes.Find(NoQuestionsNodeID);
+	if (!Fallback) return false;
+	Fallback->SpeakerID = Node.SpeakerID.IsNone() ? ActiveDialogueID : Node.SpeakerID;
+	StartNode(NoQuestionsNodeID);
+	return true;
+}
+
 void ULCODialogueWidget::RefreshChoices()
 {
 	if (!ChoicesPanel)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] Cannot display choices: ChoicesPanel is not bound (Dialogue=%s Node=%s Widget=%s)"),
+			*ActiveDialogueID.ToString(), *ActiveNodeID.ToString(), *GetClass()->GetPathName());
 		return;
 	}
 
@@ -912,6 +1017,7 @@ void ULCODialogueWidget::RefreshChoices()
 		SetChoicesVisible(false);
 		return;
 	}
+	if (TryStartNoQuestionsDialogue(*Node)) return;
 
 	RefreshSpeakerPresentation(Node->SpeakerID);
 
@@ -933,6 +1039,8 @@ void ULCODialogueWidget::RefreshChoices()
 		ULCODialogueChoiceWidget* ChoiceWidget = CreateWidget<ULCODialogueChoiceWidget>(GetOwningPlayer(), LoadedChoiceWidgetClass);
 		if (!ChoiceWidget)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] Failed to create choice '%s' using %s"),
+				*Choice.ChoiceID.ToString(), *LoadedChoiceWidgetClass->GetPathName());
 			continue;
 		}
 
@@ -952,6 +1060,15 @@ void ULCODialogueWidget::RefreshChoices()
 	}
 
 	SetChoicesVisible(true);
+	if (UsesActOneNotebookConditions())
+	{
+		// Re-measure newly added rows after revealing the previously collapsed choices border.
+		InvalidateLayoutAndVolatility();
+		ForceLayoutPrepass();
+		UE_LOG(LogTemp, Log, TEXT("[LCODialogue] Choices displayed: Dialogue=%s Node=%s Configured=%d Visible=%d Children=%d Panel=%s Border=%s Class=%s"),
+			*ActiveDialogueID.ToString(), *ActiveNodeID.ToString(), Node->Choices.Num(), VisibleChoiceTargets.Num(),
+			ChoicesPanel->GetChildrenCount(), *GetNameSafe(ChoicesPanel), *GetNameSafe(Border_Choices), *LoadedChoiceWidgetClass->GetPathName());
+	}
 	if (Text_ContinueHint)
 	{
 		Text_ContinueHint->SetVisibility(ESlateVisibility::Collapsed);
@@ -1042,7 +1159,28 @@ bool ULCODialogueWidget::IsConditionMet(FName Condition) const
 		return true;
 	}
 
+	if (UsesActOneNotebookConditions())
+	{
+		// T/K entries come from the persistent notebook used by deduction and save/restore.
+		if (const ULCONotebookSubsystem* Notebook = GetGameInstance()->GetSubsystem<ULCONotebookSubsystem>())
+		{
+			if (Notebook->HasEntry(Condition)) return true;
+		}
+		// Evidence can also be physically held. Do not treat inventory items as testimony/deductions.
+		return Condition.ToString().StartsWith(TEXT("E")) && HasEvidenceToken(Condition);
+	}
 	return HasEvidenceToken(Condition);
+}
+
+bool ULCODialogueWidget::UsesActOneNotebookConditions() const
+{
+	static const TSet<FName> DialogueIDs =
+	{
+		TEXT("Bellboy"), TEXT("Caretaker"), TEXT("Cleaner"),
+		TEXT("FrontDesk"), TEXT("Manager"), TEXT("OldProfessor")
+	};
+	// Preserve the existing SigolYouth and WorkSenior condition policies.
+	return DialogueIDs.Contains(ActiveDialogueID);
 }
 
 bool ULCODialogueWidget::ValidateDialogueTextKey(FName TextKey, const FString& Context) const
@@ -1251,6 +1389,43 @@ FText ULCODialogueWidget::ResolveDialogueText(FName Key) const
 	}
 
 	return FText::FromName(Key);
+}
+
+FText ULCODialogueWidget::ReplaceDialogueKeyPlaceholders(const FText& LocalizedText) const
+{
+	struct FKeyPlaceholder
+	{
+		const TCHAR* Token;
+		FName BindingName;
+	};
+	const FKeyPlaceholder Placeholders[] =
+	{
+		{ TEXT("{퀵슬롯키}"), FName(TEXT("QuickSlot")) },
+		{ TEXT("{능력키}"), FName(TEXT("Sense")) },
+		{ TEXT("{수첩키}"), FName(TEXT("Notebook")) }
+	};
+	FString DisplayString = LocalizedText.ToString();
+	bool bReplaced = false;
+	for (const FKeyPlaceholder& Placeholder : Placeholders)
+	{
+		if (DisplayString.Contains(Placeholder.Token, ESearchCase::CaseSensitive))
+		{
+			DisplayString.ReplaceInline(Placeholder.Token, *ResolveDialogueKeyBinding(Placeholder.BindingName), ESearchCase::CaseSensitive);
+			bReplaced = true;
+		}
+	}
+	// Preserve the original FText, including its localization history, when no token is present.
+	return bReplaced ? FText::FromString(DisplayString) : LocalizedText;
+}
+
+FString ULCODialogueWidget::ResolveDialogueKeyBinding(FName BindingName) const
+{
+	// Future Enhanced Input lookup belongs here, using the owning local player's mappings.
+	// Keep these defaults as the fallback when no runtime mapping is available.
+	if (BindingName == FName(TEXT("QuickSlot"))) return TEXT("Q");
+	if (BindingName == FName(TEXT("Sense"))) return TEXT("Tab");
+	if (BindingName == FName(TEXT("Notebook"))) return TEXT("J");
+	return BindingName.ToString();
 }
 
 FText ULCODialogueWidget::ResolveSpeakerName(FName SpeakerID) const

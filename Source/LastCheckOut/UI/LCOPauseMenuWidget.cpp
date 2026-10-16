@@ -13,6 +13,7 @@
 #include "UI/LCOContainerWidget.h"
 #include "UI/LCOInventoryWidget.h"
 #include "UI/LCONotebookWidget.h"
+#include "UI/LCOPhoneMenuWidget.h"
 
 void ULCOPauseMenuWidget::NativeOnInitialized()
 {
@@ -84,7 +85,21 @@ void ULCOPauseMenuWidget::OpenPauseMenu()
 		return;
 	}
 
-	// 수첩 / 인벤토리 / 수납장이 열려 있으면 먼저 닫음 (ZOrder가 더 높아서 일시정지 메뉴 위에 남는 문제 방지)
+	// Check before closing any UI or pausing the world so a blocked request
+	// cannot dismiss the phone or interrupt its fade timer. This is key-independent.
+	TArray<UUserWidget*> PhoneWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, PhoneWidgets, ULCOPhoneMenuWidget::StaticClass(), false);
+	for (UUserWidget* Widget : PhoneWidgets)
+	{
+		const ULCOPhoneMenuWidget* PhoneMenu = Cast<ULCOPhoneMenuWidget>(Widget);
+		if (PhoneMenu && PhoneMenu->GetOwningPlayer() == GetOwningPlayer()
+			&& PhoneMenu->IsInViewport() && PhoneMenu->IsPauseBlockedByReport())
+		{
+			return;
+		}
+	}
+
+	// 기존 메뉴를 먼저 닫아 입력 복구가 일시정지 메뉴의 UI 모드를 덮어쓰지 않도록 한다.
 	CloseOtherMenus();
 
 	AddToViewport(5);
@@ -146,6 +161,18 @@ void ULCOPauseMenuWidget::CloseOtherMenus()
 
 	// 각 메뉴의 Close 함수가 UI 모드 해제까지 처리 → 이후 일시정지 메뉴가 다시 UI 모드로 전환
 	TArray<UUserWidget*> FoundWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(PC, FoundWidgets, ULCOPhoneMenuWidget::StaticClass(), false);
+	for (UUserWidget* Widget : FoundWidgets)
+	{
+		ULCOPhoneMenuWidget* PhoneMenu = Cast<ULCOPhoneMenuWidget>(Widget);
+		if (PhoneMenu && PhoneMenu->GetOwningPlayer() == PC && PhoneMenu->IsInViewport())
+		{
+			// Clear save feedback and input blocks without cancelling the phone's actual save.
+			PhoneMenu->ClosePhoneMenu();
+		}
+	}
+
+	FoundWidgets.Reset();
 	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(PC, FoundWidgets, ULCONotebookWidget::StaticClass(), false);
 	for (UUserWidget* Widget : FoundWidgets)
 	{

@@ -1,0 +1,11 @@
+NodeID,RowType,SpeakerID,TextKey,NextNodeID,ChoiceID,ChoiceTextKey,ChoiceTargetNodeID,Condition,EndConversation,UnlockFlag,ReportKeyword
+FIRST_01,Line,OldProfessor,OLDPROFESSOR_FIRST_01,,,,,,true,,
+DEFAULT_01,Line,OldProfessor,OLDPROFESSOR_DEFAULT_01,DEFAULT_CHOICES,,,,,false,,
+DEFAULT_CHOICES,Choice,OldProfessor,,,T01,OLDPROFESSOR_CHOICE_T01,T01_01,,false,,
+T01_01,Line,OldProfessor,OLDPROFESSOR_T01_01,DEFAULT_CHOICES,,,,,false,T01,
+DEFAULT_CHOICES,Choice,OldProfessor,,,T02,OLDPROFESSOR_CHOICE_T02,T02_01,K01,false,,
+T02_01,Line,OldProfessor,OLDPROFESSOR_T02_01,DEFAULT_CHOICES,,,,,false,T02,
+DEFAULT_CHOICES,Choice,OldProfessor,,,T08,OLDPROFESSOR_CHOICE_T08,T08_01,T01,false,,
+T08_01,Line,OldProfessor,OLDPROFESSOR_T08_01,DEFAULT_CHOICES,,,,,false,T08,
+DEFAULT_CHOICES,Choice,OldProfessor,,,BYE,OLDPROFESSOR_CHOICE_BYE,BYE_01,,false,,
+BYE_01,Line,OldProfessor,OLDPROFESSOR_BYE_01,,,,,,true,,

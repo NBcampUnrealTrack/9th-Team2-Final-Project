@@ -46,6 +46,9 @@ struct FLCODialogueChoiceRow
 	FName ChoiceTextKey = NAME_None;
 	FName ChoiceTargetNodeID = NAME_None;
 	FName Condition = NAME_None;
+	// Optional alternate destination; evaluated on selection using the same single-ID condition policy.
+	FName AlternateCondition = NAME_None;
+	FName AlternateTargetNodeID = NAME_None;
 	bool bEndConversation = false;
 };
 
@@ -59,6 +62,8 @@ struct FLCODialogueNode
 	bool bEndConversation = false;
 	// 이 대사가 나올 때 획득하는 증언 / 키워드 (CSV의 UnlockFlag 열, 예: T04). 비어 있으면 없음
 	FName UnlockFlag = NAME_None;
+	// Optional CSV action on normal completion. Only Manager K05 is connected.
+	FName ReportKeyword = NAME_None;
 	// 선택 CSV 열. 0이면 기존 수동 진행, 양수이면 입력 없이 지정 시간 후 진행한다.
 	float AutoAdvanceSeconds = 0.f;
 	TArray<FLCODialogueChoiceRow> Choices;
@@ -84,7 +89,7 @@ public:
 	// NPC 없이 대화 열기 (전화기 등). DialogueFlow_<DialogueID>.csv를 StartNodeID부터 재생
 	// 이미 대화 중이거나 CSV / 노드가 없으면 false
 	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
-	bool OpenDialogueByID(FName DialogueID, FName StartNodeID, AActor* InInteractor);
+	bool OpenDialogueByID(FName DialogueID, FName StartNodeID, AActor* InInteractor, bool bPlayFirstConversation = false);
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Dialogue")
 	bool IsDialogueActive() const { return !ActiveDialogueID.IsNone(); }
@@ -184,11 +189,15 @@ private:
 	void ClearTypewriterTimer();
 	int32 GetNextTypewriterIndex() const;
 	void RefreshChoices();
+	bool HasAvailableQuestions(const FLCODialogueNode& ChoiceNode) const;
+	bool IsExitChoice(const FLCODialogueChoiceRow& Choice) const;
+	bool TryStartNoQuestionsDialogue(const FLCODialogueNode& Node);
 	void RefreshVisibleText();
 	void RefreshSpeakerPresentation(FName SpeakerID);
 	void SetChoicesVisible(bool bVisible);
 	bool IsEndNode(FName NodeID) const;
 	bool IsConditionMet(FName Condition) const;
+	bool UsesActOneNotebookConditions() const;
 	bool ValidateDialogueTextKey(FName TextKey, const FString& Context) const;
 	bool ValidateSpeakerNameKey(FName SpeakerID, const FString& Context) const;
 	void PlayDialogueCharacterSound(const FString& RevealedCharacter);
@@ -201,6 +210,8 @@ private:
 	bool ShouldRestoreGameOnlyInputMode(APlayerController* PC) const;
 	bool HasEvidenceToken(FName EvidenceID) const;
 	FText ResolveDialogueText(FName Key) const;
+	FText ReplaceDialogueKeyPlaceholders(const FText& LocalizedText) const;
+	FString ResolveDialogueKeyBinding(FName BindingName) const;
 	FText ResolveSpeakerName(FName SpeakerID) const;
 
 	// OpenDialogue / OpenDialogueByID 공통 처리. InNPC는 NPC 없는 대화면 nullptr

@@ -9,6 +9,7 @@ class ALCOPhone;
 class UButton;
 class UBorder;
 class UTextBlock;
+class ULCOSaveManager;
 
 // OnMenuRequestedDelegate의 Phone을 전달한다. 위젯 생성은 BP에서 담당한다.
 UCLASS(Abstract)
@@ -41,11 +42,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "LCO|PhoneMenu")
 	bool IsSaveFeedbackActive() const { return bWaitingForSaveResult || bShowingSaveResult; }
 
+	// Lock pause from the initial darkening through the final return to gameplay.
+	bool IsPauseBlockedByReport() const { return bMenuActive && bBlockPauseForReport; }
+
 	UFUNCTION(BlueprintPure, Category = "LCO|PhoneMenu")
 	ALCOPhone* GetPhone() const { return Phone.Get(); }
 
 protected:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
@@ -54,7 +59,7 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Btn_Call;
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Btn_Save;
 
 	UPROPERTY(meta = (BindWidget))
@@ -65,6 +70,12 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UBorder> Border_Choices;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UBorder> Border_PhoneChoices;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UBorder> Border_ReportFade;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UBorder> Border_Dialogue;
@@ -79,8 +90,19 @@ private:
 	UFUNCTION()
 	void HandleCallClicked();
 
+	void BeginReportSave(bool bReuseSave, TOptional<bool> ExistingSaveResult);
+	bool OpenPhoneMenuInternal(ALCOPhone* InPhone, bool bForReport);
+	void ClearCallTracking();
+	void HandleCompletedCall();
+	void RefreshMenuTexts();
 	UFUNCTION()
-	void HandleSaveClicked();
+	void HandleLanguageChanged(FName Language);
+	UFUNCTION()
+	void HandleCallStarted(ALCOPhone* InPhone, AActor* Caller, int32 EntryIndex, FName DialogueID, FName StartNodeID);
+	UFUNCTION()
+	void HandleCallFinished(ALCOPhone* InPhone, AActor* Caller, bool bCompletedNormally);
+	UFUNCTION()
+	void HandleExistingSaveFinished(bool bSuccess);
 
 	UFUNCTION()
 	void HandleCancelClicked();
@@ -88,6 +110,8 @@ private:
 	void RestoreInput();
 	void NotifyPromptVisibility(bool bVisible);
 	void FinishSaveFeedback();
+	void StartReportFade(bool bFadeOut);
+	void UpdateReportFade();
 	void ResetSaveFeedback();
 	void HandleMinimumSaveWaitElapsed();
 	void TryShowSaveResult();
@@ -98,8 +122,15 @@ private:
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<ALCOPhone> Phone;
+	TWeakObjectPtr<ULCOSaveManager> ObservedSaveManager;
 
 	bool bMenuActive = false;
+	bool bWaitingForCall = false;
+	bool bWorkSeniorCall = false;
+	bool bReportQueued = false;
+	bool bReuseCallSave = false;
+	TOptional<bool> CompletedCallSaveResult;
+	FTimerHandle CompletedCallTimerHandle;
 	bool bPreviousShowMouseCursor = false;
 	bool bMoveInputBlockedByThisWidget = false;
 	bool bLookInputBlockedByThisWidget = false;
@@ -108,6 +139,12 @@ private:
 	bool bMinimumSaveWaitElapsed = false;
 	bool bHasReceivedSaveResult = false;
 	bool bPendingSaveSuccess = false;
+	bool bShowingRestMessage = false;
+	bool bReportFadeActive = false;
+	bool bReportFadingOut = false;
+	bool bBlockPauseForReport = false;
+	float ReportFadeStartTime = 0.f;
+	FTimerHandle ReportFadeTimerHandle;
 	FTimerHandle MinimumSaveWaitTimerHandle;
 	FTimerHandle SavePendingAnimationTimerHandle;
 	int32 SavePendingAnimationIndex = 0;

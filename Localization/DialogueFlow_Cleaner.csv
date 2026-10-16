@@ -1,0 +1,7 @@
+NodeID,RowType,SpeakerID,TextKey,NextNodeID,ChoiceID,ChoiceTextKey,ChoiceTargetNodeID,Condition,EndConversation,UnlockFlag,ReportKeyword
+FIRST_01,Line,Cleaner,CLEANER_FIRST_01,,,,,,true,,
+DEFAULT_01,Line,Cleaner,CLEANER_DEFAULT_01,DEFAULT_CHOICES,,,,,false,,
+DEFAULT_CHOICES,Choice,Cleaner,,,T07,CLEANER_CHOICE_T07,T07_01,E06,false,,
+T07_01,Line,Cleaner,CLEANER_T07_01,DEFAULT_CHOICES,,,,,false,T07,
+DEFAULT_CHOICES,Choice,Cleaner,,,BYE,CLEANER_CHOICE_BYE,BYE_01,,false,,
+BYE_01,Line,Cleaner,CLEANER_BYE_01,,,,,,true,,

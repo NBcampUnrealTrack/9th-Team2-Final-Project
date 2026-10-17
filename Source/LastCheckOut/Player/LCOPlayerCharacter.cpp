@@ -152,10 +152,7 @@ void ALCOPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		EIC->BindAction(ToggleViewAction, ETriggerEvent::Started, this, &ALCOPlayerCharacter::ToggleView);
 	}
 
-	if (CaptureAction)
-	{
-		EIC->BindAction(CaptureAction, ETriggerEvent::Started, this, &ALCOPlayerCharacter::TakePhoto);
-	}
+	// 촬영 입력은 LCOQuickSlotComponent::HandleCapturePressed에서만 처리 (중복 바인딩으로 Capture()가 두 번 호출되던 문제 수정)
 	if (CrouchAction)
 	{
 		EIC->BindAction(CrouchAction, ETriggerEvent::Started, this, &ALCOPlayerCharacter::CrouchPressed);

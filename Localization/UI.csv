@@ -79,3 +79,15 @@ NOTEBOOK_DEDUCTION_HEADER_CLUE,증거,Evidence,証拠,证据,證據,Pruebas,Preu
 NOTEBOOK_DEDUCTION_HEADER_PHOTO,사진,Photos,写真,照片,照片,Fotos,Photos,Fotos,Fotos,Valokuvat
 NOTEBOOK_DEDUCTION_HEADER_TESTIMONY,증언,Testimonies,証言,证词,證詞,Testimonios,Témoignages,Aussagen,Depoimentos,Todistukset
 NOTEBOOK_DEDUCTION_HEADER_DEDUCTION,추리,Deductions,推理,推理,推理,Deducciones,Déductions,Schlussfolgerungen,Deduções,Päätelmät
+NOTEBOOK_GROUP_Professor,대학교수,Professor,大学教授,大学教授,大學教授,Profesor,Professeur,Professor,Professor,Professori
+NOTEBOOK_GROUP_Manager,지배인,Manager,支配人,经理,經理,Gerente,Directeur,Direktor,Gerente,Johtaja
+NOTEBOOK_GROUP_Bellboy,벨보이,Bellboy,ベルボーイ,行李员,行李員,Botones,Groom,Page,Mensageiro,Hotellipoika
+NOTEBOOK_GROUP_Caretaker,관리인,Caretaker,管理人,管理员,管理員,Conserje,Gardien,Hausmeister,Zelador,Talonmies
+NOTEBOOK_GROUP_Front,프론트 직원,Front Desk Clerk,フロント係,前台职员,櫃檯人員,Recepcionista,Réceptionniste,Rezeptionist,Recepcionista,Vastaanottovirkailija
+NOTEBOOK_GROUP_Cleaner,청소부,Cleaner,清掃員,清洁工,清潔工,Limpiadora,Agent d'entretien,Reinigungskraft,Faxineira,Siivooja
+NOTEBOOK_GROUP_Lobby,로비,Lobby,ロビー,大堂,大廳,Vestíbulo,Hall,Lobby,Saguão,Aula
+NOTEBOOK_GROUP_Trail,산책로,Walking Trail,散策路,散步道,散步道,Sendero,Sentier,Wanderweg,Trilha,Kävelypolku
+NOTEBOOK_GROUP_Office,사무실,Office,事務室,办公室,辦公室,Oficina,Bureau,Büro,Escritório,Toimisto
+NOTEBOOK_GROUP_RecordRoom,기록실,Records Room,記録室,档案室,檔案室,Sala de archivos,Salle des archives,Archivraum,Sala de arquivos,Arkistohuone
+NOTEBOOK_GROUP_MaintenanceRoom,관리실,Maintenance Room,管理室,管理室,管理室,Sala de mantenimiento,Local technique,Hausmeisterraum,Sala de manutenção,Huoltohuone
+NOTEBOOK_GROUP_Room205,205호,Room 205,205号室,205号房,205號房,Habitación 205,Chambre 205,Zimmer 205,Quarto 205,Huone 205

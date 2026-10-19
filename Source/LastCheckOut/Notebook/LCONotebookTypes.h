@@ -35,6 +35,14 @@ struct FLCONotebookEntry : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Notebook")
 	ELCONotebookCategory Category = ELCONotebookCategory::Clue;
 
+	// 목록 안 묶음 (단서·증언 탭에서 같은 GroupID끼리 머리말 아래로 묶임)
+	// - 증언: 말한 사람 (예: Professor, Manager, Bellboy)
+	// - 증거: 발견 장소 (예: MainBuilding, Annex, Room407)
+	// - 머리말 문구는 UI.csv의 "NOTEBOOK_GROUP_<GroupID>" 키 (없으면 GroupID 그대로 표시)
+	// - 비워두면 머리말 없이 목록 맨 아래에 표시
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Notebook")
+	FName GroupID;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Notebook")
 	FText Title;
 

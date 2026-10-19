@@ -1,6 +1,7 @@
 #include "InventoryComponent.h"
 #include "Player/LCOPlayerCharacter.h"
 #include "Notebook/LCONotebookSubsystem.h"
+#include "Player/LCOStaminaComponent.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -72,6 +73,23 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
 
 	// 인벤토리에 새로운 슬롯 추가
 	InventorySlots.Add(NewSlot);
+	
+	// 패시브 아이템 획득 효과 적용
+	if (ItemData->ItemType == EItemType::Passive)
+	{
+		if (ItemID == FName("StaminaCharm"))
+		{
+			if (ALCOPlayerCharacter* Character =
+				Cast<ALCOPlayerCharacter>(GetOwner()))
+			{
+				if (Character->StaminaComponent)
+				{
+					Character->StaminaComponent
+						->SetPermanentRegenMultiplier(1.15f);
+				}
+			}
+		}
+	}
 	
 	// 증거품이면 수첩에 기록
 	// 같은 ID는 NotebookSubsystem에서 중복 등록되지 않음

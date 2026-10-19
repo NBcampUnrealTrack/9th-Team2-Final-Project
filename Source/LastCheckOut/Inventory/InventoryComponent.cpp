@@ -251,17 +251,45 @@ bool UInventoryComponent::UseItem(FName ItemID)
 					}
 
 					break;
+				
+				case EBuffType::SenseCharge:
+					{
+						// 이미 직감 횟수가 최대라면 사용 불가
+						if (Character->GetCurrentSenseCharges()
+							>= Character->GetMaxSenseCharges())
+						{
+							return false;
+						}
 
+						// 회복량은 정수로 설정
+						const int32 Amount =
+							FMath::FloorToInt(Effect.BuffAmount);
+
+						if (Amount <= 0)
+						{
+							return false;
+						}
+
+						// 직감 사용 횟수 회복
+						Character->RestoreSenseCharges(Amount);
+
+						break;
+					}
+				
 				case EBuffType::None:
 				default:
 
 					// 유효하지 않은 버프가 등록되어 있으면 사용 중단
 					return false;
 				}
+				
 			}
 
 			// 모든 버프 적용이 끝나면 아이템 1개 소모
-			RemoveItem(ItemID, 1);
+			if (!RemoveItem(ItemID, 1))
+			{
+				return false;
+			}
 
 			return true;
 		}

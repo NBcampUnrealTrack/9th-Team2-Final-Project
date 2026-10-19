@@ -20,7 +20,12 @@ enum class EBuffType : uint8
 {
     None,       // 버프 효과 없음
     MoveSpeed,  // 이동속도 증가
-    MaxStamina  // 최대 스태미나 증가
+    MaxStamina,  // 최대 스태미나 증가
+    SenseCharge, // 직감 사용 횟수 회복
+    
+    // 영구 패시브 효과
+    StaminaRegen,
+    PermanentMoveSpeed
 };
 
 // 아이템 하나에 적용할 개별 버프 효과 데이터

@@ -44,16 +44,16 @@ class LASTCHECKOUT_API ALCOPlayerCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	// 카메라를 손에 들고 있는지 (애님 BP에서 상체 포즈 전환용)
-	UFUNCTION(BlueprintPure, Category = "LCO|Camera")
-	bool IsCameraEquipped() const { return bCameraEquipped; }
 	
 public:
+
 	ALCOPlayerCharacter();
 
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
-
+	
+	UFUNCTION(BlueprintPure, Category = "LCO|Camera")
+	bool IsCameraEquipped() const { return bCameraEquipped; }
 	// ---------- 시점 ----------
 
 	// 시점 변경 (컷신, 특정 구역에서 강제 전환할 때도 사용)
@@ -84,6 +84,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Interaction")
 	ULCOPlayerInteractionComponent* GetInteraction() const { return InteractionComponent; }
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stamina")
+	TObjectPtr<ULCOStaminaComponent> StaminaComponent;
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Stamina")
 	ULCOStaminaComponent* GetStamina() const { return StaminaComponent; }
@@ -328,9 +331,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	TObjectPtr<ULCOPlayerInteractionComponent> InteractionComponent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stamina")
-	TObjectPtr<ULCOStaminaComponent> StaminaComponent;
+	
 
 	// 의심도 (AI 담당). FindComponentByClass로도 찾을 수 있음
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Suspicion")
@@ -345,9 +346,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hiding")
 	TObjectPtr<ULCOHidingComponent> HidingComponent;
 	
-		// 1인칭 전용 몸 메시 (내 화면에서만 보임). ABP_FP_Copy로 3인칭 메시 포즈를 복사해서 팔이 보이게 함
-    	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mesh")
-    	TObjectPtr<USkeletalMeshComponent> FirstPersonMesh;
+	// 1인칭 전용 몸 메시 (내 화면에서만 보임). ABP_FP_Copy로 3인칭 메시 포즈를 복사해서 팔이 보이게 함
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mesh")
+	TObjectPtr<USkeletalMeshComponent> FirstPersonMesh;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UStaticMeshComponent> HeldCameraMesh;
@@ -454,6 +455,10 @@ protected:
     // 1인칭 팔 크기 (작을수록 벽에 덜 파묻힘)
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FirstPerson", meta = (ClampMin = "0.01", ClampMax = "1.0"))
     float FirstPersonArmsScale = 0.6f;
+	
+	// 1인칭 눈 위치를 몸 앞쪽으로 당기는 거리 (목 / 머리 안쪽 단면이 보이지 않게)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FirstPerson")
+	float FirstPersonCameraForwardOffset = 10.f;
 	
 	// ---------- 버프 화면 효과 ----------
 	// 버프 시작 / 종료 시 효과가 완전히 켜지거나 꺼지는 데 걸리는 시간(초)

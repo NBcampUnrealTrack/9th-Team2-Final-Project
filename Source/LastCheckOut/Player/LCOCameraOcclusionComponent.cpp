@@ -38,9 +38,9 @@ void ULCOCameraOcclusionComponent::TickComponent(float DeltaTime, ELevelTick Tic
 
 	UpdateSelf(CameraLocation, PawnEyeLocation, DeltaTime);
 
-	if (bHideOccludingPawns)
+	if (bSelfOcclusionEnabled)
 	{
-		UpdateOccluders(CameraLocation, PawnEyeLocation);
+		UpdateSelf(CameraLocation, PawnEyeLocation, DeltaTime);
 	}
 }
 
@@ -191,4 +191,16 @@ void ULCOCameraOcclusionComponent::RestoreAllOccluders()
 	}
 
 	HiddenOccluders.Empty();
+}
+
+void ULCOCameraOcclusionComponent::SetSelfOcclusionEnabled(bool bEnabled)
+{
+	bSelfOcclusionEnabled = bEnabled;
+
+	if (!bEnabled)
+	{
+		// 숨김 / 반투명 상태를 즉시 원래대로
+		SetSelfHidden(false);
+		SetSelfOpacity(1.f);
+	}
 }

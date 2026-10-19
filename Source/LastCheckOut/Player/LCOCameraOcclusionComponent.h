@@ -20,6 +20,9 @@ public:
 	ULCOCameraOcclusionComponent();
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	// 내 몸 가림 처리 사용 여부 (1인칭에서는 끔: 몸은 이미 숨겨져 있고, 그림자가 디더로 깨지지 않게)
+	UFUNCTION(BlueprintCallable, Category = "Occlusion")
+	void SetSelfOcclusionEnabled(bool bEnabled);
 
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -61,6 +64,7 @@ private:
 	void RestoreAllOccluders();
 
 	bool bSelfHidden = false;
+	bool bSelfOcclusionEnabled = true;
 
 	// 현재 내 몸 불투명도 (1 = 불투명)
 	float SelfOpacity = 1.f;

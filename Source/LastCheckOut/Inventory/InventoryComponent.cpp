@@ -39,6 +39,13 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
 
 		return;
 	}
+	// 테스트용 로그
+	UE_LOG(LogTemp, Warning,
+	TEXT("[ItemData Test] ID: %s | Type: %d | BuffEffects: %d"),
+	*ItemID.ToString(),
+	static_cast<int32>(ItemData->ItemType),
+	ItemData->BuffEffects.Num());
+
 
 	// 기존 인벤토리에 같은 아이템이 있는지 확인
 	for (FInventorySlot& Slot : InventorySlots)
@@ -77,15 +84,47 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
 	// 패시브 아이템 획득 효과 적용
 	if (ItemData->ItemType == EItemType::Passive)
 	{
-		if (ItemID == FName("StaminaCharm"))
+		if (ALCOPlayerCharacter* Character =
+			Cast<ALCOPlayerCharacter>(GetOwner()))
 		{
-			if (ALCOPlayerCharacter* Character =
-				Cast<ALCOPlayerCharacter>(GetOwner()))
+			for (const FItemBuffEffect& Effect : ItemData->BuffEffects)
 			{
-				if (Character->StaminaComponent)
+				UE_LOG(LogTemp, Warning,
+					TEXT("[Passive Buff] ID: %s | Type: %d | Amount: %.2f | Duration: %.2f"),
+					*ItemID.ToString(),
+					static_cast<int32>(Effect.BuffType),
+					Effect.BuffAmount,
+					Effect.BuffDuration);
+
+				switch (Effect.BuffType)
 				{
-					Character->StaminaComponent
-						->SetPermanentRegenMultiplier(1.15f);
+				case EBuffType::StaminaRegen:
+					if (Character->StaminaComponent)
+					{
+						Character->StaminaComponent
+							->SetPermanentRegenMultiplier(
+								Effect.BuffAmount);
+
+						UE_LOG(LogTemp, Warning,
+							TEXT("[Passive Buff] Stamina regen applied: %.2f"),
+							Effect.BuffAmount);
+					}
+					break;
+
+				case EBuffType::PermanentMoveSpeed:
+					Character->SetPermanentMoveSpeedMultiplier(
+						Effect.BuffAmount);
+
+					UE_LOG(LogTemp, Warning,
+						TEXT("[Passive Buff] Move speed applied: %.2f"),
+						Effect.BuffAmount);
+					break;
+
+				default:
+					UE_LOG(LogTemp, Warning,
+						TEXT("[Passive Buff] Unsupported BuffType: %d"),
+						static_cast<int32>(Effect.BuffType));
+					break;
 				}
 			}
 		}

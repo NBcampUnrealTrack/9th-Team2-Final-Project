@@ -36,7 +36,8 @@ struct FLCOPlayerCarryData
 	UPROPERTY()
 	ELCOViewMode ViewMode = ELCOViewMode::FirstPerson;
 
-	// 버프 (커피 등). 남은 시간이 0이면 버프 없음 → 새 맵에서 남은 시간만큼 다시 적용
+	// 버프 (커피 등). 남은 시간이 0이면 버프 없음
+	// 새 맵에서 로딩 화면이 끝난 뒤 남은 시간만큼 다시 적용 (LCOGameMode)
 	UPROPERTY()
 	float MoveSpeedBuffAmount = 0.f;
 

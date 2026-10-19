@@ -80,4 +80,16 @@ private:
 	void ReturnToMainMenu();
 
 	FTimerHandle ReturnToMainMenuTimer;
+
+	// 로딩 화면이 끝나면 대기 중인 버프 적용 (로딩 중이면 0.1초마다 다시 확인)
+	// 로딩 가림막(LCOLoadingSubsystem)이 떠 있는 동안에도 월드는 돌아가므로, 끝난 뒤 적용해야 남은 시간이 줄지 않음
+	void ApplyPendingBuffsWhenLoaded();
+
+	FTimerHandle PendingBuffTimer;
+
+	// 로딩이 끝나면 적용할 버프 (남은 시간이 0이면 없음)
+	float PendingMoveSpeedBuffAmount = 0.f;
+	float PendingMoveSpeedBuffTime = 0.f;
+	int32 PendingMaxStaminaBuffAmount = 0;
+	float PendingMaxStaminaBuffTime = 0.f;
 };

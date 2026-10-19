@@ -6,6 +6,17 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInteracted, ULCOInteractComponent*, Component, AActor*, Interactor);
 
+// 바라볼 때 외곽선을 표시할 대상
+UENUM(BlueprintType)
+enum class ELCOHighlightTarget : uint8
+{
+	// 이 컴포넌트만 (버튼이 여러 개인 퍼즐 등)
+	Self        UMETA(DisplayName = "Self"),
+
+	// 소유 액터의 모든 메시 (메시가 여러 개인 오브젝트, NPC, 문, 전화기 등)
+	OwnerActor  UMETA(DisplayName = "Owner Actor")
+};
+
 // 공통 상호작용 컴포넌트 (퍼즐, 문, 전화기 등 모든 상호작용 대상에 사용)
 // StaticMeshComponent를 상속하므로 메시, 크기(Scale), 재질을 디테일 패널에서 자유롭게 변경 가능
 // 플레이어가 Interact()를 호출하면 연결된 대상(ILCOInteractionReceiver 구현 액터)에 상호작용을 전달한다
@@ -26,6 +37,7 @@ public:
 	bool CanInteract(AActor* Interactor) const;
 
 	// 플레이어가 바라볼 때 / 시선을 뗄 때 호출 (외곽선 강조용)
+	// HighlightTarget에 따라 이 컴포넌트 또는 소유 액터의 모든 메시에 CustomDepth를 켜고 끔
 	UFUNCTION(BlueprintCallable, Category = "Interaction")
 	void SetFocused(bool bFocused);
 
@@ -66,4 +78,9 @@ protected:
 	// false면 상호작용 불가
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction")
 	bool bInteractionEnabled = true;
+
+	// 바라볼 때 외곽선을 표시할 대상
+	// Self: 이 컴포넌트만 / Owner Actor: 소유 액터의 모든 메시 (이 컴포넌트를 숨겨 둔 NPC 등은 Owner Actor 사용)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction")
+	ELCOHighlightTarget HighlightTarget = ELCOHighlightTarget::Self;
 };

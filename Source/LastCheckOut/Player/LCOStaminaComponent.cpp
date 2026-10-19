@@ -35,10 +35,25 @@ void ULCOStaminaComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 		return;
 	}
 
-	// 회복
+	// 자연 회복
 	if (CurrentStamina < MaxStamina)
 	{
-		ApplyStamina(CurrentStamina + RegenPerTick);
+		RegenAccumulator +=
+			static_cast<float>(RegenPerTick)
+			* PermanentRegenMultiplier;
+
+		const int32 RegenAmount =
+			FMath::FloorToInt(RegenAccumulator);
+
+		if (RegenAmount > 0)
+		{
+			RegenAccumulator -= RegenAmount;
+			ApplyStamina(CurrentStamina + RegenAmount);
+		}
+	}
+	else
+	{
+		RegenAccumulator = 0.0f;
 	}
 }
 
@@ -125,4 +140,9 @@ void ULCOStaminaComponent::ApplyStamina(int32 NewStamina)
 void ULCOStaminaComponent::BroadcastStaminaChanged()
 {
 	OnStaminaChanged.Broadcast(CurrentStamina, MaxStamina, GetStaminaPercent());
+}
+
+void ULCOStaminaComponent::SetPermanentRegenMultiplier(float Multiplier)
+{
+	PermanentRegenMultiplier = FMath::Max(1.0f, Multiplier);
 }

@@ -368,10 +368,19 @@ int32 ALCOPlayerCharacter::GetStaminaPercentInt() const
 
 void ALCOPlayerCharacter::UpdateMoveSpeed()
 {
-	GetCharacterMovement()->MaxWalkSpeed = (bIsSprinting ? SprintSpeed : WalkSpeed) + MoveSpeedBonus;
+	const float BaseSpeed = bIsSprinting ? SprintSpeed : WalkSpeed;
 
-	// 웅크렸을 때도 이동속도 버프 적용
-	GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchSpeed + MoveSpeedBonus;
+	GetCharacterMovement()->MaxWalkSpeed =
+		BaseSpeed * PermanentMoveSpeedMultiplier + MoveSpeedBonus;
+
+	GetCharacterMovement()->MaxWalkSpeedCrouched =
+		CrouchSpeed * PermanentMoveSpeedMultiplier + MoveSpeedBonus;
+}
+
+void ALCOPlayerCharacter::SetPermanentMoveSpeedMultiplier(float Multiplier)
+{
+	PermanentMoveSpeedMultiplier = FMath::Max(1.0f, Multiplier);
+	UpdateMoveSpeed();
 }
 
 bool ALCOPlayerCharacter::ApplyMoveSpeedBuff(float Amount, float Duration)

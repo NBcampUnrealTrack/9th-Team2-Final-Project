@@ -242,6 +242,14 @@ public:
 	// 감각을 사용했을 때 (true: 감각 볼륨 안에서 성공, false: 실패). 의심도 등 후속 처리는 구독해서 처리
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Sense")
 	FOnLCOSenseUsed OnSenseUsed;
+	
+	// -------------------------------------------------------------------------------------------------------
+	
+	// 영구 이동속도 배율
+	float PermanentMoveSpeedMultiplier = 1.0f;
+
+	UFUNCTION(BlueprintCallable, Category = "LCO|Buff")
+	void SetPermanentMoveSpeedMultiplier(float Multiplier);
 
 protected:
 	virtual void BeginPlay() override;

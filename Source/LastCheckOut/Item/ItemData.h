@@ -11,7 +11,8 @@ enum class EItemType : uint8
 {
     Consumable, // 소비 아이템
     KeyItem,    // 열쇠, 호텔 도면 등
-    Evidence    // 증거품
+    Evidence,    // 증거품
+    Passive      // 영구 패시브 아이템
 };
 
 // 개별 버프 효과의 종류
@@ -41,6 +42,8 @@ struct FItemBuffEffect
     // 버프 효과 수치
     // MoveSpeed : 이동속도 증가량
     // MaxStamina : 최대 스태미나 증가량
+    // StaminaRegen: 자연 회복량 증가 비율 (0.15 = 15%)
+    // PermanentMoveSpeed: 이동속도 증가 비율 (0.10 = 10%)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Buff",
         meta = (ClampMin = "0.0"))
     float BuffAmount = 0.0f;

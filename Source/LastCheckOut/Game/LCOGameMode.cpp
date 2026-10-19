@@ -15,6 +15,7 @@
 #include "UI/LCODialogueSubsystem.h"
 #include "Engine/LocalPlayer.h"
 #include "UI/LCOLoadingSubsystem.h"
+#include "Core/LCOGameSettingsSubsystem.h"
 
 ALCOGameMode::ALCOGameMode()
 {
@@ -228,6 +229,12 @@ void ALCOGameMode::HandleMatchHasStarted()
 
 	// 캐릭터 BeginPlay의 SetViewMode(DefaultViewMode) 이후에 복원해야 시점이 덮어써지지 않음
 	RestorePlayerCarryData();
+
+	// 저장된 게임플레이 설정(감도 / Y축 반전)을 새 캐릭터에 적용 (새 게임 / 맵 이동 / 이어하기 공통)
+	if (const ULCOGameSettingsSubsystem* GameSettings = GetGameInstance()->GetSubsystem<ULCOGameSettingsSubsystem>())
+	{
+		GameSettings->ApplyGameplaySettingsToPlayer(Cast<ALCOPlayerCharacter>(UGameplayStatics::GetPlayerPawn(this, 0)));
+	}
 
 	// 챕터 전환 등으로 AutoSave 옵션이 붙어 왔으면, 모든 복원이 끝난 지금 저장
 	TryAutoSaveOnArrival();

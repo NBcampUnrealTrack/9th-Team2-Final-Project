@@ -14,6 +14,8 @@
 #include "Puzzle/LCOPuzzleSubsystem.h"
 #include "UI/LCODialogueSubsystem.h"
 #include "Engine/LocalPlayer.h"
+#include "UI/LCOLoadingSubsystem.h"
+#include "Core/LCOGameSettingsSubsystem.h"
 
 ALCOGameMode::ALCOGameMode()
 {
@@ -228,6 +230,12 @@ void ALCOGameMode::HandleMatchHasStarted()
 	// 캐릭터 BeginPlay의 SetViewMode(DefaultViewMode) 이후에 복원해야 시점이 덮어써지지 않음
 	RestorePlayerCarryData();
 
+	// 저장된 게임플레이 설정(감도 / Y축 반전)을 새 캐릭터에 적용 (새 게임 / 맵 이동 / 이어하기 공통)
+	if (const ULCOGameSettingsSubsystem* GameSettings = GetGameInstance()->GetSubsystem<ULCOGameSettingsSubsystem>())
+	{
+		GameSettings->ApplyGameplaySettingsToPlayer(Cast<ALCOPlayerCharacter>(UGameplayStatics::GetPlayerPawn(this, 0)));
+	}
+
 	// 챕터 전환 등으로 AutoSave 옵션이 붙어 왔으면, 모든 복원이 끝난 지금 저장
 	TryAutoSaveOnArrival();
 }
@@ -259,6 +267,31 @@ bool ALCOGameMode::CapturePlayerCarryData(FLCOPlayerCarryData& OutData) const
 
 	// 시점
 	OutData.ViewMode = Player->GetViewMode();
+
+	// 버프 (수치 + 남은 시간). 적용 중이 아니면 0으로 남음
+	// 도착 직후 로딩 중이라 아직 적용 대기 중인 버프가 있으면 그 값을 그대로 보관 (도착 자동 저장 등)
+	if (PendingMoveSpeedBuffTime > 0.f)
+	{
+		OutData.MoveSpeedBuffAmount = PendingMoveSpeedBuffAmount;
+		OutData.MoveSpeedBuffRemainingTime = PendingMoveSpeedBuffTime;
+	}
+	else if (Player->IsMoveSpeedBuffActive())
+	{
+		OutData.MoveSpeedBuffAmount = Player->GetMoveSpeedBuffAmount();
+		OutData.MoveSpeedBuffRemainingTime = Player->GetMoveSpeedBuffRemainingTime();
+	}
+
+	if (PendingMaxStaminaBuffTime > 0.f)
+	{
+		OutData.MaxStaminaBuffAmount = PendingMaxStaminaBuffAmount;
+		OutData.MaxStaminaBuffRemainingTime = PendingMaxStaminaBuffTime;
+	}
+	else if (Player->IsMaxStaminaBuffActive())
+	{
+		OutData.MaxStaminaBuffAmount = Player->GetMaxStaminaBuffAmount();
+		OutData.MaxStaminaBuffRemainingTime = Player->GetMaxStaminaBuffRemainingTime();
+	}
+
 	return true;
 }
 
@@ -313,8 +346,17 @@ void ALCOGameMode::RestorePlayerCarryData()
 
 	// 3) 시점
 	Player->SetViewMode(Data.ViewMode);
+
+	// 4) 버프: 로딩 화면이 끝난 뒤 남은 시간만큼 다시 적용 (로딩 중에는 줄어들지 않음)
+	PendingMoveSpeedBuffAmount = Data.MoveSpeedBuffAmount;
+	PendingMoveSpeedBuffTime = Data.MoveSpeedBuffRemainingTime;
+	PendingMaxStaminaBuffAmount = Data.MaxStaminaBuffAmount;
+	PendingMaxStaminaBuffTime = Data.MaxStaminaBuffRemainingTime;
+	ApplyPendingBuffsWhenLoaded();
+
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] RestorePlayerCarryData: Items = %d"), Data.InventorySlots.Num());
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] RestorePlayerCarryData: Items = %d, MoveSpeedBuff = %.1fs, MaxStaminaBuff = %.1fs"),
+		Data.InventorySlots.Num(), Data.MoveSpeedBuffRemainingTime, Data.MaxStaminaBuffRemainingTime);
 }
 
 AActor* ALCOGameMode::ChoosePlayerStart_Implementation(AController* Player)
@@ -409,6 +451,55 @@ void ALCOGameMode::HandleReportResolved(ELCOStoryFlag PresentedKeyword, ELCORepo
 	default:
 		break;
 	}
+}
+
+void ALCOGameMode::ApplyPendingBuffsWhenLoaded()
+{
+	// 대기 중인 버프가 없으면 종료
+	if (PendingMoveSpeedBuffTime <= 0.f && PendingMaxStaminaBuffTime <= 0.f)
+	{
+		GetWorldTimerManager().ClearTimer(PendingBuffTimer);
+		return;
+	}
+
+	// 로딩 화면이 아직 떠 있으면 0.1초 뒤 다시 확인
+	const ULCOLoadingSubsystem* LoadingSubsystem = GetGameInstance()->GetSubsystem<ULCOLoadingSubsystem>();
+	if (LoadingSubsystem && LoadingSubsystem->IsLoading())
+	{
+		if (!GetWorldTimerManager().IsTimerActive(PendingBuffTimer))
+		{
+			GetWorldTimerManager().SetTimer(PendingBuffTimer, this, &ThisClass::ApplyPendingBuffsWhenLoaded, 0.1f, true);
+		}
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(PendingBuffTimer);
+
+	ALCOPlayerCharacter* Player = Cast<ALCOPlayerCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
+	if (!Player)
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] ApplyPendingBuffsWhenLoaded: Player not found"));
+		return;
+	}
+
+	if (PendingMoveSpeedBuffTime > 0.f)
+	{
+		Player->ApplyMoveSpeedBuff(PendingMoveSpeedBuffAmount, PendingMoveSpeedBuffTime);
+	}
+
+	if (PendingMaxStaminaBuffTime > 0.f)
+	{
+		Player->ApplyMaxStaminaBuff(PendingMaxStaminaBuffAmount, PendingMaxStaminaBuffTime);
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ApplyPendingBuffsWhenLoaded: MoveSpeedBuff = %.1fs, MaxStaminaBuff = %.1fs"),
+		PendingMoveSpeedBuffTime, PendingMaxStaminaBuffTime);
+
+	PendingMoveSpeedBuffAmount = 0.f;
+	PendingMoveSpeedBuffTime = 0.f;
+	PendingMaxStaminaBuffAmount = 0;
+	PendingMaxStaminaBuffTime = 0.f;
 }
 
 void ALCOGameMode::ReturnToMainMenu()

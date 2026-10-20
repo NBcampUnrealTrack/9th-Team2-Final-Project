@@ -47,6 +47,12 @@ EBTNodeResult::Type ULCOBTTask_DoActivity::ExecuteTask(UBehaviorTreeComponent& O
 		return EBTNodeResult::Failed;
 	}
 
+	// 루틴이 꺼져 있으면 바로 실패해 BT의 다음 분기(예: 일반 순찰 대기)로 넘어간다.
+	if (!NPC->IsRoutineEnabled())
+	{
+		return EBTNodeResult::Failed;
+	}
+
 	CachedOwnerComp = &OwnerComp;
 	CachedAI = AI;
 	CachedNPC = NPC;

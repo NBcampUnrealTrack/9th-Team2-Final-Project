@@ -29,6 +29,13 @@ public:
 	// 머리 위에 표시할 디버그 문구를 지정한다. (루틴 태스크가 현재 동작을 알린다)
 	void SetDebugStatus(const FString& Text) { DebugStatus = Text; }
 
+	// 루틴(활동 지점 일)을 켜고 끈다. 꺼져 있으면 Do Activity 태스크가 바로 실패해 BT의 다음 분기로 넘어간다.
+	// 예: 관리인의 복도 정비는 2막 의심 단계에서만 켠다.
+	bool IsRoutineEnabled() const { return bRoutineEnabled; }
+
+	UFUNCTION(BlueprintCallable, Category = "NPC|Routine")
+	void SetRoutineEnabled(bool bEnabled) { bRoutineEnabled = bEnabled; }
+
 	// 현재 이동 속도(cm/s)를 변경한다.
 	UFUNCTION(BlueprintCallable, Category = "NPC|Movement")
 	void SetMovementSpeed(float NewSpeed);
@@ -96,6 +103,10 @@ protected:
 	// 이 NPC가 순서대로 돌며 할 일을 하는 활동 지점 목록. 레벨에 배치한 인스턴스에서 지정한다.
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "NPC|Routine")
 	TArray<TObjectPtr<ALCOActivitySpot>> Routine;
+
+	// 루틴을 실행할지 여부. 시작할 때 꺼 두었다가 조건이 되면 SetRoutineEnabled(true)로 켠다.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Routine")
+	bool bRoutineEnabled = true;
 
 private:
 	int32 RoutineIndex = 0;

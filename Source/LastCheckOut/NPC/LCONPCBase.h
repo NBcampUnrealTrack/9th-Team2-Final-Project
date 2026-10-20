@@ -8,6 +8,9 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNPCConversationStarted, AActor*, Partner);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNPCConversationEnded);
 
+class ALCOActivitySpot;
+class UBehaviorTree;
+
 // 호텔 NPC 공용 베이스 (관리인, 직원 등이 상속)
 // 대화 가능한 NPC는 상호작용(F)을 받으면 이동을 멈추고 플레이어를 바라본다
 UCLASS()
@@ -19,6 +22,12 @@ public:
 	ALCONPCBase();
 
 	FName GetNPCId() const { return NPCId; }
+
+	// 루틴 목록에서 다음 활동 지점을 돌려준다. 끝에 도달하면 처음으로 돌아가고, 목록이 비어 있으면 nullptr이다.
+	ALCOActivitySpot* GetNextRoutineSpot();
+
+	// 머리 위에 표시할 디버그 문구를 지정한다. (루틴 태스크가 현재 동작을 알린다)
+	void SetDebugStatus(const FString& Text) { DebugStatus = Text; }
 
 	// 현재 이동 속도(cm/s)를 변경한다.
 	UFUNCTION(BlueprintCallable, Category = "NPC|Movement")
@@ -56,6 +65,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
+	virtual void PossessedBy(AController* NewController) override;
 
 	// 대화 DataTable 등에서 NPC를 식별하는 ID
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
@@ -75,7 +85,22 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Conversation")
 	float TurnInterpSpeed = 6.f;
 
+	// AI가 빙의되면 자동으로 실행할 Behavior Tree. 루틴으로 움직이는 NPC에 지정한다. (관리인은 컨트롤러가 직접 실행하므로 비워 둔다)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Routine")
+	TObjectPtr<UBehaviorTree> DefaultBehaviorTree;
+
+	// NPC 머리 위에 현재 동작(DebugStatus)을 표시한다. 몽타주가 없는 동안 동작을 확인하는 용도이다.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Debug")
+	bool bDrawDebugStatus = true;
+
+	// 이 NPC가 순서대로 돌며 할 일을 하는 활동 지점 목록. 레벨에 배치한 인스턴스에서 지정한다.
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "NPC|Routine")
+	TArray<TObjectPtr<ALCOActivitySpot>> Routine;
+
 private:
+	int32 RoutineIndex = 0;
+	FString DebugStatus;
+
 	TWeakObjectPtr<AActor> ConversationPartner;
 
 	bool bInConversation = false;

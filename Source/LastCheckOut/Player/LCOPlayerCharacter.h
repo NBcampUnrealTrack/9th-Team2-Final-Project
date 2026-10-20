@@ -21,6 +21,7 @@ class ALCOSenseVolume;
 class UStaticMeshComponent;
 class UAnimMontage;
 class ALCOHidingSpot;
+class ULCOFootstepComponent;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLCOMoveStateChanged);
@@ -90,6 +91,16 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Stamina")
 	ULCOStaminaComponent* GetStamina() const { return StaminaComponent; }
+	
+	UFUNCTION(BlueprintPure, Category = "LCO|Footstep")
+	ULCOFootstepComponent* GetFootstep() const { return FootstepComponent; }
+
+	// 1인칭 헤드밥 켜기 / 끄기 (멀미 옵션, 설정 UI에서 호출)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Camera")
+	void SetHeadBobEnabled(bool bEnabled) { bHeadBobEnabled = bEnabled; }
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Camera")
+	bool IsHeadBobEnabled() const { return bHeadBobEnabled; }
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Suspicion")
 	USuspicionComponent* GetSuspicion() const { return SuspicionComponent; }
@@ -299,6 +310,9 @@ protected:
 	// 달리기 상태에 맞춰 시야각을 부드럽게 변경
 	void UpdateCameraFOV(float DeltaSeconds);
 	
+	// 1인칭 걷기 / 달리기 / 웅크리기 시 카메라 흔들림
+	void UpdateHeadBob(float DeltaSeconds);
+	
 		// 버프 활성 여부에 맞춰 화면 효과 진행도를 보간하고 포스트 프로세스에 반영
 	void UpdateBuffEffects(float DeltaSeconds);
 
@@ -345,7 +359,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Suspicion")
 	TObjectPtr<USuspicionComponent> SuspicionComponent;
 	
-
+	// 발소리 + AI 청각 소음
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Footstep")
+	TObjectPtr<ULCOFootstepComponent> FootstepComponent;
+	
 	// 퀵슬롯 (Q 휠). 입력 / 위젯은 BP에서 이 컴포넌트에 지정
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "QuickSlot")
 	TObjectPtr<ULCOQuickSlotComponent> QuickSlotComponent;
@@ -468,6 +485,39 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FirstPerson")
 	float FirstPersonCameraForwardOffset = 10.f;
 	
+	// ---------- 헤드밥 (1인칭) ----------
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|HeadBob")
+	bool bHeadBobEnabled = true;
+
+	// 초당 흔들림 횟수 (걸음 수와 비슷하게)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|HeadBob", meta = (ClampMin = "0"))
+	float WalkBobFrequency = 2.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|HeadBob", meta = (ClampMin = "0"))
+	float SprintBobFrequency = 2.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|HeadBob", meta = (ClampMin = "0"))
+	float CrouchBobFrequency = 1.4f;
+
+	// 위아래 흔들림 크기 (cm)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|HeadBob", meta = (ClampMin = "0"))
+	float WalkBobAmplitude = 1.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|HeadBob", meta = (ClampMin = "0"))
+	float SprintBobAmplitude = 2.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|HeadBob", meta = (ClampMin = "0"))
+	float CrouchBobAmplitude = 0.6f;
+
+	// 좌우 흔들림 크기 (위아래 대비 비율)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|HeadBob", meta = (ClampMin = "0"))
+	float BobSideRatio = 0.5f;
+
+	// 흔들림이 켜지고 꺼지는 / 상태별로 바뀌는 속도
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|HeadBob", meta = (ClampMin = "0"))
+	float BobBlendSpeed = 8.f;
+	
 	// ---------- 버프 화면 효과 ----------
 	// 버프 시작 / 종료 시 효과가 완전히 켜지거나 꺼지는 데 걸리는 시간(초)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|BuffEffect", meta = (ClampMin = "0.01"))
@@ -533,6 +583,12 @@ private:
 
 	// 실제로 달리는 중인지
 	bool bIsSprinting = false;
+	
+	// 헤드밥 진행 상태
+	float HeadBobTime = 0.f;
+	float HeadBobAlpha = 0.f;
+	float CurrentBobFrequency = 0.f;
+	float CurrentBobAmplitude = 0.f;
 	
 	bool bCameraEquipped = false;
 	

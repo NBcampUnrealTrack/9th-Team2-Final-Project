@@ -19,6 +19,7 @@
 #include "EngineUtils.h"
 #include "TimerManager.h"
 #include "Components/StaticMeshComponent.h"
+#include "Player/LCOFootstepComponent.h"
 #include "Engine/CollisionProfile.h"
 
 ALCOPlayerCharacter::ALCOPlayerCharacter()
@@ -46,6 +47,7 @@ ALCOPlayerCharacter::ALCOPlayerCharacter()
 	SuspicionComponent = CreateDefaultSubobject<USuspicionComponent>(TEXT("SuspicionComponent"));
 	QuickSlotComponent = CreateDefaultSubobject<ULCOQuickSlotComponent>(TEXT("QuickSlot"));
 	HidingComponent = CreateDefaultSubobject<ULCOHidingComponent>(TEXT("Hiding"));
+	FootstepComponent = CreateDefaultSubobject<ULCOFootstepComponent>(TEXT("Footstep"));
 	// 1인칭 전용 몸 메시 (내 화면에서만 보임, 3인칭 메시 포즈를 복사)
 	FirstPersonMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
 	FirstPersonMesh->SetupAttachment(GetMesh());
@@ -112,6 +114,7 @@ void ALCOPlayerCharacter::Tick(float DeltaSeconds)
 	UpdateSprint();
 	UpdateBuffEffects(DeltaSeconds);
 	UpdateCameraFOV(DeltaSeconds);
+	UpdateHeadBob(DeltaSeconds);
 	UpdateCameraHeight(DeltaSeconds);
 }
 
@@ -782,4 +785,45 @@ void ALCOPlayerCharacter::AttachHeldCamera()
 	// 1인칭에서는 팔과 같은 방식으로 그려야 손에 붙어 보임 (시야각 / 크기 동일)
 	HeldCameraMesh->SetFirstPersonPrimitiveType(bFirstPerson ? EFirstPersonPrimitiveType::FirstPerson : EFirstPersonPrimitiveType::None);
 	HeldCameraMesh->SetOwnerNoSee(false);
+}
+
+// ---------- 헤드밥 ----------
+
+void ALCOPlayerCharacter::UpdateHeadBob(float DeltaSeconds)
+{
+	const bool bFirstPerson = (ViewMode == ELCOViewMode::FirstPerson);
+	const bool bMoving = GetVelocity().SizeSquared2D() > FMath::Square(MinSprintVelocity)
+		&& GetCharacterMovement()->IsMovingOnGround();
+	const bool bShouldBob = bHeadBobEnabled && bFirstPerson && bMoving;
+
+	// 상태별 목표 빈도 / 크기
+	float TargetFrequency = WalkBobFrequency;
+	float TargetAmplitude = WalkBobAmplitude;
+	if (bIsCrouched)
+	{
+		TargetFrequency = CrouchBobFrequency;
+		TargetAmplitude = CrouchBobAmplitude;
+	}
+	else if (bIsSprinting)
+	{
+		TargetFrequency = SprintBobFrequency;
+		TargetAmplitude = SprintBobAmplitude;
+	}
+
+	// 걷기 → 달리기 등 상태가 바뀔 때도 부드럽게
+	CurrentBobFrequency = FMath::FInterpTo(CurrentBobFrequency, TargetFrequency, DeltaSeconds, BobBlendSpeed);
+	CurrentBobAmplitude = FMath::FInterpTo(CurrentBobAmplitude, TargetAmplitude, DeltaSeconds, BobBlendSpeed);
+	HeadBobAlpha = FMath::FInterpTo(HeadBobAlpha, bShouldBob ? 1.f : 0.f, DeltaSeconds, BobBlendSpeed);
+
+	// 흔들림이 꺼져 있을 때는 진행하지 않음 (다시 걸으면 이어서 흔들림)
+	if (HeadBobAlpha > KINDA_SMALL_NUMBER)
+	{
+		HeadBobTime += DeltaSeconds * CurrentBobFrequency;
+	}
+
+	// 위아래: 걸음마다 1번 / 좌우: 두 걸음마다 1번
+	const float Vertical = FMath::Sin(HeadBobTime * 2.f * PI) * CurrentBobAmplitude;
+	const float Side = FMath::Sin(HeadBobTime * PI) * CurrentBobAmplitude * BobSideRatio;
+
+	Camera->SetRelativeLocation(FVector(0.f, Side, Vertical) * HeadBobAlpha);
 }

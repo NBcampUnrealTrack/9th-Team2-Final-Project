@@ -49,6 +49,10 @@ enum class ELCONotebookTab : uint8
  * 결과        : Txt_DeductionResult (클릭한 항목 설명 / 조합 결과 독백)
  *              Txt_DeductionResultTitle (선택, 결과 제목), Scroll_DeductionResult (선택, 결과 스크롤)
  * 후보 머리말  : 분류별 머리말(증거 / 사진 / 증언 / 추리)을 코드에서 자동 생성 (글꼴·색은 Class Defaults)
+ *
+ * [단서·증언 탭 묶음 머리말]
+ * - 항목의 GroupID(증언 = 말한 사람, 증거 = 발견 장소)별로 Panel_EntryList 안에 머리말 자동 생성
+ * - 머리말 문구: UI.csv "NOTEBOOK_GROUP_<GroupID>", 순서: EntryGroupOrder, 모양: 추리 탭 머리말 설정 공용
  */
 UCLASS(Abstract)
 class LASTCHECKOUT_API ULCONotebookWidget : public UUserWidget
@@ -126,6 +130,20 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Debug", meta = (EditCondition = "bAddDebugEntries"))
 	TArray<FLCONotebookEntry> DebugEntries;
+
+	// ---------- 단서·증언 탭 묶음 머리말 ----------
+
+	// GroupID별로 묶어서 머리말을 붙일 분류 (목표·사진은 묶지 않음)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Group")
+	TArray<ELCONotebookCategory> GroupedCategories = { ELCONotebookCategory::Clue, ELCONotebookCategory::Testimony };
+
+	// 묶음 표시 순서 (여기 없는 GroupID는 그 뒤에 먼저 얻은 순서대로, GroupID 없는 항목은 맨 아래)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Group")
+	TArray<FName> EntryGroupOrder;
+
+	// 머리말 UI.csv 키 앞부분 (키 = 앞부분 + GroupID, 예: NOTEBOOK_GROUP_Professor)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Group")
+	FString EntryGroupHeaderKeyPrefix = TEXT("NOTEBOOK_GROUP_");
 
 	// ---------- 추리 탭 설정 ----------
 
@@ -352,6 +370,12 @@ private:
 	FText GetUIText(FName Key) const;
 	FText GetUITextOrDefault(FName Key, const FText& DefaultText) const;
 	FText GetDeductionHeaderText(ELCONotebookCategory Category) const;
+
+	// 목록 패널에 머리말 1줄 추가 (추리 탭 머리말과 같은 모양)
+	void AddListHeader(UPanelWidget* Panel, const FText& HeaderText);
+	// GroupID별로 묶이도록 정렬 (같은 묶음 안에서는 원래 순서 유지)
+	void SortEntriesByGroup(TArray<FLCONotebookEntry>& InOutEntries) const;
+	FText GetEntryGroupHeaderText(FName GroupID) const;
 
 	// 항목 제목 / 본문 (Notebook.csv 번역 우선, 없으면 DataTable 원문)
 	FText GetEntryTitle(const FLCONotebookEntry& Entry) const;

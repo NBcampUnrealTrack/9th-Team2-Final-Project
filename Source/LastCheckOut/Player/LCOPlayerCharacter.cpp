@@ -91,6 +91,7 @@ void ALCOPlayerCharacter::BeginPlay()
 	// 1인칭 팔 시야각 / 크기 (BP 값 반영)
 	Camera->SetFirstPersonFieldOfView(FirstPersonArmsFOV);
 	Camera->SetFirstPersonScale(FirstPersonArmsScale);
+	FirstPersonMesh->HideBoneByName(TEXT("neck_01"), EPhysBodyOp::PBO_None);
 
 	QuickSlotComponent->OnCameraEquipChanged.AddDynamic(this, &ALCOPlayerCharacter::HandleCameraEquipChanged);
 	SetViewMode(DefaultViewMode);
@@ -295,6 +296,8 @@ void ALCOPlayerCharacter::SetViewMode(ELCOViewMode NewMode)
 
 	// 손 카메라를 시점에 맞는 손에 부착
 	AttachHeldCamera();
+	// 1인칭에서는 내 몸 가림 처리 끄기 (그림자가 디더로 깨지는 문제 방지)
+	CameraOcclusionComponent->SetSelfOcclusionEnabled(!bFirstPerson);
 }
 
 void ALCOPlayerCharacter::UpdateCameraFOV(float DeltaSeconds)
@@ -365,10 +368,19 @@ int32 ALCOPlayerCharacter::GetStaminaPercentInt() const
 
 void ALCOPlayerCharacter::UpdateMoveSpeed()
 {
-	GetCharacterMovement()->MaxWalkSpeed = (bIsSprinting ? SprintSpeed : WalkSpeed) + MoveSpeedBonus;
+	const float BaseSpeed = bIsSprinting ? SprintSpeed : WalkSpeed;
 
-	// 웅크렸을 때도 이동속도 버프 적용
-	GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchSpeed + MoveSpeedBonus;
+	GetCharacterMovement()->MaxWalkSpeed =
+		BaseSpeed * PermanentMoveSpeedMultiplier + MoveSpeedBonus;
+
+	GetCharacterMovement()->MaxWalkSpeedCrouched =
+		CrouchSpeed * PermanentMoveSpeedMultiplier + MoveSpeedBonus;
+}
+
+void ALCOPlayerCharacter::SetPermanentMoveSpeedMultiplier(float Multiplier)
+{
+	PermanentMoveSpeedMultiplier = FMath::Max(1.0f, Multiplier);
+	UpdateMoveSpeed();
 }
 
 bool ALCOPlayerCharacter::ApplyMoveSpeedBuff(float Amount, float Duration)
@@ -611,7 +623,9 @@ void ALCOPlayerCharacter::UpdateCameraHeight(float DeltaSeconds)
 
 void ALCOPlayerCharacter::ApplyCameraHeight()
 {
-	SpringArm->SetRelativeLocation(FVector(0.f, 0.f, CurrentCameraHeight));
+	// 1인칭은 눈 위치를 살짝 앞으로 (몸 방향 기준이라 아래를 봐도 그대로)
+	const float ForwardOffset = (ViewMode == ELCOViewMode::FirstPerson) ? FirstPersonCameraForwardOffset : 0.f;
+	SpringArm->SetRelativeLocation(FVector(ForwardOffset, 0.f, CurrentCameraHeight));
 }
 
 // ---------- 감각(가칭) ----------

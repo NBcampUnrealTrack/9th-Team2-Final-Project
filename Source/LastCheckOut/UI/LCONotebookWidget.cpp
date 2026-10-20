@@ -361,9 +361,18 @@ void ULCONotebookWidget::RebuildEntryList()
 	CurrentEntries.Reset();
 	SelectedEntryIndex = INDEX_NONE;
 
+	const ELCONotebookCategory TabCategory = TabToCategory(CurrentTab);
+	const bool bUseGroups = GroupedCategories.Contains(TabCategory);
+
 	if (const ULCONotebookSubsystem* Notebook = GetNotebookSubsystem())
 	{
-		CurrentEntries = Notebook->GetEntriesByCategory(TabToCategory(CurrentTab));
+		CurrentEntries = Notebook->GetEntriesByCategory(TabCategory);
+	}
+
+	// 묶음 순서대로 정렬 (목록 인덱스 = CurrentEntries 인덱스 유지)
+	if (bUseGroups)
+	{
+		SortEntriesByGroup(CurrentEntries);
 	}
 
 	if (Txt_EmptyList)
@@ -386,9 +395,22 @@ void ULCONotebookWidget::RebuildEntryList()
 	int32 IndexToSelect = 0;
 	for (int32 i = 0; i < CurrentEntries.Num(); ++i)
 	{
+		// 묶음이 바뀌는 곳에 머리말 (GroupID 없는 항목은 머리말 없음)
+		if (bUseGroups)
+		{
+			const FName GroupID = CurrentEntries[i].GroupID;
+			const bool bNewGroup = (i == 0) || (CurrentEntries[i - 1].GroupID != GroupID);
+			if (bNewGroup && !GroupID.IsNone())
+			{
+				AddListHeader(Panel_EntryList, GetEntryGroupHeaderText(GroupID));
+			}
+		}
+
 		ULCONotebookListItemWidget* Item = CreateWidget<ULCONotebookListItemWidget>(GetOwningPlayer(), ListItemWidgetClass);
 		if (!Item)
 		{
+			// 인덱스 맞추기용 빈 칸
+			EntryItemWidgets.Add(nullptr);
 			continue;
 		}
 
@@ -685,6 +707,72 @@ FText ULCONotebookWidget::GetDeductionHeaderText(ELCONotebookCategory Category) 
 	return Key ? GetUITextOrDefault(*Key, DefaultText) : DefaultText;
 }
 
+void ULCONotebookWidget::AddListHeader(UPanelWidget* Panel, const FText& HeaderText)
+{
+	if (!Panel || !WidgetTree)
+	{
+		return;
+	}
+
+	UTextBlock* Header = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	if (!Header)
+	{
+		return;
+	}
+
+	Header->SetText(HeaderText);
+	Header->SetColorAndOpacity(DeductionHeaderColor);
+	if (DeductionHeaderFont.HasValidFont())
+	{
+		Header->SetFont(DeductionHeaderFont);
+	}
+	Header->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	UPanelSlot* HeaderSlot = Panel->AddChild(Header);
+	if (UScrollBoxSlot* ScrollSlot = Cast<UScrollBoxSlot>(HeaderSlot))
+	{
+		ScrollSlot->SetPadding(DeductionHeaderPadding);
+	}
+	else if (UVerticalBoxSlot* VerticalSlot = Cast<UVerticalBoxSlot>(HeaderSlot))
+	{
+		VerticalSlot->SetPadding(DeductionHeaderPadding);
+	}
+}
+
+void ULCONotebookWidget::SortEntriesByGroup(TArray<FLCONotebookEntry>& InOutEntries) const
+{
+	// 묶음 순위: EntryGroupOrder 순서 → 그 외는 처음 나온 순서 → GroupID 없음은 맨 아래
+	TMap<FName, int32> GroupRanks;
+	for (int32 i = 0; i < EntryGroupOrder.Num(); ++i)
+	{
+		if (!EntryGroupOrder[i].IsNone() && !GroupRanks.Contains(EntryGroupOrder[i]))
+		{
+			GroupRanks.Add(EntryGroupOrder[i], GroupRanks.Num());
+		}
+	}
+
+	for (const FLCONotebookEntry& Entry : InOutEntries)
+	{
+		if (!Entry.GroupID.IsNone() && !GroupRanks.Contains(Entry.GroupID))
+		{
+			GroupRanks.Add(Entry.GroupID, GroupRanks.Num());
+		}
+	}
+
+	InOutEntries.StableSort([&GroupRanks](const FLCONotebookEntry& A, const FLCONotebookEntry& B)
+	{
+		const int32* RankA = A.GroupID.IsNone() ? nullptr : GroupRanks.Find(A.GroupID);
+		const int32* RankB = B.GroupID.IsNone() ? nullptr : GroupRanks.Find(B.GroupID);
+		return (RankA ? *RankA : MAX_int32) < (RankB ? *RankB : MAX_int32);
+	});
+}
+
+FText ULCONotebookWidget::GetEntryGroupHeaderText(FName GroupID) const
+{
+	const FName Key(*(EntryGroupHeaderKeyPrefix + GroupID.ToString()));
+	return GetUITextOrDefault(Key, FText::FromName(GroupID));
+}
+
 void ULCONotebookWidget::SetDeductionResultText(const FText& InText, const FText& InTitle)
 {
 	const bool bHasTitle = !InTitle.IsEmpty();
@@ -738,8 +826,15 @@ void ULCONotebookWidget::RebuildDeductionCandidates()
 				continue;
 			}
 
-			Groups.Add({ Category, DeductionCandidates.Num(), Entries.Num() });
-			DeductionCandidates.Append(Entries);
+			// 단서·증언은 수첩 탭과 같은 묶음 순서로 정렬 (머리말은 분류 단위만)
+			TArray<FLCONotebookEntry> SortedEntries = Entries;
+			if (GroupedCategories.Contains(Category))
+			{
+				SortEntriesByGroup(SortedEntries);
+			}
+
+			Groups.Add({ Category, DeductionCandidates.Num(), SortedEntries.Num() });
+			DeductionCandidates.Append(SortedEntries);
 		}
 	}
 
@@ -765,29 +860,7 @@ void ULCONotebookWidget::RebuildDeductionCandidates()
 	for (const FCandidateGroup& Group : Groups)
 	{
 		// 분류 머리말
-		if (WidgetTree)
-		{
-			if (UTextBlock* Header = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass()))
-			{
-				Header->SetText(GetDeductionHeaderText(Group.Category));
-				Header->SetColorAndOpacity(DeductionHeaderColor);
-				if (DeductionHeaderFont.HasValidFont())
-				{
-					Header->SetFont(DeductionHeaderFont);
-				}
-				Header->SetVisibility(ESlateVisibility::HitTestInvisible);
-
-				UPanelSlot* HeaderSlot = Panel_DeductionCandidates->AddChild(Header);
-				if (UScrollBoxSlot* ScrollSlot = Cast<UScrollBoxSlot>(HeaderSlot))
-				{
-					ScrollSlot->SetPadding(DeductionHeaderPadding);
-				}
-				else if (UVerticalBoxSlot* VerticalSlot = Cast<UVerticalBoxSlot>(HeaderSlot))
-				{
-					VerticalSlot->SetPadding(DeductionHeaderPadding);
-				}
-			}
-		}
+		AddListHeader(Panel_DeductionCandidates, GetDeductionHeaderText(Group.Category));
 
 		// 항목 (DeductionItemWidgets 인덱스 = DeductionCandidates 인덱스)
 		for (int32 i = Group.StartIndex; i < Group.StartIndex + Group.Count; ++i)

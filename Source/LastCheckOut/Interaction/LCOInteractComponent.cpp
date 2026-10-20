@@ -82,7 +82,18 @@ FText ULCOInteractComponent::GetInteractPrompt(AActor* Interactor) const
 void ULCOInteractComponent::SetFocused(bool bFocused)
 {
 	// CustomDepth를 켜서 외곽선 포스트프로세스 머티리얼에서 사용
-	SetRenderCustomDepth(bFocused);
+	if (HighlightTarget == ELCOHighlightTarget::Self || !GetOwner())
+	{
+		SetRenderCustomDepth(bFocused);
+		return;
+	}
+
+	// 소유 액터의 모든 메시 (숨겨진 컴포넌트나 충돌용 컴포넌트는 그려지지 않으므로 같이 켜도 영향 없음)
+	TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents(GetOwner());
+	for (UPrimitiveComponent* Primitive : PrimitiveComponents)
+	{
+		Primitive->SetRenderCustomDepth(bFocused);
+	}
 }
 
 void ULCOInteractComponent::SetInteractionEnabled(bool bEnabled)

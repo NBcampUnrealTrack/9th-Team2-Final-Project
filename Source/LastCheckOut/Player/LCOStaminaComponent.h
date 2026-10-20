@@ -74,6 +74,12 @@ public:
 	// 스태미나가 0이 되어 탈진했을 때 (숨소리 연출 등)
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Stamina")
 	FOnStaminaExhausted OnStaminaExhausted;
+	
+	// -----------------------------------------------------------------------------------------------------------
+	
+	// 영구 스태미나 자연 회복 배율 설정
+	UFUNCTION(BlueprintCallable, Category = "LCO|Stamina")
+	void SetPermanentRegenMultiplier(float Multiplier);
 
 protected:
 	virtual void BeginPlay() override;
@@ -110,4 +116,12 @@ private:
 	bool bConsuming = false;
 	bool bExhausted = false;
 	float RegenDelayRemaining = 0.f;
+	
+	// ------------------------------------------------------------------------------------------------------------
+	
+	// 영구 스태미나 회복 배율 (기본 1.0 = 100%)
+	float PermanentRegenMultiplier = 1.0f;
+
+	// 소수점 회복량 누적
+	float RegenAccumulator = 0.0f;
 };

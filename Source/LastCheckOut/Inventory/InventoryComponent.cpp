@@ -273,7 +273,7 @@ bool UInventoryComponent::UseEquipment(FName ItemID)
 	// 손전등 사용
 	if (ItemID == FName("Flashlight"))
 	{
-		// Character->ToggleFlashlight(); // 캐릭터 함수 공유되면 주석 삭제예정
+		Character->ToggleFlashlight();
 		return true;
 	}
 

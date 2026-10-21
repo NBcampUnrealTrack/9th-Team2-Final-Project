@@ -54,7 +54,8 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Quantity)
 		{
 			// 증거품과 열쇠 아이템은 중복 획득 방지
 			if (ItemData->ItemType == EItemType::Evidence ||
-				ItemData->ItemType == EItemType::KeyItem)
+				ItemData->ItemType == EItemType::KeyItem ||
+				ItemData->ItemType == EItemType::Equipment)
 			{
 				return;
 			}
@@ -241,6 +242,44 @@ const FItemData* UInventoryComponent::GetItemData(FName ItemID) const
 	);
 }
 
+// 장비 아이템 사용 처리
+bool UInventoryComponent::UseEquipment(FName ItemID)
+{
+	// 인벤토리를 소유한 캐릭터 가져오기
+	ALCOPlayerCharacter* Character =
+		Cast<ALCOPlayerCharacter>(GetOwner());
+
+	if (!Character)
+	{
+		return false;
+	}
+
+	// 아이템을 보유하고 있는지 확인
+	if (!HasItem(ItemID))
+	{
+		return false;
+	}
+
+	// DataTable에서 아이템 정보 가져오기
+	const FItemData* ItemData = GetItemData(ItemID);
+
+	// 유효한 장비 아이템인지 확인
+	if (!ItemData ||
+		ItemData->ItemType != EItemType::Equipment)
+	{
+		return false;
+	}
+
+	// 손전등 사용
+	if (ItemID == FName("Flashlight"))
+	{
+		// Character->ToggleFlashlight(); // 캐릭터 함수 공유되면 주석 삭제예정
+		return true;
+	}
+
+	return false;
+}
+
 // 아이템 사용
 bool UInventoryComponent::UseItem(FName ItemID)
 {   
@@ -265,6 +304,12 @@ bool UInventoryComponent::UseItem(FName ItemID)
 	if (!ItemData)
 	{
 		return false;
+	}
+	
+	// 장비 아이템은 소모하지 않고 사용 요청만 전달
+	if (ItemData->ItemType == EItemType::Equipment)
+	{
+		return UseEquipment(ItemID);
 	}
 
 	// 아이템 종류에 따라 사용 방식 분기

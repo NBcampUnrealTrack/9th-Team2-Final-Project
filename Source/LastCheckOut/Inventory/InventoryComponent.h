@@ -47,6 +47,10 @@ public:
 	// 특정 아이템을 인벤토리에서 제거
 	UFUNCTION(BlueprintCallable)
 	bool RemoveItem(FName ItemID, int32 Quantity);
+
+	// 장비 아이템 사용 처리
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool UseEquipment(FName ItemID);
 	
 	// 아이템 ID를 기준으로 아이템 사용 처리
 	// 소비 아이템은 사용 후 1개 소모

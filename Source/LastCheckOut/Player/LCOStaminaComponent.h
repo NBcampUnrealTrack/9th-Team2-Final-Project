@@ -76,10 +76,13 @@ public:
 	FOnStaminaExhausted OnStaminaExhausted;
 	
 	// -----------------------------------------------------------------------------------------------------------
-	
 	// 영구 스태미나 자연 회복 배율 설정
 	UFUNCTION(BlueprintCallable, Category = "LCO|Stamina")
 	void SetPermanentRegenMultiplier(float Multiplier);
+	
+	// 영구 스태미나 회복 배율 (기본 1.0). 맵 이동 / 이어하기 저장용
+	UFUNCTION(BlueprintPure, Category = "LCO|Stamina")
+	float GetPermanentRegenMultiplier() const { return PermanentRegenMultiplier; }
 
 protected:
 	virtual void BeginPlay() override;

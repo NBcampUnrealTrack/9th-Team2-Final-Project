@@ -20,6 +20,8 @@
 #include "TimerManager.h"
 #include "Components/StaticMeshComponent.h"
 #include "Player/LCOFootstepComponent.h"
+#include "Components/SpotLightComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Engine/CollisionProfile.h"
 
 ALCOPlayerCharacter::ALCOPlayerCharacter()
@@ -28,7 +30,15 @@ ALCOPlayerCharacter::ALCOPlayerCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.f);
-
+	// 손전등 (눈 높이 스프링암 시작점에 부착, 기본 꺼짐)
+	FlashlightComponent = CreateDefaultSubobject<USpotLightComponent>(TEXT("Flashlight"));
+	FlashlightComponent->SetupAttachment(SpringArm);
+	FlashlightComponent->SetRelativeLocation(FlashlightOffset);
+	FlashlightComponent->Intensity = 5000.f;
+	FlashlightComponent->AttenuationRadius = 1500.f;
+	FlashlightComponent->InnerConeAngle = 15.f;
+	FlashlightComponent->OuterConeAngle = 28.f;
+	FlashlightComponent->SetVisibility(false);
 	// 스프링암: 3인칭일 때 거리 확보, 1인칭일 때는 길이 0
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
@@ -105,6 +115,9 @@ void ALCOPlayerCharacter::BeginPlay()
 	MaxStaminaBuffPostProcessMID = CreateBuffPostProcess(MaxStaminaBuffPostProcessMaterial);
 	// 숨을 때 진행 중이던 행동 정리
 	HidingComponent->OnHidingChanged.AddUniqueDynamic(this, &ALCOPlayerCharacter::HandleHidingChanged);
+	// BP에서 바꾼 위치 반영, 시작은 꺼짐
+	FlashlightComponent->SetRelativeLocation(FlashlightOffset);
+	SetFlashlightOn(false);
 }
 
 void ALCOPlayerCharacter::Tick(float DeltaSeconds)
@@ -115,6 +128,7 @@ void ALCOPlayerCharacter::Tick(float DeltaSeconds)
 	UpdateBuffEffects(DeltaSeconds);
 	UpdateCameraFOV(DeltaSeconds);
 	UpdateHeadBob(DeltaSeconds);
+	UpdateFlashlight();
 	UpdateCameraHeight(DeltaSeconds);
 }
 
@@ -749,8 +763,9 @@ ALCOSenseVolume* ALCOPlayerCharacter::FindSenseVolume() const
 
 bool ALCOPlayerCharacter::IsActionBlocked() const
 {
+	// 메뉴 열림 / 퍼즐 보기 / 숨는 중에는 웅크리기, 시점 전환, 촬영, 감각 막기 (F 상호작용은 별도 처리라 영향 없음)
 	const ALCOPlayerController* PC = Cast<ALCOPlayerController>(Controller);
-	return (PC && PC->IsInUIMode()) || HidingComponent->IsHiding();
+	return (PC && (PC->IsInUIMode() || PC->IsInPuzzleView())) || HidingComponent->IsHiding();
 }
 
 void ALCOPlayerCharacter::HandleHidingChanged(bool bIsHiding, ALCOHidingSpot* HidingSpot)
@@ -826,4 +841,44 @@ void ALCOPlayerCharacter::UpdateHeadBob(float DeltaSeconds)
 	const float Side = FMath::Sin(HeadBobTime * PI) * CurrentBobAmplitude * BobSideRatio;
 
 	Camera->SetRelativeLocation(FVector(0.f, Side, Vertical) * HeadBobAlpha);
+}
+
+// ---------- 손전등 ----------
+
+void ALCOPlayerCharacter::ToggleFlashlight()
+{
+	SetFlashlightOn(!bFlashlightOn);
+}
+
+void ALCOPlayerCharacter::SetFlashlightOn(bool bOn)
+{
+	const bool bChanged = (bFlashlightOn != bOn);
+	bFlashlightOn = bOn;
+
+	FlashlightComponent->SetVisibility(bOn);
+	UpdateFlashlight();
+
+	if (!bChanged)
+	{
+		return;
+	}
+
+	if (FlashlightToggleSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FlashlightToggleSound, FlashlightComponent->GetComponentLocation());
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Flashlight %s"), bOn ? TEXT("On") : TEXT("Off"));
+	OnFlashlightToggled.Broadcast(bOn);
+}
+
+void ALCOPlayerCharacter::UpdateFlashlight()
+{
+	if (!bFlashlightOn || !Controller)
+	{
+		return;
+	}
+
+	// 1인칭 / 3인칭 모두 화면이 바라보는 방향으로 비춤
+	FlashlightComponent->SetWorldRotation(Controller->GetControlRotation());
 }

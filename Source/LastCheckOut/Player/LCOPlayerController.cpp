@@ -81,18 +81,60 @@ void ALCOPlayerController::SetUIMode(bool bEnable)
 
 void ALCOPlayerController::RequestInventory()
 {
+	// 퍼즐 보기 중에는 무시
+	if (IsInPuzzleView())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LCOPlayerController] Inventory ignored (puzzle view)"));
+		return;
+	}
+
 	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerController] Inventory requested"));
 	OnInventoryRequested.Broadcast();
 }
 
 void ALCOPlayerController::RequestNotebook()
 {
+	// 퍼즐 보기 중에는 무시
+	if (IsInPuzzleView())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LCOPlayerController] Notebook ignored (puzzle view)"));
+		return;
+	}
+
 	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerController] Notebook requested"));
 	OnNotebookRequested.Broadcast();
 }
 
 void ALCOPlayerController::RequestOptions()
 {
+	// 퍼즐 보기 중에는 일시정지 메뉴 대신 퍼즐에 나가기 전달
+	if (IsInPuzzleView())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LCOPlayerController] Puzzle exit requested: %s"), *GetNameSafe(CurrentPuzzleActor.Get()));
+		OnPuzzleExitRequested.Broadcast(CurrentPuzzleActor.Get());
+		return;
+	}
+
 	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerController] Options requested"));
 	OnOptionsRequested.Broadcast();
+}
+
+// ---------- 퍼즐 보기 ----------
+
+void ALCOPlayerController::BeginPuzzleView(AActor* PuzzleActor)
+{
+	if (!IsValid(PuzzleActor))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOPlayerController] BeginPuzzleView: PuzzleActor is null"));
+		return;
+	}
+
+	CurrentPuzzleActor = PuzzleActor;
+	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerController] Puzzle view begin: %s"), *PuzzleActor->GetName());
+}
+
+void ALCOPlayerController::EndPuzzleView()
+{
+	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerController] Puzzle view end: %s"), *GetNameSafe(CurrentPuzzleActor.Get()));
+	CurrentPuzzleActor.Reset();
 }

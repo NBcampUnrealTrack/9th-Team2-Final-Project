@@ -18,6 +18,7 @@ class LASTCHECKOUT_API ULCOBTTask_DoActivity : public UBTTaskNode
 {
 	GENERATED_BODY()
 
+#pragma region 태스크 진입과 종료
 public:
 	ULCOBTTask_DoActivity();
 
@@ -30,24 +31,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Activity")
 	float RetryDelay = 2.f;
 
-	// FacePlayer 동작에서 플레이어 쪽으로 몸을 돌리는 속도
-	UPROPERTY(EditAnywhere, Category = "Activity")
-	float FacePlayerInterpSpeed = 8.f;
-
 private:
-	UFUNCTION()
-	void OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result);
-
-	// FacePlayer 동작 중 0.03초마다 플레이어 쪽으로 몸을 돌린다.
-	void UpdateFacePlayer();
-
-	// FaceSlotDirection 동작 중 0.03초마다 슬롯 방향으로 부드럽게 돌고, 맞춰지면 다음 동작으로 넘어간다.
-	void UpdateFaceSlot();
-
-	// 다음 동작을 Delay초 뒤에 실행한다. 대화 중이면 끝날 때까지 미룬다.
-	void ScheduleNextStep(float Delay);
-	void RunNextStep();
-
 	// 태스크를 Delay초 뒤에 성공으로 끝낸다. (바로 끝내면 BT가 매 프레임 반복하는 것을 막는다)
 	void FinishAfter(float Delay);
 	void FinishActivity();
@@ -57,11 +41,37 @@ private:
 	TWeakObjectPtr<AAIController> CachedAI;
 	TWeakObjectPtr<ALCONPCBase> CachedNPC;
 	TWeakObjectPtr<ALCOActivitySpot> CachedSpot;
+#pragma endregion
+
+#pragma region 동작 실행
+private:
+	UFUNCTION()
+	void OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result);
+
+	// 다음 동작을 Delay초 뒤에 실행한다. 대화 중이면 끝날 때까지 미룬다.
+	void ScheduleNextStep(float Delay);
+	void RunNextStep();
 
 	int32 StepIndex = -1;
 	FTimerHandle StepTimer;
-	FTimerHandle FaceTimer;
 
 	// 같은 동작을 다시 확인하는 중이면 true (대기 동작의 반복 확인에서 따라 보기 타이머를 끊지 않기 위함)
 	bool bRepeatingStep = false;
+#pragma endregion
+
+#pragma region 플레이어 바라보기와 회전
+protected:
+	// FacePlayer 동작에서 플레이어 쪽으로 몸을 돌리는 속도
+	UPROPERTY(EditAnywhere, Category = "Activity")
+	float FacePlayerInterpSpeed = 8.f;
+
+private:
+	// FacePlayer 동작 중 0.03초마다 플레이어 쪽으로 몸을 돌린다.
+	void UpdateFacePlayer();
+
+	// FaceSlotDirection 동작 중 0.03초마다 슬롯 방향으로 부드럽게 돌고, 맞춰지면 다음 동작으로 넘어간다.
+	void UpdateFaceSlot();
+
+	FTimerHandle FaceTimer;
+#pragma endregion
 };

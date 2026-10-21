@@ -7,6 +7,8 @@
 #include "BrainComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+#pragma region 초기화와 이동 속도
+
 ALCONPCBase::ALCONPCBase()
 {
 	// Tick은 대화 중에만 켠다.
@@ -34,6 +36,39 @@ void ALCONPCBase::BeginPlay()
 		SetActorTickEnabled(true);
 	}
 }
+
+void ALCONPCBase::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	// 루틴용 BT가 지정되어 있으면 AI가 빙의될 때 실행한다.
+	if (DefaultBehaviorTree)
+	{
+		if (AAIController* AIController = Cast<AAIController>(NewController))
+		{
+			AIController->RunBehaviorTree(DefaultBehaviorTree);
+		}
+	}
+}
+
+void ALCONPCBase::SetMovementSpeed(float NewSpeed)
+{
+	GetCharacterMovement()->MaxWalkSpeed = NewSpeed;
+}
+
+void ALCONPCBase::SetWalkSpeed()
+{
+	SetMovementSpeed(WalkSpeed);
+}
+
+void ALCONPCBase::SetRunSpeed()
+{
+	SetMovementSpeed(RunSpeed);
+}
+
+#pragma endregion
+
+#pragma region 대화
 
 void ALCONPCBase::Tick(float DeltaSeconds)
 {
@@ -66,51 +101,6 @@ void ALCONPCBase::Tick(float DeltaSeconds)
 	}
 
 	SetActorRotation(FMath::RInterpTo(GetActorRotation(), ToPartner.Rotation(), DeltaSeconds, TurnInterpSpeed));
-}
-
-void ALCONPCBase::PossessedBy(AController* NewController)
-{
-	Super::PossessedBy(NewController);
-
-	// 루틴용 BT가 지정되어 있으면 AI가 빙의될 때 실행한다.
-	if (DefaultBehaviorTree)
-	{
-		if (AAIController* AIController = Cast<AAIController>(NewController))
-		{
-			AIController->RunBehaviorTree(DefaultBehaviorTree);
-		}
-	}
-}
-
-ALCOActivitySpot* ALCONPCBase::GetNextRoutineSpot()
-{
-	// 비어 있는 칸은 건너뛴다.
-	for (int32 Attempt = 0; Attempt < Routine.Num(); ++Attempt)
-	{
-		ALCOActivitySpot* Spot = Routine[RoutineIndex % Routine.Num()];
-		RoutineIndex = (RoutineIndex + 1) % Routine.Num();
-		if (Spot)
-		{
-			return Spot;
-		}
-	}
-
-	return nullptr;
-}
-
-void ALCONPCBase::SetMovementSpeed(float NewSpeed)
-{
-	GetCharacterMovement()->MaxWalkSpeed = NewSpeed;
-}
-
-void ALCONPCBase::SetWalkSpeed()
-{
-	SetMovementSpeed(WalkSpeed);
-}
-
-void ALCONPCBase::SetRunSpeed()
-{
-	SetMovementSpeed(RunSpeed);
 }
 
 void ALCONPCBase::BeginConversation(AActor* Partner)
@@ -170,3 +160,25 @@ bool ALCONPCBase::IsInteractionLocked_Implementation(ULCOInteractComponent* Sour
 	// 대화할 수 없는 NPC이거나 이미 대화 중이면 상호작용 불가
 	return !bCanTalk || bInConversation;
 }
+
+#pragma endregion
+
+#pragma region 루틴 (활동 지점)
+
+ALCOActivitySpot* ALCONPCBase::GetNextRoutineSpot()
+{
+	// 비어 있는 칸은 건너뛴다.
+	for (int32 Attempt = 0; Attempt < Routine.Num(); ++Attempt)
+	{
+		ALCOActivitySpot* Spot = Routine[RoutineIndex % Routine.Num()];
+		RoutineIndex = (RoutineIndex + 1) % Routine.Num();
+		if (Spot)
+		{
+			return Spot;
+		}
+	}
+
+	return nullptr;
+}
+
+#pragma endregion

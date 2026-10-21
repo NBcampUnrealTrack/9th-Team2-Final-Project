@@ -30,6 +30,8 @@ namespace
 	}
 }
 
+#pragma region 태스크 진입과 종료
+
 ULCOBTTask_DoActivity::ULCOBTTask_DoActivity()
 {
 	NodeName = TEXT("Do Activity");
@@ -94,6 +96,62 @@ FString ULCOBTTask_DoActivity::GetStaticDescription() const
 {
 	return TEXT("NPC Routine: go to next Activity Spot and run its steps");
 }
+
+void ULCOBTTask_DoActivity::FinishAfter(float Delay)
+{
+	const ALCONPCBase* NPC = CachedNPC.Get();
+	UWorld* World = NPC ? NPC->GetWorld() : nullptr;
+	if (!World)
+	{
+		FinishActivity();
+		return;
+	}
+
+	World->GetTimerManager().SetTimer(StepTimer, FTimerDelegate::CreateUObject(this, &ULCOBTTask_DoActivity::FinishActivity), FMath::Max(Delay, KINDA_SMALL_NUMBER), false);
+}
+
+void ULCOBTTask_DoActivity::FinishActivity()
+{
+	UBehaviorTreeComponent* OwnerComp = CachedOwnerComp.Get();
+	Cleanup();
+
+	if (OwnerComp)
+	{
+		FinishLatentTask(*OwnerComp, EBTNodeResult::Succeeded);
+	}
+}
+
+void ULCOBTTask_DoActivity::Cleanup()
+{
+	if (const ALCONPCBase* NPC = CachedNPC.Get())
+	{
+		if (UWorld* World = NPC->GetWorld())
+		{
+			World->GetTimerManager().ClearTimer(StepTimer);
+			World->GetTimerManager().ClearTimer(FaceTimer);
+		}
+	}
+
+	if (AAIController* AI = CachedAI.Get())
+	{
+		AI->ReceiveMoveCompleted.RemoveDynamic(this, &ULCOBTTask_DoActivity::OnMoveCompleted);
+	}
+
+	if (ALCOActivitySpot* Spot = CachedSpot.Get())
+	{
+		Spot->Release(CachedNPC.Get());
+	}
+	CachedSpot.Reset();
+
+	if (ALCONPCBase* NPC = CachedNPC.Get())
+	{
+		NPC->SetDebugStatus(TEXT("Idle"));
+	}
+}
+
+#pragma endregion
+
+#pragma region 동작 실행
 
 void ULCOBTTask_DoActivity::ScheduleNextStep(float Delay)
 {
@@ -285,6 +343,35 @@ void ULCOBTTask_DoActivity::RunNextStep()
 	}
 }
 
+void ULCOBTTask_DoActivity::OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result)
+{
+	const ALCONPCBase* NPC = CachedNPC.Get();
+	const ALCOActivitySpot* Spot = CachedSpot.Get();
+	if (!NPC || !Spot || !Spot->GetSteps().IsValidIndex(StepIndex) || Spot->GetSteps()[StepIndex].Type != ELCOActivityStepType::MoveToSlot)
+	{
+		return;
+	}
+
+	if (Result == EPathFollowingResult::Success)
+	{
+		ScheduleNextStep(0.f);
+	}
+	else if (NPC->IsInConversation())
+	{
+		// 대화 때문에 이동이 중단된 경우. 대화가 끝나면 이 이동을 다시 한다.
+		--StepIndex;
+		ScheduleNextStep(0.5f);
+	}
+	else
+	{
+		FinishAfter(RetryDelay);
+	}
+}
+
+#pragma endregion
+
+#pragma region 플레이어 바라보기와 회전
+
 void ULCOBTTask_DoActivity::UpdateFacePlayer()
 {
 	ALCONPCBase* NPC = CachedNPC.Get();
@@ -326,79 +413,4 @@ void ULCOBTTask_DoActivity::UpdateFaceSlot()
 	}
 }
 
-void ULCOBTTask_DoActivity::OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result)
-{
-	const ALCONPCBase* NPC = CachedNPC.Get();
-	const ALCOActivitySpot* Spot = CachedSpot.Get();
-	if (!NPC || !Spot || !Spot->GetSteps().IsValidIndex(StepIndex) || Spot->GetSteps()[StepIndex].Type != ELCOActivityStepType::MoveToSlot)
-	{
-		return;
-	}
-
-	if (Result == EPathFollowingResult::Success)
-	{
-		ScheduleNextStep(0.f);
-	}
-	else if (NPC->IsInConversation())
-	{
-		// 대화 때문에 이동이 중단된 경우. 대화가 끝나면 이 이동을 다시 한다.
-		--StepIndex;
-		ScheduleNextStep(0.5f);
-	}
-	else
-	{
-		FinishAfter(RetryDelay);
-	}
-}
-
-void ULCOBTTask_DoActivity::FinishAfter(float Delay)
-{
-	const ALCONPCBase* NPC = CachedNPC.Get();
-	UWorld* World = NPC ? NPC->GetWorld() : nullptr;
-	if (!World)
-	{
-		FinishActivity();
-		return;
-	}
-
-	World->GetTimerManager().SetTimer(StepTimer, FTimerDelegate::CreateUObject(this, &ULCOBTTask_DoActivity::FinishActivity), FMath::Max(Delay, KINDA_SMALL_NUMBER), false);
-}
-
-void ULCOBTTask_DoActivity::FinishActivity()
-{
-	UBehaviorTreeComponent* OwnerComp = CachedOwnerComp.Get();
-	Cleanup();
-
-	if (OwnerComp)
-	{
-		FinishLatentTask(*OwnerComp, EBTNodeResult::Succeeded);
-	}
-}
-
-void ULCOBTTask_DoActivity::Cleanup()
-{
-	if (const ALCONPCBase* NPC = CachedNPC.Get())
-	{
-		if (UWorld* World = NPC->GetWorld())
-		{
-			World->GetTimerManager().ClearTimer(StepTimer);
-			World->GetTimerManager().ClearTimer(FaceTimer);
-		}
-	}
-
-	if (AAIController* AI = CachedAI.Get())
-	{
-		AI->ReceiveMoveCompleted.RemoveDynamic(this, &ULCOBTTask_DoActivity::OnMoveCompleted);
-	}
-
-	if (ALCOActivitySpot* Spot = CachedSpot.Get())
-	{
-		Spot->Release(CachedNPC.Get());
-	}
-	CachedSpot.Reset();
-
-	if (ALCONPCBase* NPC = CachedNPC.Get())
-	{
-		NPC->SetDebugStatus(TEXT("Idle"));
-	}
-}
+#pragma endregion

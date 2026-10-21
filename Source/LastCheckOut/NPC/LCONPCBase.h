@@ -18,23 +18,11 @@ class LASTCHECKOUT_API ALCONPCBase : public ACharacter, public ILCOInteractionRe
 {
 	GENERATED_BODY()
 
+#pragma region 초기화와 이동 속도
 public:
 	ALCONPCBase();
 
 	FName GetNPCId() const { return NPCId; }
-
-	// 루틴 목록에서 다음 활동 지점을 돌려준다. 끝에 도달하면 처음으로 돌아가고, 목록이 비어 있으면 nullptr이다.
-	ALCOActivitySpot* GetNextRoutineSpot();
-
-	// 머리 위에 표시할 디버그 문구를 지정한다. (루틴 태스크가 현재 동작을 알린다)
-	void SetDebugStatus(const FString& Text) { DebugStatus = Text; }
-
-	// 루틴(활동 지점 일)을 켜고 끈다. 꺼져 있으면 Do Activity 태스크가 바로 실패해 BT의 다음 분기로 넘어간다.
-	// 예: 관리인의 복도 정비는 2막 의심 단계에서만 켠다.
-	bool IsRoutineEnabled() const { return bRoutineEnabled; }
-
-	UFUNCTION(BlueprintCallable, Category = "NPC|Routine")
-	void SetRoutineEnabled(bool bEnabled) { bRoutineEnabled = bEnabled; }
 
 	// 현재 이동 속도(cm/s)를 변경한다.
 	UFUNCTION(BlueprintCallable, Category = "NPC|Movement")
@@ -46,6 +34,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "NPC|Movement")
 	void SetRunSpeed();
 
+protected:
+	virtual void BeginPlay() override;
+
+	virtual void PossessedBy(AController* NewController) override;
+
+	// 대화 DataTable 등에서 NPC를 식별하는 ID
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
+	FName NPCId;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Movement")
+	float WalkSpeed = 200.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Movement")
+	float RunSpeed = 450.f;
+#pragma endregion
+
+#pragma region 대화
+public:
 	// 대화를 시작한다. AI를 멈추고 대화 상대를 바라본다.
 	UFUNCTION(BlueprintCallable, Category = "NPC|Conversation")
 	void BeginConversation(AActor* Partner);
@@ -70,19 +76,7 @@ public:
 	virtual bool IsInteractionLocked_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const override;
 
 protected:
-	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
-	virtual void PossessedBy(AController* NewController) override;
-
-	// 대화 DataTable 등에서 NPC를 식별하는 ID
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
-	FName NPCId;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Movement")
-	float WalkSpeed = 200.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Movement")
-	float RunSpeed = 450.f;
 
 	// 대화가 가능한 NPC인지 (관리인은 false)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Conversation")
@@ -92,13 +86,28 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Conversation")
 	float TurnInterpSpeed = 6.f;
 
+private:
+	TWeakObjectPtr<AActor> ConversationPartner;
+
+	bool bInConversation = false;
+#pragma endregion
+
+#pragma region 루틴 (활동 지점)
+public:
+	// 루틴 목록에서 다음 활동 지점을 돌려준다. 끝에 도달하면 처음으로 돌아가고, 목록이 비어 있으면 nullptr이다.
+	ALCOActivitySpot* GetNextRoutineSpot();
+
+	// 루틴(활동 지점 일)을 켜고 끈다. 꺼져 있으면 Do Activity 태스크가 바로 실패해 BT의 다음 분기로 넘어간다.
+	// 예: 관리인의 복도 정비는 2막 의심 단계에서만 켠다.
+	bool IsRoutineEnabled() const { return bRoutineEnabled; }
+
+	UFUNCTION(BlueprintCallable, Category = "NPC|Routine")
+	void SetRoutineEnabled(bool bEnabled) { bRoutineEnabled = bEnabled; }
+
+protected:
 	// AI가 빙의되면 자동으로 실행할 Behavior Tree. 루틴으로 움직이는 NPC에 지정한다. (관리인은 컨트롤러가 직접 실행하므로 비워 둔다)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Routine")
 	TObjectPtr<UBehaviorTree> DefaultBehaviorTree;
-
-	// NPC 머리 위에 현재 동작(DebugStatus)을 표시한다. 몽타주가 없는 동안 동작을 확인하는 용도이다.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Debug")
-	bool bDrawDebugStatus = true;
 
 	// 이 NPC가 순서대로 돌며 할 일을 하는 활동 지점 목록. 레벨에 배치한 인스턴스에서 지정한다.
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "NPC|Routine")
@@ -110,9 +119,19 @@ protected:
 
 private:
 	int32 RoutineIndex = 0;
+#pragma endregion
+
+#pragma region 머리 위 동작 표시 (디버그)
+public:
+	// 머리 위에 표시할 디버그 문구를 지정한다. (루틴 태스크가 현재 동작을 알린다)
+	void SetDebugStatus(const FString& Text) { DebugStatus = Text; }
+
+protected:
+	// NPC 머리 위에 현재 동작(DebugStatus)을 표시한다. 몽타주가 없는 동안 동작을 확인하는 용도이다.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Debug")
+	bool bDrawDebugStatus = true;
+
+private:
 	FString DebugStatus;
-
-	TWeakObjectPtr<AActor> ConversationPartner;
-
-	bool bInConversation = false;
+#pragma endregion
 };

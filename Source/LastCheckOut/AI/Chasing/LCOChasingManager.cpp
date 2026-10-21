@@ -14,9 +14,12 @@
 #include "Kismet/GameplayStatics.h"
 #include "NPC/LCOCaretaker.h"
 #include "NPC/LCOSigolYouth.h"
+#include "NavMesh/RecastNavMesh.h"
 #include "NavigationPath.h"
 #include "NavigationSystem.h"
 #include "TimerManager.h"
+
+#pragma region 초기화와 의심도 바인딩
 
 ALCOChasingManager::ALCOChasingManager()
 {
@@ -65,34 +68,9 @@ void ALCOChasingManager::HandleSuspicionMax()
 	StartChasing();
 }
 
-void ALCOChasingManager::HandleHidingSpotEntered(ALCOHidingSpot* HidingSpot, AActor* Hider)
-{
-	// 플레이어가 숨은 경우만 처리한다.
-	const APawn* HiderPawn = Cast<APawn>(Hider);
-	if (!HiderPawn || !HiderPawn->IsPlayerControlled())	return;
+#pragma endregion
 
-	// 따돌리지 못했으면(관리인에게 보이는 상태로 숨음) 관리인이 은신처로 와서 끌어낸 뒤 잡는다.
-	if (bIsChasing && !TryEndChasingByHiding(HidingSpot))
-	{
-		StartExtractByCaretakers(HidingSpot);
-	}
-}
-
-void ALCOChasingManager::StartExtractByCaretakers(ALCOHidingSpot* HidingSpot)
-{
-	TArray<AActor*> Caretakers;
-	UGameplayStatics::GetAllActorsOfClass(this, ALCOCaretaker::StaticClass(), Caretakers);
-	for (const AActor* Caretaker : Caretakers)
-	{
-		if (const APawn* CaretakerPawn = Cast<APawn>(Caretaker))
-		{
-			if (ALCOCaretakerAIController* Controller = Cast<ALCOCaretakerAIController>(CaretakerPawn->GetController()))
-			{
-				Controller->StartExtractHider(HidingSpot);
-			}
-		}
-	}
-}
+#pragma region 체이싱 시작과 종료
 
 void ALCOChasingManager::StartChasing()
 {
@@ -136,6 +114,7 @@ void ALCOChasingManager::StartChasing()
 		ResetPathGuide();
 		UpdatePathGuide();
 		GetWorldTimerManager().SetTimer(PathGuideTimer, this, &ALCOChasingManager::UpdatePathGuide, GuideUpdateInterval, true);
+		GetWorldTimerManager().SetTimer(PassCheckTimer, this, &ALCOChasingManager::CheckPassedFootprints, FootprintPassCheckInterval, true);
 	}
 	OnChasingStarted.Broadcast(SpawnedYouth.Get());
 }
@@ -150,6 +129,7 @@ void ALCOChasingManager::EndChasing(ELCOChasingEndReason Reason)
 	bIsChasing = false;
 	GetWorldTimerManager().ClearTimer(FoundCheckTimer);
 	GetWorldTimerManager().ClearTimer(PathGuideTimer);
+	GetWorldTimerManager().ClearTimer(PassCheckTimer);
 	ResetPathGuide();
 
 	// 시골청년을 발견한 경우에는 청년을 지우지 않고 대화 흐름으로 넘긴다. 그 외에는 바로 제거한다.
@@ -197,6 +177,239 @@ void ALCOChasingManager::EndChasing(ELCOChasingEndReason Reason)
 
 	OnChasingEnded.Broadcast(Reason);
 }
+
+void ALCOChasingManager::NotifyPlayerEnteredSafeZone()
+{
+	++SafeZoneCount;
+
+	// 체이싱 중 안전지대에 들어가면 시골청년을 찾지 않아도 즉시 종료한다.
+	if (bIsChasing)
+	{
+		EndChasing(ELCOChasingEndReason::LobbyEntry);
+	}
+}
+
+void ALCOChasingManager::NotifyPlayerExitedSafeZone()
+{
+	SafeZoneCount = FMath::Max(0, SafeZoneCount - 1);
+}
+
+bool ALCOChasingManager::FindSpawnLocation(const FVector& PlayerLocation, FVector& OutLocation) const
+{
+	// 후보 중 플레이어까지 NavMesh 경로가 가장 긴 위치를 고른다. 도달할 수 없는 후보는 제외한다.
+	auto PickFarthest = [this, &PlayerLocation, &OutLocation](const TArray<TObjectPtr<ATargetPoint>>& Points, float MinPathLength)
+	{
+		double BestLength = -1.0;
+		for (const ATargetPoint* Point : Points)
+		{
+			if (!Point)
+			{
+				continue;
+			}
+
+			double PathLength = 0.0;
+			if (UNavigationSystemV1::GetPathLength(GetWorld(), PlayerLocation, Point->GetActorLocation(), PathLength) != ENavigationQueryResult::Success)
+			{
+				continue;
+			}
+
+			if (PathLength >= MinPathLength && PathLength > BestLength)
+			{
+				BestLength = PathLength;
+				OutLocation = Point->GetActorLocation();
+			}
+		}
+		return BestLength >= 0.0;
+	};
+
+	if (PickFarthest(SpawnCandidates, MinSpawnPathLength) || PickFarthest(FallbackPoints, 0.f))
+	{
+		return true;
+	}
+
+	// 플레이어가 막힌 곳(닫힌 문 안쪽 등)에 있어 어떤 후보까지도 NavMesh 경로가 없을 때는, 도달 가능 여부를 따지지 않고
+	// 직선 거리가 가장 먼 후보에 스폰한다. 청년은 길이 열렸을 때 갈 수 있는 위치에 있으면 되고, 길 안내는 길이 열릴 때까지 기다린다.
+	double BestDistance = -1.0;
+	auto PickFarthestStraight = [&PlayerLocation, &OutLocation, &BestDistance](const TArray<TObjectPtr<ATargetPoint>>& Points)
+	{
+		for (const ATargetPoint* Point : Points)
+		{
+			if (!Point)
+			{
+				continue;
+			}
+
+			const double Distance = FVector::Dist(PlayerLocation, Point->GetActorLocation());
+			if (Distance > BestDistance)
+			{
+				BestDistance = Distance;
+				OutLocation = Point->GetActorLocation();
+			}
+		}
+	};
+	PickFarthestStraight(SpawnCandidates);
+	PickFarthestStraight(FallbackPoints);
+
+	if (BestDistance >= 0.0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOChasingManager] No reachable spawn candidate (the player may be in a blocked area). Spawning the youth at the farthest candidate by straight distance."));
+		return true;
+	}
+
+	return false;
+}
+
+void ALCOChasingManager::SpawnYouth(const FVector& Location)
+{
+	if (!SigolYouthClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOChasingManager] SigolYouthClass is not set."));
+		return;
+	}
+
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	SpawnedYouth = GetWorld()->SpawnActor<ALCOSigolYouth>(SigolYouthClass, Location, FRotator::ZeroRotator, Params);
+}
+
+void ALCOChasingManager::CheckFoundYouth()
+{
+	const ALCOSigolYouth* Youth = SpawnedYouth.Get();
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Youth || !PlayerPawn)
+	{
+		return;
+	}
+
+	if (FVector::Dist(PlayerPawn->GetActorLocation(), Youth->GetActorLocation()) > FoundDistance)
+	{
+		return;
+	}
+
+	// 사이에 벽 등이 있으면 발견으로 보지 않는다.
+	if (bRequireLineOfSight)
+	{
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(LCOFoundYouthTrace), false, PlayerPawn);
+		Params.AddIgnoredActor(Youth);
+
+		FHitResult Hit;
+		if (GetWorld()->LineTraceSingleByChannel(Hit, PlayerPawn->GetPawnViewLocation(), Youth->GetActorLocation(), ECC_Visibility, Params))
+		{
+			return;
+		}
+	}
+
+	EndChasing(ELCOChasingEndReason::FoundYouth);
+}
+
+#pragma endregion
+
+#pragma region 옷장 은신과 끌어내기
+
+void ALCOChasingManager::HandleHidingSpotEntered(ALCOHidingSpot* HidingSpot, AActor* Hider)
+{
+	// 플레이어가 숨은 경우만 처리한다.
+	const APawn* HiderPawn = Cast<APawn>(Hider);
+	if (!HiderPawn || !HiderPawn->IsPlayerControlled())	return;
+
+	// 따돌리지 못했으면(관리인에게 보이는 상태로 숨음) 관리인이 은신처로 와서 끌어낸 뒤 잡는다.
+	if (bIsChasing && !TryEndChasingByHiding(HidingSpot))
+	{
+		StartExtractByCaretakers(HidingSpot);
+	}
+}
+
+void ALCOChasingManager::StartExtractByCaretakers(ALCOHidingSpot* HidingSpot)
+{
+	TArray<AActor*> Caretakers;
+	UGameplayStatics::GetAllActorsOfClass(this, ALCOCaretaker::StaticClass(), Caretakers);
+	for (const AActor* Caretaker : Caretakers)
+	{
+		if (const APawn* CaretakerPawn = Cast<APawn>(Caretaker))
+		{
+			if (ALCOCaretakerAIController* Controller = Cast<ALCOCaretakerAIController>(CaretakerPawn->GetController()))
+			{
+				Controller->StartExtractHider(HidingSpot);
+			}
+		}
+	}
+}
+
+bool ALCOChasingManager::TryEndChasingByHiding(AActor* HidingSpot)
+{
+	if (!bIsChasing)
+	{
+		return false;
+	}
+
+	// 관리인이 지켜보는 앞에서 숨은 것은 따돌린 것이 아니다.
+	if (IsPlayerSpottedByCaretaker(HidingSpot))
+	{
+		return false;
+	}
+
+	EndChasing(ELCOChasingEndReason::Hidden);
+	return true;
+}
+
+bool ALCOChasingManager::IsPlayerSpottedByCaretaker(const AActor* HidingSpot) const
+{
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!PlayerPawn)
+	{
+		return false;
+	}
+
+	TArray<AActor*> Caretakers;
+	UGameplayStatics::GetAllActorsOfClass(this, ALCOCaretaker::StaticClass(), Caretakers);
+	for (const AActor* Caretaker : Caretakers)
+	{
+		const APawn* CaretakerPawn = Cast<APawn>(Caretaker);
+		if (!CaretakerPawn)
+		{
+			continue;
+		}
+
+		// 시야 거리와 시야각은 관리인 컨트롤러의 SightRadius, PeripheralVisionAngle을 따른다.
+		const ALCOCaretakerAIController* CaretakerController = Cast<ALCOCaretakerAIController>(CaretakerPawn->GetController());
+		const float ViewDistance = CaretakerController ? CaretakerController->GetViewDistance() : 1500.f;
+		const float ViewHalfAngle = CaretakerController ? CaretakerController->GetViewHalfAngle() : 70.f;
+
+		// 거리가 멀면 보이지 않는다.
+		if (FVector::Dist(CaretakerPawn->GetActorLocation(), PlayerPawn->GetActorLocation()) > ViewDistance)
+		{
+			continue;
+		}
+
+		// 관리인의 정면 시야각 밖이면 보이지 않는다.
+		const FVector ToPlayer = (PlayerPawn->GetActorLocation() - CaretakerPawn->GetActorLocation()).GetSafeNormal();
+		const float AngleDeg = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(CaretakerPawn->GetActorForwardVector(), ToPlayer)));
+		if (AngleDeg > ViewHalfAngle)
+		{
+			continue;
+		}
+
+		// 사이에 벽 등이 있으면 보이지 않는다. 은신처 자체는 가리개로 보지 않는다.
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(LCOHideSpotTrace), false, CaretakerPawn);
+		Params.AddIgnoredActor(PlayerPawn);
+		if (HidingSpot)
+		{
+			Params.AddIgnoredActor(HidingSpot);
+		}
+
+		FHitResult Hit;
+		if (!GetWorld()->LineTraceSingleByChannel(Hit, CaretakerPawn->GetPawnViewLocation(), PlayerPawn->GetActorLocation(), ECC_Visibility, Params))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+#pragma endregion
+
+#pragma region 잡기 연출
 
 bool ALCOChasingManager::BeginCaughtSequence(AActor* InCaughtPlayer)
 {
@@ -298,262 +511,9 @@ void ALCOChasingManager::TeleportPlayerToStart(UObject* WorldContextObject, APaw
 	}
 }
 
-void ALCOChasingManager::NotifyPlayerEnteredSafeZone()
-{
-	++SafeZoneCount;
+#pragma endregion
 
-	// 체이싱 중 안전지대에 들어가면 시골청년을 찾지 않아도 즉시 종료한다.
-	if (bIsChasing)
-	{
-		EndChasing(ELCOChasingEndReason::LobbyEntry);
-	}
-}
-
-void ALCOChasingManager::NotifyPlayerExitedSafeZone()
-{
-	SafeZoneCount = FMath::Max(0, SafeZoneCount - 1);
-}
-
-bool ALCOChasingManager::FindSpawnLocation(const FVector& PlayerLocation, FVector& OutLocation) const
-{
-	// 후보 중 플레이어까지 NavMesh 경로가 가장 긴 위치를 고른다. 도달할 수 없는 후보는 제외한다.
-	auto PickFarthest = [this, &PlayerLocation, &OutLocation](const TArray<TObjectPtr<ATargetPoint>>& Points, float MinPathLength)
-	{
-		double BestLength = -1.0;
-		for (const ATargetPoint* Point : Points)
-		{
-			if (!Point)
-			{
-				continue;
-			}
-
-			double PathLength = 0.0;
-			if (UNavigationSystemV1::GetPathLength(GetWorld(), PlayerLocation, Point->GetActorLocation(), PathLength) != ENavigationQueryResult::Success)
-			{
-				continue;
-			}
-
-			if (PathLength >= MinPathLength && PathLength > BestLength)
-			{
-				BestLength = PathLength;
-				OutLocation = Point->GetActorLocation();
-			}
-		}
-		return BestLength >= 0.0;
-	};
-
-	return PickFarthest(SpawnCandidates, MinSpawnPathLength) || PickFarthest(FallbackPoints, 0.f);
-}
-
-void ALCOChasingManager::SpawnYouth(const FVector& Location)
-{
-	if (!SigolYouthClass)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[LCOChasingManager] SigolYouthClass is not set."));
-		return;
-	}
-
-	FActorSpawnParameters Params;
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	SpawnedYouth = GetWorld()->SpawnActor<ALCOSigolYouth>(SigolYouthClass, Location, FRotator::ZeroRotator, Params);
-}
-
-void ALCOChasingManager::CheckFoundYouth()
-{
-	const ALCOSigolYouth* Youth = SpawnedYouth.Get();
-	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
-	if (!Youth || !PlayerPawn)
-	{
-		return;
-	}
-
-	if (FVector::Dist(PlayerPawn->GetActorLocation(), Youth->GetActorLocation()) > FoundDistance)
-	{
-		return;
-	}
-
-	// 사이에 벽 등이 있으면 발견으로 보지 않는다.
-	if (bRequireLineOfSight)
-	{
-		FCollisionQueryParams Params(SCENE_QUERY_STAT(LCOFoundYouthTrace), false, PlayerPawn);
-		Params.AddIgnoredActor(Youth);
-
-		FHitResult Hit;
-		if (GetWorld()->LineTraceSingleByChannel(Hit, PlayerPawn->GetPawnViewLocation(), Youth->GetActorLocation(), ECC_Visibility, Params))
-		{
-			return;
-		}
-	}
-
-	EndChasing(ELCOChasingEndReason::FoundYouth);
-}
-
-void ALCOChasingManager::UpdatePathGuide()
-{
-	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
-	const ALCOSigolYouth* Youth = SpawnedYouth.Get();
-	if (!bIsChasing || !PlayerPawn || !Youth)
-	{
-		ResetPathGuide();
-		return;
-	}
-
-	const FVector PlayerLocation = PlayerPawn->GetActorLocation();
-
-	// 1) 플레이어가 지나간(가까이 간) 발자국은 지운다. 끝 위치(GuideTip)는 유지된다.
-	const float PassDistance = 80.f;
-	PlacedFootprints.RemoveAll([&PlayerLocation, PassDistance](const FPlacedFootprint& Footprint)
-	{
-		return FVector::Dist2D(Footprint.Location, PlayerLocation) < PassDistance;
-	});
-
-	// 2) 발자국이 끝나는 위치에서 이어서 그린다. 플레이어가 끝에서 GuideRange보다 멀면 새로 그리지 않는다.
-	const bool bCanExtend = !bGuideReachedYouth && (!bGuideStarted || FVector::Dist2D(PlayerLocation, GuideTip) <= GuideRange);
-	if (bCanExtend)
-	{
-		// 시작 전에는 플레이어 위치에서, 시작한 뒤에는 끝 위치에서 청년까지의 NavMesh 최단 경로를 구한다.
-		const FVector StartLocation = bGuideStarted ? GuideTip : PlayerLocation;
-		const UNavigationPath* Path = UNavigationSystemV1::FindPathToLocationSynchronously(GetWorld(), StartLocation, Youth->GetActorLocation());
-		if (Path && Path->IsValid() && Path->PathPoints.Num() >= 2)
-		{
-			const TArray<FVector>& Points = Path->PathPoints;
-			TArray<float> Cumulative;
-			Cumulative.Add(0.f);
-			for (int32 i = 1; i < Points.Num(); ++i)
-			{
-				Cumulative.Add(Cumulative.Last() + FVector::Dist(Points[i - 1], Points[i]));
-			}
-			const float TotalLength = Cumulative.Last();
-
-			// 경로상 거리 D에 해당하는 위치와 진행 방향
-			auto GetPointAtDistance = [&Points, &Cumulative](float Distance, FVector& OutLocation, FVector& OutDirection)
-			{
-				int32 Index = 0;
-				while (Index < Points.Num() - 2 && Cumulative[Index + 1] < Distance)
-				{
-					++Index;
-				}
-
-				const float SegmentLength = FMath::Max(Cumulative[Index + 1] - Cumulative[Index], KINDA_SMALL_NUMBER);
-				const float Alpha = FMath::Clamp((Distance - Cumulative[Index]) / SegmentLength, 0.f, 1.f);
-				OutLocation = FMath::Lerp(Points[Index], Points[Index + 1], Alpha);
-				OutDirection = (Points[Index + 1] - Points[Index]).GetSafeNormal();
-			};
-
-			// 처음에는 플레이어 바로 앞(MinAheadDistance)부터, 이후에는 끝에서 간격 만큼 떨어진 곳부터 찍는다.
-			const float MinAheadDistance = 100.f;
-			float Distance = bGuideStarted ? FootprintSpacing : MinAheadDistance;
-
-			for (int32 Guard = 0; Guard < 100; ++Guard)
-			{
-				// 청년 근처에 도달하면 그만 그린다.
-				if (Distance > TotalLength - FootprintSpacing * 0.5f)
-				{
-					bGuideReachedYouth = true;
-					break;
-				}
-
-				FVector Location, Direction;
-				GetPointAtDistance(Distance, Location, Direction);
-
-				// 플레이어에게서 GuideRange보다 멀어지면 여기서 멈춘다. (플레이어가 다가오면 이어서 그린다)
-				if (FVector::Dist2D(PlayerLocation, Location) > GuideRange)
-				{
-					break;
-				}
-
-				// Direction x Up은 진행 방향의 왼쪽이다. (언리얼은 앞 +X, 오른쪽 +Y, 위 +Z라서 X x Z = -Y = 왼쪽)
-				const FVector Left = FVector::CrossProduct(Direction, FVector::UpVector).GetSafeNormal();
-
-				FPlacedFootprint Footprint;
-				Footprint.Location = Location + Left * (bGuideNextLeft ? FootprintSideOffset : -FootprintSideOffset);
-				Footprint.Yaw = Direction.Rotation().Yaw + FootprintYawOffset;
-				Footprint.bLeft = bGuideNextLeft;
-				PlacedFootprints.Add(Footprint);
-
-				GuideTip = Location;
-				bGuideStarted = true;
-				bGuideNextLeft = !bGuideNextLeft;
-				Distance += FootprintSpacing;
-			}
-		}
-	}
-
-	// 머티리얼이 없으면 디버그 표시로 대신한다. (에셋이 나오기 전 확인용, 왼발 초록 / 오른발 파랑)
-	if (!FootprintMaterialLeft && !FootprintMaterialRight)
-	{
-#if ENABLE_DRAW_DEBUG
-		for (const FPlacedFootprint& Footprint : PlacedFootprints)
-		{
-			DrawDebugSphere(GetWorld(), Footprint.Location + FVector(0.f, 0.f, 5.f), 8.f, 8, Footprint.bLeft ? FColor::Green : FColor::Cyan, false, GuideUpdateInterval + 0.05f);
-		}
-#endif
-		return;
-	}
-
-	// 데칼을 필요한 만큼 만들어 재사용한다.
-	while (FootprintPool.Num() < PlacedFootprints.Num())
-	{
-		UDecalComponent* Decal = NewObject<UDecalComponent>(this);
-		Decal->DecalSize = FootprintDecalSize;
-		Decal->RegisterComponent();
-		FootprintPool.Add(Decal);
-	}
-
-	for (int32 i = 0; i < FootprintPool.Num(); ++i)
-	{
-		UDecalComponent* Decal = FootprintPool[i];
-		if (!Decal)
-		{
-			continue;
-		}
-
-		if (i < PlacedFootprints.Num())
-		{
-			const FPlacedFootprint& Footprint = PlacedFootprints[i];
-
-			// 왼발/오른발 머티리얼이 바뀔 때만 다시 지정한다. 한쪽만 있으면 그것을 쓴다.
-			UMaterialInterface* Material = Footprint.bLeft ? FootprintMaterialLeft.Get() : FootprintMaterialRight.Get();
-			if (!Material)
-			{
-				Material = FootprintMaterialLeft ? FootprintMaterialLeft.Get() : FootprintMaterialRight.Get();
-			}
-			if (Decal->GetDecalMaterial() != Material)
-			{
-				Decal->SetDecalMaterial(Material);
-			}
-
-			// 바닥에 투영되도록 아래를 향하게 한다.
-			Decal->SetWorldLocationAndRotation(Footprint.Location, FRotator(-90.f, Footprint.Yaw, 0.f));
-			Decal->SetVisibility(true);
-		}
-		else
-		{
-			Decal->SetVisibility(false);
-		}
-	}
-}
-
-void ALCOChasingManager::HidePathGuide()
-{
-	for (UDecalComponent* Decal : FootprintPool)
-	{
-		if (Decal)
-		{
-			Decal->SetVisibility(false);
-		}
-	}
-}
-
-void ALCOChasingManager::ResetPathGuide()
-{
-	PlacedFootprints.Empty();
-	GuideTip = FVector::ZeroVector;
-	bGuideStarted = false;
-	bGuideNextLeft = true;
-	bGuideReachedYouth = false;
-	HidePathGuide();
-}
+#pragma region 시골청년 발견 후 흐름
 
 void ALCOChasingManager::BeginYouthEncounter()
 {
@@ -772,74 +732,352 @@ bool ALCOChasingManager::IsOutOfPlayerView(const AActor* Target) const
 	return GetWorld()->LineTraceSingleByChannel(Hit, Camera->GetCameraLocation(), Target->GetActorLocation(), ECC_Visibility, Params);
 }
 
-bool ALCOChasingManager::TryEndChasingByHiding(AActor* HidingSpot)
+#pragma endregion
+
+#pragma region 길 안내 발자국
+
+void ALCOChasingManager::UpdatePathGuide()
 {
-	if (!bIsChasing)
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	const ALCOSigolYouth* Youth = SpawnedYouth.Get();
+	if (!bIsChasing || !PlayerPawn || !Youth)
+	{
+		ResetPathGuide();
+		return;
+	}
+
+	const FVector PlayerLocation = PlayerPawn->GetActorLocation();
+	const double Now = GetWorld()->GetTimeSeconds();
+
+	if (!bHasRoute)
+	{
+		// 경로를 아직 못 구했다. (길이 막혀 청년까지 닿지 못하는 경우 등) 길이 열릴 때까지 갱신마다 다시 시도한다.
+		BuildGuideRoute(PlayerLocation, Youth->GetActorLocation());
+	}
+	else
+	{
+		// 플레이어가 안내 경로에서 크게 벗어났는지 확인한다.
+		float Progress = 0.f;
+		float DistanceToRoute = 0.f;
+		GetPlayerRouteProgress(PlayerLocation, Progress, DistanceToRoute);
+
+		if (DistanceToRoute > GuideDeviationDistance)
+		{
+			if (OffRouteStartTime < 0.0)
+			{
+				OffRouteStartTime = Now;
+			}
+			else if (Now - OffRouteStartTime >= GuideRerouteDelay)
+			{
+				// 다른 방향으로 간 채 일정 시간이 지났다. 기존 발자국을 지우고 지금 위치에서 다시 그린다.
+				ResetPathGuide();
+				BuildGuideRoute(PlayerLocation, Youth->GetActorLocation());
+			}
+		}
+		else
+		{
+			OffRouteStartTime = -1.0;
+		}
+	}
+
+	MarkPassedFootprints();
+	RefreshFootprintDecals();
+}
+
+bool ALCOChasingManager::BuildGuideRoute(const FVector& StartLocation, const FVector& TargetLocation)
+{
+	bHasRoute = false;
+	PlacedFootprints.Reset();
+	RoutePoints.Reset();
+	RouteCumulative.Reset();
+
+	const UNavigationPath* Path = UNavigationSystemV1::FindPathToLocationSynchronously(GetWorld(), StartLocation, TargetLocation);
+
+	// 길이 막혀 청년까지 닿지 못하는 경로(부분 경로)는 쓰지 않는다. 길이 열리면 다음 갱신에서 다시 구한다.
+	if (!Path || !Path->IsValid() || Path->IsPartial() || Path->PathPoints.Num() < 2)
 	{
 		return false;
 	}
 
-	// 관리인이 지켜보는 앞에서 숨은 것은 따돌린 것이 아니다.
-	if (IsPlayerSpottedByCaretaker(HidingSpot))
+	RoutePoints = Path->PathPoints;
+	RouteCumulative.Add(0.f);
+	for (int32 i = 1; i < RoutePoints.Num(); ++i)
 	{
-		return false;
+		RouteCumulative.Add(RouteCumulative.Last() + FVector::Dist(RoutePoints[i - 1], RoutePoints[i]));
+	}
+	const float TotalLength = RouteCumulative.Last();
+
+	// 경로상 거리 D에 해당하는 위치와 진행 방향
+	auto GetPointAtDistance = [this](float Distance, FVector& OutLocation, FVector& OutDirection)
+	{
+		int32 Index = 0;
+		while (Index < RoutePoints.Num() - 2 && RouteCumulative[Index + 1] < Distance)
+		{
+			++Index;
+		}
+
+		const float SegmentLength = FMath::Max(RouteCumulative[Index + 1] - RouteCumulative[Index], KINDA_SMALL_NUMBER);
+		const float Alpha = FMath::Clamp((Distance - RouteCumulative[Index]) / SegmentLength, 0.f, 1.f);
+		OutLocation = FMath::Lerp(RoutePoints[Index], RoutePoints[Index + 1], Alpha);
+		OutDirection = (RoutePoints[Index + 1] - RoutePoints[Index]).GetSafeNormal();
+	};
+
+	// 발자국 위치는 청년 쪽 끝을 기준으로 일정 간격마다 한 번에 정한다. 플레이어가 서 있던 위치와 무관하게 줄의 모양이 항상 같다.
+	// 플레이어 바로 앞(FirstOffset)보다 가까운 곳에는 놓지 않는다.
+	const float FirstOffset = 100.f;
+	for (int32 m = 1; m < 1000; ++m)
+	{
+		const float Distance = TotalLength - m * FootprintSpacing;
+		if (Distance < FirstOffset)
+		{
+			break;
+		}
+
+		FVector Location, Direction;
+		GetPointAtDistance(Distance, Location, Direction);
+
+		// m이 짝수면 왼발, 홀수면 오른발이다.
+		const bool bLeft = (m % 2 == 0);
+
+		// 최단 경로는 코너의 안쪽 모서리에 붙어서 지나므로, 벽에서 너무 가까우면 벽에서 떨어지도록 옮긴다.
+		const FVector Centered = PushAwayFromWall(Location);
+
+		// Direction x Up은 진행 방향의 왼쪽이다. (언리얼은 앞 +X, 오른쪽 +Y, 위 +Z라서 X x Z = -Y = 왼쪽)
+		const FVector Left = FVector::CrossProduct(Direction, FVector::UpVector).GetSafeNormal();
+
+		FPlacedFootprint Footprint;
+		Footprint.Location = Centered + Left * (bLeft ? FootprintSideOffset : -FootprintSideOffset);
+		Footprint.Yaw = Direction.Rotation().Yaw + FootprintYawOffset;
+		Footprint.bLeft = bLeft;
+		Footprint.RouteDistance = Distance;
+		PlacedFootprints.Add(Footprint);
 	}
 
-	EndChasing(ELCOChasingEndReason::Hidden);
+	bHasRoute = true;
+	OffRouteStartTime = -1.0;
 	return true;
 }
 
-bool ALCOChasingManager::IsPlayerSpottedByCaretaker(const AActor* HidingSpot) const
+bool ALCOChasingManager::GetPlayerRouteProgress(const FVector& PlayerLocation, float& OutProgress, float& OutDistanceToRoute) const
 {
-	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
-	if (!PlayerPawn)
+	OutProgress = 0.f;
+	OutDistanceToRoute = TNumericLimits<float>::Max();
+	if (RoutePoints.Num() < 2)
 	{
 		return false;
 	}
 
-	TArray<AActor*> Caretakers;
-	UGameplayStatics::GetAllActorsOfClass(this, ALCOCaretaker::StaticClass(), Caretakers);
-	for (const AActor* Caretaker : Caretakers)
+	for (int32 i = 0; i < RoutePoints.Num() - 1; ++i)
 	{
-		const APawn* CaretakerPawn = Cast<APawn>(Caretaker);
-		if (!CaretakerPawn)
-		{
-			continue;
-		}
+		const FVector Closest = FMath::ClosestPointOnSegment(PlayerLocation, RoutePoints[i], RoutePoints[i + 1]);
 
-		// 시야 거리와 시야각은 관리인 컨트롤러의 SightRadius, PeripheralVisionAngle을 따른다.
-		const ALCOCaretakerAIController* CaretakerController = Cast<ALCOCaretakerAIController>(CaretakerPawn->GetController());
-		const float ViewDistance = CaretakerController ? CaretakerController->GetViewDistance() : 1500.f;
-		const float ViewHalfAngle = CaretakerController ? CaretakerController->GetViewHalfAngle() : 70.f;
-
-		// 거리가 멀면 보이지 않는다.
-		if (FVector::Dist(CaretakerPawn->GetActorLocation(), PlayerPawn->GetActorLocation()) > ViewDistance)
+		// 플레이어의 중심은 바닥보다 높으므로 수평 거리로 비교한다.
+		const float Distance = FVector::Dist2D(PlayerLocation, Closest);
+		if (Distance < OutDistanceToRoute)
 		{
-			continue;
-		}
-
-		// 관리인의 정면 시야각 밖이면 보이지 않는다.
-		const FVector ToPlayer = (PlayerPawn->GetActorLocation() - CaretakerPawn->GetActorLocation()).GetSafeNormal();
-		const float AngleDeg = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(CaretakerPawn->GetActorForwardVector(), ToPlayer)));
-		if (AngleDeg > ViewHalfAngle)
-		{
-			continue;
-		}
-
-		// 사이에 벽 등이 있으면 보이지 않는다. 은신처 자체는 가리개로 보지 않는다.
-		FCollisionQueryParams Params(SCENE_QUERY_STAT(LCOHideSpotTrace), false, CaretakerPawn);
-		Params.AddIgnoredActor(PlayerPawn);
-		if (HidingSpot)
-		{
-			Params.AddIgnoredActor(HidingSpot);
-		}
-
-		FHitResult Hit;
-		if (!GetWorld()->LineTraceSingleByChannel(Hit, CaretakerPawn->GetPawnViewLocation(), PlayerPawn->GetActorLocation(), ECC_Visibility, Params))
-		{
-			return true;
+			OutDistanceToRoute = Distance;
+			OutProgress = RouteCumulative[i] + FVector::Dist(RoutePoints[i], Closest);
 		}
 	}
 
-	return false;
+	return true;
 }
+
+bool ALCOChasingManager::MarkPassedFootprints()
+{
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!PlayerPawn || !bHasRoute)
+	{
+		return false;
+	}
+
+	float Progress = 0.f;
+	float DistanceToRoute = 0.f;
+	GetPlayerRouteProgress(PlayerPawn->GetActorLocation(), Progress, DistanceToRoute);
+
+	// 경로에서 크게 벗어나 있으면(다른 길) 지나갔는지 판단하지 않는다. 오래 벗어나 있으면 다시 그린다.
+	if (DistanceToRoute > GuideDeviationDistance)
+	{
+		return false;
+	}
+
+	// 플레이어의 경로상 위치보다 FootprintPassDistance 앞까지의 발자국은 지나간 것으로 본다. 한 번 지나가면 다시 보이지 않는다.
+	bool bChanged = false;
+	for (FPlacedFootprint& Footprint : PlacedFootprints)
+	{
+		if (!Footprint.bPassed && Footprint.RouteDistance <= Progress + FootprintPassDistance)
+		{
+			Footprint.bPassed = true;
+			bChanged = true;
+		}
+	}
+
+	return bChanged;
+}
+
+void ALCOChasingManager::CheckPassedFootprints()
+{
+	// 경로 계산 없이 거리만 확인하므로 짧은 주기로 돌려도 부담이 적다. 바뀐 것이 있을 때만 데칼을 갱신한다.
+	if (bIsChasing && MarkPassedFootprints())
+	{
+		RefreshFootprintDecals();
+	}
+}
+
+FVector ALCOChasingManager::PushAwayFromWall(const FVector& Location) const
+{
+	if (FootprintWallClearance <= 0.f)
+	{
+		return Location;
+	}
+
+	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
+	const ARecastNavMesh* NavMesh = NavSys ? Cast<ARecastNavMesh>(NavSys->GetDefaultNavDataInstance(FNavigationSystem::DontCreate)) : nullptr;
+	if (!NavMesh)
+	{
+		return Location;
+	}
+
+	// 발자국은 이 위치에서 좌우로 FootprintSideOffset만큼 더 벌어지므로, 그만큼 더 띄운다.
+	const float Needed = FootprintWallClearance + FootprintSideOffset;
+
+	// 벽까지의 거리가 모자라면 벽의 반대쪽으로 조금씩 밀어낸다. (좁은 복도에서 양쪽 벽 사이를 오가지 않도록 절반씩 민다)
+	FVector Result = Location;
+	for (int32 Iteration = 0; Iteration < 3; ++Iteration)
+	{
+		FVector WallPoint = FVector::ZeroVector;
+		const float DistanceToWall = NavMesh->FindDistanceToWall(Result, nullptr, Needed, &WallPoint);
+		if (DistanceToWall < 0.f || DistanceToWall >= Needed)
+		{
+			break;
+		}
+
+		FVector Away = Result - WallPoint;
+		Away.Z = 0.f;
+		Away = Away.GetSafeNormal();
+		if (Away.IsNearlyZero())
+		{
+			break;
+		}
+
+		Result += Away * ((Needed - DistanceToWall) * 0.5f);
+	}
+
+	// 걸을 수 있는 영역(바닥 높이)으로 되돌린다.
+	FNavLocation Projected;
+	if (NavSys->ProjectPointToNavigation(Result, Projected, FVector(50.f, 50.f, 100.f)))
+	{
+		return Projected.Location;
+	}
+
+	return Location;
+}
+
+void ALCOChasingManager::RefreshFootprintDecals()
+{
+	// 보일 발자국을 고른다: 지나가지 않은 것 중 플레이어 앞쪽 GuideRange 안의 것.
+	TArray<const FPlacedFootprint*> Visible;
+	const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (PlayerPawn)
+	{
+		const FVector PlayerLocation = PlayerPawn->GetActorLocation();
+
+		float Progress = 0.f;
+		float DistanceToRoute = 0.f;
+		const bool bOnRoute = bHasRoute && GetPlayerRouteProgress(PlayerLocation, Progress, DistanceToRoute) && DistanceToRoute <= GuideDeviationDistance;
+
+		for (const FPlacedFootprint& Footprint : PlacedFootprints)
+		{
+			if (Footprint.bPassed)
+			{
+				continue;
+			}
+
+			// 경로 위에 있으면 경로상 거리로, 벗어나 있으면 직선 거리로 범위를 본다. (벽 너머의 갈래 길이 보이는 것을 막는다)
+			const bool bInRange = bOnRoute
+				? (Footprint.RouteDistance - Progress) <= GuideRange
+				: FVector::Dist2D(PlayerLocation, Footprint.Location) <= GuideRange;
+			if (bInRange)
+			{
+				Visible.Add(&Footprint);
+			}
+		}
+	}
+
+	// 머티리얼이 없으면 디버그 표시로 대신한다. (에셋이 나오기 전 확인용, 왼발 초록 / 오른발 파랑)
+	if (!FootprintMaterialLeft && !FootprintMaterialRight)
+	{
+#if ENABLE_DRAW_DEBUG
+		for (const FPlacedFootprint* Footprint : Visible)
+		{
+			DrawDebugSphere(GetWorld(), Footprint->Location + FVector(0.f, 0.f, 5.f), 8.f, 8, Footprint->bLeft ? FColor::Green : FColor::Cyan, false, GuideUpdateInterval + 0.05f);
+		}
+#endif
+		return;
+	}
+
+	// 데칼을 필요한 만큼 만들어 재사용한다.
+	while (FootprintPool.Num() < Visible.Num())
+	{
+		UDecalComponent* Decal = NewObject<UDecalComponent>(this);
+		Decal->DecalSize = FootprintDecalSize;
+		Decal->RegisterComponent();
+		FootprintPool.Add(Decal);
+	}
+
+	for (int32 i = 0; i < FootprintPool.Num(); ++i)
+	{
+		UDecalComponent* Decal = FootprintPool[i];
+		if (!Decal)
+		{
+			continue;
+		}
+
+		if (i < Visible.Num())
+		{
+			const FPlacedFootprint& Footprint = *Visible[i];
+
+			// 왼발/오른발 머티리얼이 바뀔 때만 다시 지정한다. 한쪽만 있으면 그것을 쓴다.
+			UMaterialInterface* Material = Footprint.bLeft ? FootprintMaterialLeft.Get() : FootprintMaterialRight.Get();
+			if (!Material)
+			{
+				Material = FootprintMaterialLeft ? FootprintMaterialLeft.Get() : FootprintMaterialRight.Get();
+			}
+			if (Decal->GetDecalMaterial() != Material)
+			{
+				Decal->SetDecalMaterial(Material);
+			}
+
+			// 바닥에 투영되도록 아래를 향하게 한다.
+			Decal->SetWorldLocationAndRotation(Footprint.Location, FRotator(-90.f, Footprint.Yaw, 0.f));
+			Decal->SetVisibility(true);
+		}
+		else
+		{
+			Decal->SetVisibility(false);
+		}
+	}
+}
+
+void ALCOChasingManager::HidePathGuide()
+{
+	for (UDecalComponent* Decal : FootprintPool)
+	{
+		if (Decal)
+		{
+			Decal->SetVisibility(false);
+		}
+	}
+}
+
+void ALCOChasingManager::ResetPathGuide()
+{
+	PlacedFootprints.Empty();
+	RoutePoints.Reset();
+	RouteCumulative.Reset();
+	bHasRoute = false;
+	OffRouteStartTime = -1.0;
+	HidePathGuide();
+}
+
+#pragma endregion

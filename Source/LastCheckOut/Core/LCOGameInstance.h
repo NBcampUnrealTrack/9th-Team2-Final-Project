@@ -4,6 +4,7 @@
 #include "Engine/GameInstance.h"
 #include "Inventory/InventorySlot.h"
 #include "Player/LCOPlayerCharacter.h"
+#include "Game/LCOTimeOfDayTypes.h"
 #include "LCOGameInstance.generated.h"
 
 class ULCOStorySubsystem;
@@ -98,6 +99,15 @@ public:
 	// 보관함 비우기 (새 게임 시작 시 호출)
 	void ClearCarryData();
 
+	// ---------- 시간대 ----------
+
+	// 지금까지 진행된 시간대 (맵 도착으로 앞으로만 진행, 맵을 옮겨도 유지). 세이브에 저장
+	UFUNCTION(BlueprintPure, Category = "LCO|TimeOfDay")
+	ELCOTimeOfDay GetCurrentTimeOfDay() const { return CurrentTimeOfDay; }
+
+	// LCOGameMode(맵 도착 / 새 게임 초기화), LCOSaveManager(이어하기 복원)에서 호출
+	void SetCurrentTimeOfDay(ELCOTimeOfDay NewTimeOfDay) { CurrentTimeOfDay = NewTimeOfDay; }
+
 private:
 	// 현재 시작 방식. 기본값 None
 	// VisibleInstanceOnly: 디버깅 시 디테일 패널에서 값 확인용 (수정은 불가)
@@ -107,4 +117,8 @@ private:
 	// 맵 이동 중에만 값이 들어 있음
 	UPROPERTY()
 	FLCOPlayerCarryData CarryData;
+
+	// 지금까지 진행된 시간대 (새 게임 = 정오 이후)
+	UPROPERTY(VisibleInstanceOnly, Category = "LCO|TimeOfDay")
+	ELCOTimeOfDay CurrentTimeOfDay = ELCOTimeOfDay::Noon;
 };

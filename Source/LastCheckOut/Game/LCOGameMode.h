@@ -3,9 +3,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameMode.h"
 #include "Story/LCOStoryTypes.h"
+#include "Game/LCOTimeOfDayTypes.h"
 #include "LCOGameMode.generated.h"
 
 class ULCOGameInstance;
+class ALCOTimeOfDayManager;
 struct FLCOPlayerCarryData;
 
 UCLASS()
@@ -25,6 +27,10 @@ public:
 	// 현재 플레이어의 인벤토리 / 퀵슬롯 / 시점을 OutData에 복사. 플레이어가 없으면 false
 	// (맵 이동 보관 / 세이브 저장에서 공용으로 사용)
 	bool CapturePlayerCarryData(FLCOPlayerCarryData& OutData) const;
+
+	// 테스트용: 진행된 시간대와 상관없이 이 맵의 조명만 바꿈 (저장 안 됨, 맵 이동 시 원래 시간대로)
+	UFUNCTION(BlueprintCallable, Category = "LCO|TimeOfDay|Test")
+	void ApplyTimeOfDayForTest(ELCOTimeOfDay TimeOfDay);
 	
 protected:
 	// 맵 액터들의 BeginPlay보다 먼저 호출됨 → 여기서 진행 데이터 준비 (새 게임 초기화 / 이어하기 적용)
@@ -78,6 +84,12 @@ private:
 
 	// 메인 메뉴로 이동 (END 3 후). 저장하지 않음 → 이어하기는 마지막 저장 시점부터
 	void ReturnToMainMenu();
+
+	// 맵 시작 시: 지금까지의 시간대와 이 맵의 도착 시간대 중 더 늦은 쪽으로 갱신 → 조명 적용
+	void RefreshTimeOfDay();
+
+	// 맵에 배치된 LCOTimeOfDayManager (없으면 nullptr)
+	ALCOTimeOfDayManager* FindTimeOfDayManager() const;
 
 	FTimerHandle ReturnToMainMenuTimer;
 

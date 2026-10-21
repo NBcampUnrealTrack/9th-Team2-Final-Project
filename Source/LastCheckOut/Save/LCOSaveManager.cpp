@@ -136,15 +136,22 @@ bool ULCOSaveManager::SaveGame()
 		SaveData->CompletedFirstConversations = DialogueSubsystem->GetCompletedFirstConversations();
 	}
 
+	// [시간대] 지금까지 진행된 시간대
+	if (const ULCOGameInstance* LCOGameInstance = Cast<ULCOGameInstance>(GetGameInstance()))
+	{
+		SaveData->TimeOfDay = LCOGameInstance->GetCurrentTimeOfDay();
+	}
+
 	bIsSaving = true;
 	OnSaveStarted.Broadcast();
 
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] SaveGame start: Map = %s, Chapter = %s, Objective = %s, Completed = %d, Notebook = %d, PlayerData = %s, Items = %d, FirstConversations = %d, SenseCharges = %d/%d"),
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] SaveGame start: Map = %s, Chapter = %s, Objective = %s, Completed = %d, Notebook = %d, PlayerData = %s, Items = %d, FirstConversations = %d, SenseCharges = %d/%d, TimeOfDay = %s"),
 		*SaveData->MapName, *SaveData->ChapterID.ToString(), *SaveData->ObjectiveID.ToString(),
 		SaveData->CompletedObjectives.Num(), SaveData->NotebookEntries.Num(),
 		SaveData->bHasPlayerData ? TEXT("true") : TEXT("false"), SaveData->PlayerData.InventorySlots.Num(),
-		SaveData->CompletedFirstConversations.Num(), SenseCharges, MaxSenseCharges);
+		SaveData->CompletedFirstConversations.Num(), SenseCharges, MaxSenseCharges,
+		*UEnum::GetValueAsString(SaveData->TimeOfDay));
 
 	// 비동기 저장 (게임이 멈추지 않음). 완료되면 HandleAsyncSaveFinished 호출
 	FAsyncSaveGameToSlotDelegate SavedDelegate;
@@ -269,6 +276,12 @@ bool ULCOSaveManager::ApplyLoadedData()
 		UE_LOG(LogLCOCore, Warning, TEXT("[LCOSaveManager] ApplyLoadedData: LCODialogueSubsystem not found -> first conversations not restored"));
 	}
 
+	// [시간대] 저장된 시간대 복원 → 맵 시작 후 LCOGameMode가 조명에 적용
+	if (ULCOGameInstance* LCOGameInstance = Cast<ULCOGameInstance>(GetGameInstance()))
+	{
+		LCOGameInstance->SetCurrentTimeOfDay(LoadedSaveGame->TimeOfDay);
+	}
+
 	// [Player] 맵 이동용 보관함에 넣어 둠 → 캐릭터 생성 후 LCOGameMode가 복원
 	if (LoadedSaveGame->bHasPlayerData)
 	{
@@ -279,9 +292,9 @@ bool ULCOSaveManager::ApplyLoadedData()
 	}
 
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] ApplyLoadedData done: Notebook = %d, PlayerData = %s, FirstConversations = %d"),
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] ApplyLoadedData done: Notebook = %d, PlayerData = %s, FirstConversations = %d, TimeOfDay = %s"),
 		LoadedSaveGame->NotebookEntries.Num(), LoadedSaveGame->bHasPlayerData ? TEXT("true") : TEXT("false"),
-		LoadedSaveGame->CompletedFirstConversations.Num());
+		LoadedSaveGame->CompletedFirstConversations.Num(), *UEnum::GetValueAsString(LoadedSaveGame->TimeOfDay));
 	return true;
 }
 

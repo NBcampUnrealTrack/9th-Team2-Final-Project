@@ -22,6 +22,8 @@ class UStaticMeshComponent;
 class UAnimMontage;
 class ALCOHidingSpot;
 class ULCOFootstepComponent;
+class USpotLightComponent;
+class USoundBase;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLCOMoveStateChanged);
@@ -29,6 +31,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOSprintStateChanged, bool, bIsS
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOCrouchStateChanged, bool, bIsCrouching);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOSenseChargesChanged, int32, CurrentCharges, int32, MaxCharges);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOSenseUsed, bool, bSuccess);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOFlashlightToggled, bool, bIsOn);
 
 UENUM(BlueprintType)
 enum class ELCOViewMode : uint8
@@ -91,6 +94,23 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Stamina")
 	ULCOStaminaComponent* GetStamina() const { return StaminaComponent; }
+	
+	// ---------- 손전등 ----------
+
+	// 손전등 켜기 / 끄기 전환 (인벤토리 UseEquipment에서 호출). 아이템 소모 없음
+	UFUNCTION(BlueprintCallable, Category = "LCO|Flashlight")
+	void ToggleFlashlight();
+
+	// 손전등 상태 직접 설정 (컷신, 맵 이동 복원 등)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Flashlight")
+	void SetFlashlightOn(bool bOn);
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Flashlight")
+	bool IsFlashlightOn() const { return bFlashlightOn; }
+
+	// 손전등이 켜지거나 꺼질 때 (UI, 사운드 등)
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Flashlight")
+	FOnLCOFlashlightToggled OnFlashlightToggled;
 	
 	UFUNCTION(BlueprintPure, Category = "LCO|Footstep")
 	ULCOFootstepComponent* GetFootstep() const { return FootstepComponent; }
@@ -215,6 +235,10 @@ public:
 	// 사용 횟수 회복 (최대 횟수 초과 불가). 세이브 시 전체 회복은 GetMaxSenseCharges()를 넘기면 됨
 	UFUNCTION(BlueprintCallable, Category = "LCO|Sense")
 	void RestoreSenseCharges(int32 Amount);
+	
+	// 사용 횟수를 정확한 값으로 설정 (0 ~ 최대 횟수로 보정). 맵 이동 / 이어하기 복원용
+	UFUNCTION(BlueprintCallable, Category = "LCO|Sense")
+	void SetSenseCharges(int32 NewCharges);
 
 	// 지금 사용할 수 있는지 (남은 횟수 1 이상 + 스태미나가 기본 최대치 이상). UI 아이콘 활성화 등
 	UFUNCTION(BlueprintPure, Category = "LCO|Sense")
@@ -261,6 +285,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "LCO|Buff")
 	void SetPermanentMoveSpeedMultiplier(float Multiplier);
+	
+	// 영구 이동속도 배율 (기본 1.0). 맵 이동 / 이어하기 저장용
+	UFUNCTION(BlueprintPure, Category = "LCO|Buff")
+	float GetPermanentMoveSpeedMultiplier() const { return PermanentMoveSpeedMultiplier; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -313,7 +341,10 @@ protected:
 	// 1인칭 걷기 / 달리기 / 웅크리기 시 카메라 흔들림
 	void UpdateHeadBob(float DeltaSeconds);
 	
-		// 버프 활성 여부에 맞춰 화면 효과 진행도를 보간하고 포스트 프로세스에 반영
+	// 켜져 있을 때 손전등을 바라보는 방향으로 회전
+	void UpdateFlashlight();
+	
+	// 버프 활성 여부에 맞춰 화면 효과 진행도를 보간하고 포스트 프로세스에 반영
 	void UpdateBuffEffects(float DeltaSeconds);
 
 	// BP에서 지정한 머티리얼로 MID를 만들어 카메라 포스트 프로세스에 등록 (머티리얼이 없으면 nullptr)
@@ -329,9 +360,7 @@ protected:
 
 	// 현재 위치가 들어 있는 감각 볼륨 (없으면 nullptr)
 	ALCOSenseVolume* FindSenseVolume() const;
-
-	void SetSenseCharges(int32 NewCharges);
-
+	
 	// ---------- 컴포넌트 ----------
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<USpringArmComponent> SpringArm;
@@ -444,7 +473,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Held")
 	TObjectPtr<UAnimMontage> CameraUnequipMontage;
 	
-
 	// 마우스 감도 배율
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Look", meta = (ClampMin = "0.1", ClampMax = "5.0"))
 	float LookSensitivity = 1.f;
@@ -518,6 +546,19 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|HeadBob", meta = (ClampMin = "0"))
 	float BobBlendSpeed = 8.f;
 	
+	// 손전등 (스프링암 시작점 = 눈 높이에 부착, 바라보는 방향으로 회전)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Flashlight")
+	TObjectPtr<USpotLightComponent> FlashlightComponent;
+	
+	// ---------- 손전등 ----------
+	// 눈 위치 기준 손전등 위치 (X: 앞, Y: 오른쪽, Z: 위). 3인칭에서 내 몸에 가리지 않게 살짝 앞으로
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Flashlight")
+	FVector FlashlightOffset = FVector(25.f, 10.f, -10.f);
+
+	// 켜고 끌 때 소리 (비워두면 소리 없음)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Flashlight")
+	TObjectPtr<USoundBase> FlashlightToggleSound;
+	
 	// ---------- 버프 화면 효과 ----------
 	// 버프 시작 / 종료 시 효과가 완전히 켜지거나 꺼지는 데 걸리는 시간(초)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|BuffEffect", meta = (ClampMin = "0.01"))
@@ -583,6 +624,7 @@ private:
 
 	// 실제로 달리는 중인지
 	bool bIsSprinting = false;
+	bool bFlashlightOn = false;
 	
 	// 헤드밥 진행 상태
 	float HeadBobTime = 0.f;

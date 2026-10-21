@@ -65,4 +65,8 @@ public:
 	// [대화] 첫 대화를 끝까지 본 NPC ID 목록 (LCODialogueSubsystem)
 	UPROPERTY()
 	TArray<FName> CompletedFirstConversations;
+
+	// [시간대] 지금까지 진행된 시간대 (LCOGameInstance)
+	UPROPERTY()
+	ELCOTimeOfDay TimeOfDay = ELCOTimeOfDay::Noon;
 };

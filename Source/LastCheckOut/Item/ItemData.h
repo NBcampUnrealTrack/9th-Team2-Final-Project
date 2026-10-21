@@ -9,42 +9,75 @@
 UENUM(BlueprintType)
 enum class EItemType : uint8
 {
-    Consumable, // 소비 아이템
-    KeyItem,    // 열쇠, 호텔 도면 등
-    Evidence,    // 증거품
-    Passive      // 영구 패시브 아이템
+    Consumable UMETA
+    (
+        DisplayName = "Consumable",
+        ToolTip = "소비 아이템"
+    ),
+
+    KeyItem UMETA
+    (
+        DisplayName = "Key Item",
+        ToolTip = "열쇠 및 호텔 도면 등"
+    ),
+
+    Evidence UMETA
+    (
+        DisplayName = "Evidence",
+        ToolTip = "증거품"
+    ),
+
+    Passive UMETA
+    (
+        DisplayName = "Passive",
+        ToolTip = "영구 패시브 아이템"
+    ),
+    
+    Equipment UMETA
+    (
+        DisplayName = "Equipment",
+        ToolTip = "장비"
+    )    
+    
+    
 };
 
 // 개별 버프 효과의 종류
 UENUM(BlueprintType)
 enum class EBuffType : uint8
 {
-    None UMETA(
+    None UMETA
+    (
         DisplayName = "None",
         ToolTip = "버프 효과 없음"
     ),
 
-    MoveSpeed UMETA(
+    MoveSpeed UMETA
+    (
         DisplayName = "Move Speed",
         ToolTip = "이동속도 증가"
     ),
 
-    MaxStamina UMETA(
+    MaxStamina UMETA
+    (
         DisplayName = "Max Stamina",
         ToolTip = "최대 스태미나 증가"
     ),
 
-    SenseCharge UMETA(
+    SenseCharge UMETA
+    (
         DisplayName = "Sense Charge",
         ToolTip = "직감 사용 횟수 회복"
     ),
 
-    StaminaRegen UMETA(
+    StaminaRegen UMETA
+    (
         DisplayName = "Stamina Regen",
         ToolTip = "영구 스태미나 회복 속도 증가"
     ),
 
-    PermanentMoveSpeed UMETA(
+    PermanentMoveSpeed UMETA
+    (
         DisplayName = "Permanent Move Speed",
         ToolTip = "영구 이동속도 증가"
     )

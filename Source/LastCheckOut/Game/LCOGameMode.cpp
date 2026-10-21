@@ -16,6 +16,7 @@
 #include "Engine/LocalPlayer.h"
 #include "UI/LCOLoadingSubsystem.h"
 #include "Core/LCOGameSettingsSubsystem.h"
+#include "Game/LCOTimeOfDayManager.h"
 
 ALCOGameMode::ALCOGameMode()
 {
@@ -176,8 +177,11 @@ void ALCOGameMode::StartNewGameProgress(ULCOGameInstance* LCOGameInstance)
 		}
 	}
 
+	// 7) 시간대 초기화 (정오 이후부터 다시 시작)
+	LCOGameInstance->SetCurrentTimeOfDay(ELCOTimeOfDay::Noon);
+
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartNewGameProgress: Notebook / Carry / WorldState / Puzzle / Story / Dialogue reset"));
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartNewGameProgress: Notebook / Carry / WorldState / Puzzle / Story / Dialogue / TimeOfDay reset"));
 }
 
 void ALCOGameMode::TravelToLevel(TSoftObjectPtr<UWorld> Level, FName PlayerStartTag, bool bAutoSaveOnArrival)
@@ -235,6 +239,9 @@ void ALCOGameMode::HandleMatchHasStarted()
 	{
 		GameSettings->ApplyGameplaySettingsToPlayer(Cast<ALCOPlayerCharacter>(UGameplayStatics::GetPlayerPawn(this, 0)));
 	}
+
+	// 이 맵 도착으로 시간대 갱신 → 조명 적용 (아래 자동 저장에 갱신된 시간대가 들어가도록 먼저 처리)
+	RefreshTimeOfDay();
 
 	// 챕터 전환 등으로 AutoSave 옵션이 붙어 왔으면, 모든 복원이 끝난 지금 저장
 	TryAutoSaveOnArrival();
@@ -538,4 +545,60 @@ void ALCOGameMode::TryAutoSaveOnArrival()
 		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] AutoSave on arrival"));
 		SaveManager->SaveGame();
 	}
+}
+
+void ALCOGameMode::RefreshTimeOfDay()
+{
+	ALCOTimeOfDayManager* Manager = FindTimeOfDayManager();
+	if (!Manager)
+	{
+		// 시간대 매니저가 없는 맵 (메인 메뉴 등): 맵 조명 그대로
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] RefreshTimeOfDay: No LCOTimeOfDayManager in this map"));
+		return;
+	}
+
+	ULCOGameInstance* LCOGameInstance = GetGameInstance<ULCOGameInstance>();
+	if (!LCOGameInstance)
+	{
+		return;
+	}
+
+	// 지금까지의 시간대와 이 맵의 도착 시간대 중 더 늦은 쪽 (시간대는 앞으로만 진행)
+	const ELCOTimeOfDay PrevTimeOfDay = LCOGameInstance->GetCurrentTimeOfDay();
+	const ELCOTimeOfDay NewTimeOfDay = FMath::Max(PrevTimeOfDay, Manager->GetArrivalTimeOfDay());
+
+	if (NewTimeOfDay != PrevTimeOfDay)
+	{
+		LCOGameInstance->SetCurrentTimeOfDay(NewTimeOfDay);
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] RefreshTimeOfDay: %s -> %s (Map = %s)"),
+		*UEnum::GetValueAsString(PrevTimeOfDay), *UEnum::GetValueAsString(NewTimeOfDay),
+		*UEnum::GetValueAsString(Manager->GetArrivalTimeOfDay()));
+
+	Manager->ApplyTimeOfDay(NewTimeOfDay);
+}
+
+void ALCOGameMode::ApplyTimeOfDayForTest(ELCOTimeOfDay TimeOfDay)
+{
+	if (ALCOTimeOfDayManager* Manager = FindTimeOfDayManager())
+	{
+		// Log Test
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ApplyTimeOfDayForTest: %s"), *UEnum::GetValueAsString(TimeOfDay));
+		Manager->ApplyTimeOfDay(TimeOfDay);
+	}
+	else
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] ApplyTimeOfDayForTest: No LCOTimeOfDayManager in this map"));
+	}
+}
+
+ALCOTimeOfDayManager* ALCOGameMode::FindTimeOfDayManager() const
+{
+	for (TActorIterator<ALCOTimeOfDayManager> It(GetWorld()); It; ++It)
+	{
+		return *It;
+	}
+	return nullptr;
 }

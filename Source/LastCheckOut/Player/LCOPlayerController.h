@@ -8,6 +8,7 @@ class UInputMappingContext;
 class UInputAction;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLCOMenuRequested);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOPuzzleExitRequested, AActor*, PuzzleActor);
 
 // 플레이어 컨트롤러
 // 입력 매핑(IMC) 등록, 메뉴 입력(아이템 I, 수첩 J, 옵션 O) 처리
@@ -37,6 +38,28 @@ public:
 	// 옵션 키(O, 추후 ESC) 입력 시
 	UPROPERTY(BlueprintAssignable, Category = "LCO|UI")
 	FOnLCOMenuRequested OnOptionsRequested;
+	
+	// ---------- 퍼즐 보기 ----------
+
+	// 퍼즐 보기 시작 (카메라 고정 / 퍼즐 UI 표시 시 퍼즐 쪽에서 호출)
+	// 보기 중에는 인벤토리 / 수첩 키 무시, 옵션 키(O / ESC)는 일시정지 대신 OnPuzzleExitRequested 방송
+	UFUNCTION(BlueprintCallable, Category = "LCO|Puzzle")
+	void BeginPuzzleView(AActor* PuzzleActor);
+
+	// 퍼즐 보기 종료 (퍼즐에서 나갈 때 퍼즐 쪽에서 호출)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Puzzle")
+	void EndPuzzleView();
+
+	// 퍼즐 액터가 사라지면 자동으로 false
+	UFUNCTION(BlueprintPure, Category = "LCO|Puzzle")
+	bool IsInPuzzleView() const { return CurrentPuzzleActor.IsValid(); }
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Puzzle")
+	AActor* GetCurrentPuzzleActor() const { return CurrentPuzzleActor.Get(); }
+
+	// 퍼즐 보기 중 옵션 키(O / ESC)를 눌렀을 때. 퍼즐은 여기서 나가기 처리
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Puzzle")
+	FOnLCOPuzzleExitRequested OnPuzzleExitRequested;
 
 
 protected:
@@ -69,4 +92,6 @@ protected:
 
 private:
 	bool bInUIMode = false;
+	// 현재 보고 있는 퍼즐 (없으면 퍼즐 보기 아님)
+	TWeakObjectPtr<AActor> CurrentPuzzleActor;
 };

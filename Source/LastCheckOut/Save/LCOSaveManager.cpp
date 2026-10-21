@@ -3,6 +3,7 @@
 #include "Save/LCOSaveGame.h"
 #include "Core/LCOGameInstance.h"
 #include "Game/LCOGameMode.h"
+#include "Player/LCOPlayerCharacter.h"
 #include "Story/LCOStorySubsystem.h"
 #include "Notebook/LCONotebookSubsystem.h"
 #include "Save/LCOWorldStateSubsystem.h"
@@ -97,6 +98,16 @@ bool ULCOSaveManager::SaveGame()
 		}
 	}
 
+	// [Player] 세이브하면 직감 사용 횟수 전체 회복 (직접 저장 / 자동 저장 공통, 상태 저장 전에 처리)
+	int32 SenseCharges = 0;
+	int32 MaxSenseCharges = 0;
+	if (ALCOPlayerCharacter* Player = Cast<ALCOPlayerCharacter>(UGameplayStatics::GetPlayerPawn(World, 0)))
+	{
+		Player->RestoreSenseCharges(Player->GetMaxSenseCharges());
+		SenseCharges = Player->GetCurrentSenseCharges();
+		MaxSenseCharges = Player->GetMaxSenseCharges();
+	}
+
 	// [Player] 인벤토리 / 퀵슬롯 / 시점 (GameMode의 맵 이동 보관과 같은 함수 사용)
 	if (World)
 	{
@@ -129,11 +140,11 @@ bool ULCOSaveManager::SaveGame()
 	OnSaveStarted.Broadcast();
 
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] SaveGame start: Map = %s, Chapter = %s, Objective = %s, Completed = %d, Notebook = %d, PlayerData = %s, Items = %d, FirstConversations = %d"),
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] SaveGame start: Map = %s, Chapter = %s, Objective = %s, Completed = %d, Notebook = %d, PlayerData = %s, Items = %d, FirstConversations = %d, SenseCharges = %d/%d"),
 		*SaveData->MapName, *SaveData->ChapterID.ToString(), *SaveData->ObjectiveID.ToString(),
 		SaveData->CompletedObjectives.Num(), SaveData->NotebookEntries.Num(),
 		SaveData->bHasPlayerData ? TEXT("true") : TEXT("false"), SaveData->PlayerData.InventorySlots.Num(),
-		SaveData->CompletedFirstConversations.Num());
+		SaveData->CompletedFirstConversations.Num(), SenseCharges, MaxSenseCharges);
 
 	// 비동기 저장 (게임이 멈추지 않음). 완료되면 HandleAsyncSaveFinished 호출
 	FAsyncSaveGameToSlotDelegate SavedDelegate;

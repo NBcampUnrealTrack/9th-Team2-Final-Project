@@ -64,6 +64,10 @@ void ALCOPuzzleBase::HandleInteraction_Implementation(ULCOInteractComponent* Sou
 	}
 
 	const FName InputID = SourceComponent ? SourceComponent->GetInputID() : NAME_None;
+
+	// InputID와 상관없이 상호작용이 들어올 때마다 먼저 알림 (소리, 연출 등)
+	OnPuzzleInteracted(SourceComponent, InputID, Interactor);
+
 	HandlePuzzleInput(SourceComponent, InputID, Interactor);
 }
 
@@ -244,6 +248,7 @@ void ALCOPuzzleBase::TryRestoreSolvedState()
 	// - 스토리 결과: 세이브의 스토리 상태에 이미 반영
 	// - 잠금 해제 대상(문 / 서랍장): LCOWorldStateSubsystem이 열림 / 잠금 상태를 따로 복원
 	//   (여기서 Open()을 다시 부르면 열림 애니메이션이 재생되고, 플레이어가 닫아 둔 문과 어긋남)
+	HandleRestoredAsSolved();
 	OnPuzzleRestored();
 }
 

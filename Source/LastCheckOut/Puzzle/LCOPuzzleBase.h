@@ -111,6 +111,9 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Puzzle")
 	void OnPuzzleReset();
 
+	// 세이브에서 해결 상태로 복원될 때 (OnPuzzleRestored BP 이벤트 직전). C++ 자식이 해결된 모습의 상태값을 맞출 때 사용
+	virtual void HandleRestoredAsSolved() {}
+
 	// ---------- BP 연출 이벤트 ----------
 
 	// 해결 연출 (효과음, 불빛 등)
@@ -128,6 +131,11 @@ protected:
 	// 세이브에서 해결 상태로 복원됐을 때. 연출 없이 해결된 모습으로 바꾼다
 	UFUNCTION(BlueprintImplementableEvent, Category = "Puzzle")
 	void OnPuzzleRestored();
+
+	// 플레이어가 이 퍼즐의 부품에 상호작용(F키)할 때마다 호출. InputID와 상관없이 항상, HandlePuzzleInput보다 먼저
+	// (해결됐거나 비활성 상태라 상호작용이 잠겨 있을 때는 호출되지 않음)
+	UFUNCTION(BlueprintImplementableEvent, Category = "Puzzle")
+	void OnPuzzleInteracted(ULCOInteractComponent* SourceComponent, FName InputID, AActor* Interactor);
 
 	// 맵 이동 / 이어하기로 활성 상태가 복원됐을 때. 연출 없이 켜진 / 꺼진 모습으로 바꾼다
 	// (OnPuzzleActivated는 실제로 켜지는 순간에만 호출되므로, 복원 시 모습은 여기서 맞출 것)

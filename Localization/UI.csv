@@ -91,3 +91,19 @@ NOTEBOOK_GROUP_Office,사무실,Office,事務室,办公室,辦公室,Oficina,Bur
 NOTEBOOK_GROUP_RecordRoom,기록실,Records Room,記録室,档案室,檔案室,Sala de archivos,Salle des archives,Archivraum,Sala de arquivos,Arkistohuone
 NOTEBOOK_GROUP_MaintenanceRoom,관리실,Maintenance Room,管理室,管理室,管理室,Sala de mantenimiento,Local technique,Hausmeisterraum,Sala de manutenção,Huoltohuone
 NOTEBOOK_GROUP_Room205,205호,Room 205,205号室,205号房,205號房,Habitación 205,Chambre 205,Zimmer 205,Quarto 205,Huone 205
+SETTINGS_WINDOW_MODE,화면 모드,Display Mode,画面モード,显示模式,顯示模式,Modo de pantalla,Mode d'affichage,Anzeigemodus,Modo de exibição,Näyttötila
+SETTINGS_WINDOW_FULLSCREEN,전체 화면,Fullscreen,フルスクリーン,全屏,全螢幕,Pantalla completa,Plein écran,Vollbild,Tela cheia,Koko näyttö
+SETTINGS_WINDOW_BORDERLESS,테두리 없는 창,Borderless Window,ボーダーレスウィンドウ,无边框窗口,無邊框視窗,Ventana sin bordes,Fenêtre sans bordure,Rahmenloses Fenster,Janela sem bordas,Reunaton ikkuna
+SETTINGS_WINDOW_WINDOWED,창 모드,Windowed,ウィンドウ,窗口模式,視窗模式,Ventana,Fenêtré,Fenster,Janela,Ikkuna
+SETTINGS_RESOLUTION,해상도,Resolution,解像度,分辨率,解析度,Resolución,Résolution,Auflösung,Resolução,Resoluutio
+SETTINGS_QUALITY,그래픽 품질,Graphics Quality,グラフィック品質,画质,畫質,Calidad gráfica,Qualité graphique,Grafikqualität,Qualidade gráfica,Grafiikan laatu
+SETTINGS_QUALITY_LOW,낮음,Low,低,低,低,Baja,Faible,Niedrig,Baixa,Matala
+SETTINGS_QUALITY_MEDIUM,중간,Medium,中,中,中,Media,Moyenne,Mittel,Média,Keskitaso
+SETTINGS_QUALITY_HIGH,높음,High,高,高,高,Alta,Élevée,Hoch,Alta,Korkea
+SETTINGS_QUALITY_EPIC,최고,Epic,最高,极高,極高,Épica,Épique,Episch,Épica,Eeppinen
+SETTINGS_BRIGHTNESS,밝기,Brightness,明るさ,亮度,亮度,Brillo,Luminosité,Helligkeit,Brilho,Kirkkaus
+SETTINGS_LOOK_SENSITIVITY,마우스 감도,Mouse Sensitivity,マウス感度,鼠标灵敏度,滑鼠靈敏度,Sensibilidad del ratón,Sensibilité de la souris,Mausempfindlichkeit,Sensibilidade do mouse,Hiiren herkkyys
+SETTINGS_INVERT_LOOK_Y,Y축 반전,Invert Y-Axis,Y軸反転,反转Y轴,反轉Y軸,Invertir eje Y,Inverser l'axe Y,Y-Achse invertieren,Inverter eixo Y,Käännä Y-akseli
+SETTINGS_RESET_DEFAULTS,기본값으로,Reset to Default,初期設定に戻す,恢复默认,恢復預設,Restablecer valores,Réinitialiser,Zurücksetzen,Restaurar padrão,Palauta oletukset
+COMMON_APPLY,적용,Apply,適用,应用,套用,Aplicar,Appliquer,Übernehmen,Aplicar,Käytä
+COMMON_CANCEL,취소,Cancel,キャンセル,取消,取消,Cancelar,Annuler,Abbrechen,Cancelar,Peruuta

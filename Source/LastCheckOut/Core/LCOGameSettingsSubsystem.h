@@ -27,7 +27,7 @@ public:
 	// (해상도 / 화면 모드 / 품질은 엔진이 시작할 때 GameUserSettings.ini 값을 자동 적용)
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
-	// ---------- 그래픽 (Set 후 ApplyGraphicsSettings를 불러야 실제 적용) ----------
+	// 그래픽 (Set 후 ApplyGraphicsSettings를 불러야 실제 적용)
 
 	// 화면 모드: Fullscreen(전체 화면) / WindowedFullscreen(테두리 없는 창) / Windowed(창 모드)
 	UFUNCTION(BlueprintPure, Category = "LCO|Settings|Graphics")
@@ -61,7 +61,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Graphics")
 	void RevertGraphicsSettings();
 
-	// ---------- 밝기 (즉시 적용 + 저장) ----------
+	// 그래픽 확인 창
+	// 1) ApplyGraphicsSettingsForConfirm: 화면에만 적용 (저장 안 함)
+	// 2) 유지 → ConfirmGraphicsSettings: 저장 / 되돌리기 또는 시간 초과 → RevertAppliedGraphicsSettings: 직전 확정 값으로 복구
+
+	// 화면 모드 / 해상도 / 품질을 화면에만 적용하고 확인 대기 (저장 안 함)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Graphics")
+	void ApplyGraphicsSettingsForConfirm();
+
+	// 확인 대기 중인 그래픽 설정을 확정하고 저장 (유지 버튼)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Graphics")
+	void ConfirmGraphicsSettings();
+
+	// 확인 대기 중인 그래픽 설정을 버리고 직전 확정 값으로 복구 (되돌리기 버튼 / 시간 초과 / 설정창 닫힘)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Graphics")
+	void RevertAppliedGraphicsSettings();
+
+	// 확인 대기 중인지 (적용 후 유지 / 되돌리기 선택 전)
+	UFUNCTION(BlueprintPure, Category = "LCO|Settings|Graphics")
+	bool IsWaitingGraphicsConfirm() const { return bWaitingGraphicsConfirm; }
+
+	// 밝기 (즉시 적용 + 저장)
 
 	// 엔진 감마 값. 기본 2.2, MinBrightness ~ MaxBrightness 범위로 제한
 	UFUNCTION(BlueprintPure, Category = "LCO|Settings|Graphics")
@@ -70,7 +90,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Graphics")
 	void SetBrightness(float Value);
 
-	// ---------- 게임플레이 (즉시 적용 + 저장) ----------
+	// 게임플레이 (즉시 적용 + 저장)
 
 	// 마우스 감도. 1.0 기본, MinLookSensitivity ~ MaxLookSensitivity 범위로 제한
 	UFUNCTION(BlueprintPure, Category = "LCO|Settings|Gameplay")
@@ -89,7 +109,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Gameplay")
 	void ApplyGameplaySettingsToPlayer(ALCOPlayerCharacter* Player) const;
 
-	// ---------- 공통 ----------
+	// 공통
 
 	// 전체 기본값으로 되돌리고 저장·적용 (감도 1.0 / 반전 끔 / 밝기 2.2 / 그래픽은 엔진 기본값)
 	UFUNCTION(BlueprintCallable, Category = "LCO|Settings")
@@ -120,6 +140,17 @@ private:
 
 	// 엔진 그래픽 설정 객체
 	static UGameUserSettings* GetEngineSettings();
+
+	// 지금 화면에 적용된 그래픽 값을 "확정 값"으로 기억 (되돌리기 기준)
+	void CaptureConfirmedGraphics();
+
+	// 마지막으로 확정된 화면 모드 / 해상도 / 품질 (확인 창에서 되돌릴 때 사용)
+	EWindowMode::Type ConfirmedWindowMode = EWindowMode::Windowed;
+	FIntPoint ConfirmedResolution = FIntPoint::ZeroValue;
+	int32 ConfirmedQuality = 3;
+
+	// 적용 후 유지 / 되돌리기 선택을 기다리는 중
+	bool bWaitingGraphicsConfirm = false;
 
 	static const FString SettingsSlotName;
 	static constexpr int32 SettingsUserIndex = 0;

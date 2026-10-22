@@ -16,9 +16,12 @@ void ULCOGameSettingsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	LoadSettings();
 	ApplyBrightness();
+
+	// 게임 시작 시 적용된 그래픽 값 = 확정 값 (확인 창 되돌리기 기준)
+	CaptureConfirmedGraphics();
 }
 
-// ---------- 그래픽 ----------
+// 그래픽
 
 UGameUserSettings* ULCOGameSettingsSubsystem::GetEngineSettings()
 {
@@ -85,6 +88,9 @@ void ULCOGameSettingsSubsystem::ApplyGraphicsSettings()
 
 	// 적용 + GameUserSettings.ini 저장 (명령줄 옵션은 무시)
 	EngineSettings->ApplySettings(false);
+	EngineSettings->ConfirmVideoMode();
+	CaptureConfirmedGraphics();
+	bWaitingGraphicsConfirm = false;
 
 	// Log Test
 	const FIntPoint Resolution = EngineSettings->GetScreenResolution();
@@ -109,6 +115,86 @@ void ULCOGameSettingsSubsystem::RevertGraphicsSettings()
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameSettings] RevertGraphicsSettings"));
 
 	OnSettingsChanged.Broadcast();
+}
+
+void ULCOGameSettingsSubsystem::ApplyGraphicsSettingsForConfirm()
+{
+	UGameUserSettings* EngineSettings = GetEngineSettings();
+	if (!EngineSettings)
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameSettings] ApplyGraphicsSettingsForConfirm: GameUserSettings not found"));
+		return;
+	}
+
+	// 화면에만 적용 (ApplySettings와 달리 GameUserSettings.ini에 저장하지 않음)
+	EngineSettings->ApplyResolutionSettings(false);
+	EngineSettings->ApplyNonResolutionSettings();
+	bWaitingGraphicsConfirm = true;
+
+	// Log Test
+	const FIntPoint Resolution = EngineSettings->GetScreenResolution();
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameSettings] ApplyGraphicsSettingsForConfirm: %dx%d, Mode = %d, Quality = %d (waiting confirm)"),
+		Resolution.X, Resolution.Y, static_cast<int32>(EngineSettings->GetFullscreenMode()), EngineSettings->GetOverallScalabilityLevel());
+
+	OnSettingsChanged.Broadcast();
+}
+
+void ULCOGameSettingsSubsystem::ConfirmGraphicsSettings()
+{
+	UGameUserSettings* EngineSettings = GetEngineSettings();
+	if (!EngineSettings || !bWaitingGraphicsConfirm)
+	{
+		return;
+	}
+
+	// 지금 화면 값을 확정 + 저장
+	EngineSettings->ConfirmVideoMode();
+	EngineSettings->SaveSettings();
+	CaptureConfirmedGraphics();
+	bWaitingGraphicsConfirm = false;
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameSettings] ConfirmGraphicsSettings: %dx%d, Mode = %d, Quality = %d (saved)"),
+		ConfirmedResolution.X, ConfirmedResolution.Y, static_cast<int32>(ConfirmedWindowMode), ConfirmedQuality);
+
+	OnSettingsChanged.Broadcast();
+}
+
+void ULCOGameSettingsSubsystem::RevertAppliedGraphicsSettings()
+{
+	UGameUserSettings* EngineSettings = GetEngineSettings();
+	if (!EngineSettings || !bWaitingGraphicsConfirm)
+	{
+		return;
+	}
+
+	// 직전 확정 값으로 되돌려 다시 적용 + 저장
+	EngineSettings->SetFullscreenMode(ConfirmedWindowMode);
+	EngineSettings->SetScreenResolution(ConfirmedResolution);
+	if (ConfirmedQuality >= 0)
+	{
+		// -1 = 항목별 사용자 지정 품질 (전체 품질로 덮어쓰지 않음)
+		EngineSettings->SetOverallScalabilityLevel(ConfirmedQuality);
+	}
+	EngineSettings->ApplySettings(false);
+	EngineSettings->ConfirmVideoMode();
+	bWaitingGraphicsConfirm = false;
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameSettings] RevertAppliedGraphicsSettings: back to %dx%d, Mode = %d, Quality = %d"),
+		ConfirmedResolution.X, ConfirmedResolution.Y, static_cast<int32>(ConfirmedWindowMode), ConfirmedQuality);
+
+	OnSettingsChanged.Broadcast();
+}
+
+void ULCOGameSettingsSubsystem::CaptureConfirmedGraphics()
+{
+	if (const UGameUserSettings* EngineSettings = GetEngineSettings())
+	{
+		ConfirmedWindowMode = EngineSettings->GetFullscreenMode();
+		ConfirmedResolution = EngineSettings->GetScreenResolution();
+		ConfirmedQuality = EngineSettings->GetOverallScalabilityLevel();
+	}
 }
 
 // ---------- 밝기 ----------
@@ -242,7 +328,10 @@ void ULCOGameSettingsSubsystem::ResetToDefaults()
 	{
 		EngineSettings->SetToDefaults();
 		EngineSettings->ApplySettings(false);
+		EngineSettings->ConfirmVideoMode();
 	}
+	CaptureConfirmedGraphics();
+	bWaitingGraphicsConfirm = false;
 
 	// Log Test
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameSettings] ResetToDefaults"));

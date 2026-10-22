@@ -5,6 +5,7 @@
 #include "Components/ComboBoxString.h"
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
+#include "Components/Widget.h"
 #include "Engine/GameInstance.h"
 #include "Localization/LCOLocalizationSubsystem.h"
 #include "UI/LCOAudioSettingsSubsystem.h"
@@ -114,17 +115,44 @@ void ULCOSettingsWidget::NativeConstruct()
 	BindAudioSliders();
 	BindGameSettingsControls();
 	BindLocalizationEvents();
+	HideGraphicsConfirm();
 }
 
 void ULCOSettingsWidget::NativeDestruct()
 {
 	SaveAudioSettings();
+	
+	if (ULCOGameSettingsSubsystem* GameSettings = GetGameSettingsSubsystem())
+	{
+		GameSettings->RevertAppliedGraphicsSettings();
+	}
+	GraphicsConfirmRemainingTime = 0.f;
 	RevertUnappliedGraphicsSettings();
 	UnbindAudioSliders();
 	UnbindGameSettingsControls();
 	UnbindLocalizationEvents();
 
 	Super::NativeDestruct();
+}
+
+void ULCOSettingsWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	if (GraphicsConfirmRemainingTime <= 0.f)
+	{
+		return;
+	}
+	
+	GraphicsConfirmRemainingTime -= InDeltaTime;
+	if (GraphicsConfirmRemainingTime <= 0.f)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Graphics confirm timed out -> revert"));
+		HandleGraphicsRevertClicked();
+		return;
+	}
+
+	RefreshGraphicsConfirmCountdown();
 }
 
 void ULCOSettingsWidget::HandleLanguageSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
@@ -609,6 +637,24 @@ void ULCOSettingsWidget::RefreshLocalizedTexts()
 	{
 		ResetDefaultsButtonText->SetText(LocalizationSubsystem->GetUIText(TEXT("SETTINGS_RESET_DEFAULTS")));
 	}
+
+	if (GraphicsConfirmText)
+	{
+		GraphicsConfirmText->SetText(LocalizationSubsystem->GetUIText(TEXT("SETTINGS_GRAPHICS_CONFIRM")));
+	}
+
+	if (GraphicsKeepButtonText)
+	{
+		GraphicsKeepButtonText->SetText(LocalizationSubsystem->GetUIText(TEXT("SETTINGS_GRAPHICS_KEEP")));
+	}
+
+	if (GraphicsRevertButtonText)
+	{
+		GraphicsRevertButtonText->SetText(LocalizationSubsystem->GetUIText(TEXT("SETTINGS_GRAPHICS_REVERT")));
+	}
+	
+	GraphicsConfirmShownSeconds = INDEX_NONE;
+	RefreshGraphicsConfirmCountdown();
 }
 
 void ULCOSettingsWidget::HandleWindowModeSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType)
@@ -677,12 +723,24 @@ void ULCOSettingsWidget::HandleQualitySelectionChanged(FString SelectedItem, ESe
 void ULCOSettingsWidget::HandleGraphicsApplyClicked()
 {
 	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Graphics apply clicked"));
-	if (ULCOGameSettingsSubsystem* GameSettings = GetGameSettingsSubsystem())
+	ULCOGameSettingsSubsystem* GameSettings = GetGameSettingsSubsystem();
+	if (!GameSettings)
 	{
-		GameSettings->ApplyGraphicsSettings();
-		bGraphicsSettingsDirty = false;
+		return;
 	}
 
+	bGraphicsSettingsDirty = false;
+
+	if (GraphicsConfirmPanel)
+	{
+		GameSettings->ApplyGraphicsSettingsForConfirm();
+		ShowGraphicsConfirm();
+	}
+	else
+	{
+		GameSettings->ApplyGraphicsSettings();
+	}
+	
 	InitializeGraphicsOptions();
 }
 
@@ -804,10 +862,23 @@ void ULCOSettingsWidget::BindGameSettingsControls()
 		ResetDefaultsButton->OnClicked.AddDynamic(this, &ThisClass::HandleResetDefaultsClicked);
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Game settings bound: WindowMode=%s Resolution=%s Quality=%s Brightness=%s Sensitivity=%s InvertY=%s"),
+	if (GraphicsKeepButton)
+	{
+		GraphicsKeepButton->OnClicked.RemoveDynamic(this, &ThisClass::HandleGraphicsKeepClicked);
+		GraphicsKeepButton->OnClicked.AddDynamic(this, &ThisClass::HandleGraphicsKeepClicked);
+	}
+
+	if (GraphicsRevertButton)
+	{
+		GraphicsRevertButton->OnClicked.RemoveDynamic(this, &ThisClass::HandleGraphicsRevertClicked);
+		GraphicsRevertButton->OnClicked.AddDynamic(this, &ThisClass::HandleGraphicsRevertClicked);
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Game settings bound: WindowMode=%s Resolution=%s Quality=%s Brightness=%s Sensitivity=%s InvertY=%s ConfirmPanel=%s"),
 		WindowModeComboBox ? TEXT("O") : TEXT("X"), ResolutionComboBox ? TEXT("O") : TEXT("X"),
 		QualityComboBox ? TEXT("O") : TEXT("X"), BrightnessSlider ? TEXT("O") : TEXT("X"),
-		LookSensitivitySlider ? TEXT("O") : TEXT("X"), InvertLookYCheckBox ? TEXT("O") : TEXT("X"));
+		LookSensitivitySlider ? TEXT("O") : TEXT("X"), InvertLookYCheckBox ? TEXT("O") : TEXT("X"),
+		GraphicsConfirmPanel ? TEXT("O") : TEXT("X"));
 }
 
 void ULCOSettingsWidget::UnbindGameSettingsControls()
@@ -855,6 +926,16 @@ void ULCOSettingsWidget::UnbindGameSettingsControls()
 	if (ResetDefaultsButton)
 	{
 		ResetDefaultsButton->OnClicked.RemoveDynamic(this, &ThisClass::HandleResetDefaultsClicked);
+	}
+
+	if (GraphicsKeepButton)
+	{
+		GraphicsKeepButton->OnClicked.RemoveDynamic(this, &ThisClass::HandleGraphicsKeepClicked);
+	}
+
+	if (GraphicsRevertButton)
+	{
+		GraphicsRevertButton->OnClicked.RemoveDynamic(this, &ThisClass::HandleGraphicsRevertClicked);
 	}
 }
 
@@ -997,4 +1078,79 @@ void ULCOSettingsWidget::RevertUnappliedGraphicsSettings()
 		GameSettings->RevertGraphicsSettings();
 		bGraphicsSettingsDirty = false;
 	}
+}
+
+void ULCOSettingsWidget::HandleGraphicsKeepClicked()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Graphics keep clicked"));
+	if (ULCOGameSettingsSubsystem* GameSettings = GetGameSettingsSubsystem())
+	{
+		GameSettings->ConfirmGraphicsSettings();
+	}
+
+	HideGraphicsConfirm();
+	InitializeGraphicsOptions();
+}
+
+void ULCOSettingsWidget::HandleGraphicsRevertClicked()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Graphics revert clicked"));
+	if (ULCOGameSettingsSubsystem* GameSettings = GetGameSettingsSubsystem())
+	{
+		GameSettings->RevertAppliedGraphicsSettings();
+	}
+
+	HideGraphicsConfirm();
+	InitializeGraphicsOptions();
+}
+
+void ULCOSettingsWidget::ShowGraphicsConfirm()
+{
+	if (!GraphicsConfirmPanel)
+	{
+		return;
+	}
+
+	GraphicsConfirmRemainingTime = GraphicsConfirmDuration;
+	GraphicsConfirmShownSeconds = INDEX_NONE;
+	RefreshGraphicsConfirmCountdown();
+	
+	GraphicsConfirmPanel->SetVisibility(ESlateVisibility::Visible);
+	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Graphics confirm shown (%.1fs)"), GraphicsConfirmDuration);
+}
+
+void ULCOSettingsWidget::HideGraphicsConfirm()
+{
+	GraphicsConfirmRemainingTime = 0.f;
+	GraphicsConfirmShownSeconds = INDEX_NONE;
+
+	if (GraphicsConfirmPanel)
+	{
+		GraphicsConfirmPanel->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void ULCOSettingsWidget::RefreshGraphicsConfirmCountdown()
+{
+	if (!GraphicsConfirmCountdownText || GraphicsConfirmRemainingTime <= 0.f)
+	{
+		return;
+	}
+	
+	const int32 Seconds = FMath::CeilToInt(GraphicsConfirmRemainingTime);
+	if (Seconds == GraphicsConfirmShownSeconds)
+	{
+		return;
+	}
+	GraphicsConfirmShownSeconds = Seconds;
+
+	const ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>();
+	if (!LocalizationSubsystem)
+	{
+		GraphicsConfirmCountdownText->SetText(FText::AsNumber(Seconds));
+		return;
+	}
+	
+	const FText Pattern = LocalizationSubsystem->GetUIText(TEXT("SETTINGS_GRAPHICS_CONFIRM_COUNTDOWN"));
+	GraphicsConfirmCountdownText->SetText(FText::Format(FTextFormat(Pattern), FText::AsNumber(Seconds)));
 }

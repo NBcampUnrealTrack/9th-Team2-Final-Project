@@ -19,6 +19,7 @@ class LASTCHECKOUT_API ULCOSettingsWidget : public UUserWidget
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UComboBoxString> LanguageComboBox;
@@ -142,6 +143,30 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<class UTextBlock> ResetDefaultsButtonText;
+	
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UWidget> GraphicsConfirmPanel;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UTextBlock> GraphicsConfirmText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UTextBlock> GraphicsConfirmCountdownText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> GraphicsKeepButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UTextBlock> GraphicsKeepButtonText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> GraphicsRevertButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UTextBlock> GraphicsRevertButtonText;
+	
+	UPROPERTY(EditAnywhere, Category = "LCO|Settings", meta = (ClampMin = "1.0", Units = "s"))
+	float GraphicsConfirmDuration = 5.f;
 
 private:
 	UFUNCTION()
@@ -195,6 +220,12 @@ private:
 	UFUNCTION()
 	void HandleResetDefaultsClicked();
 
+	UFUNCTION()
+	void HandleGraphicsKeepClicked();
+
+	UFUNCTION()
+	void HandleGraphicsRevertClicked();
+
 	void BindLocalizationEvents();
 	void UnbindLocalizationEvents();
 	void ResolveAudioSliders();
@@ -213,6 +244,9 @@ private:
 	void InitializeGameSettingsControls();
 	void RefreshGameSettingsValueTexts();
 	void RevertUnappliedGraphicsSettings();
+	void ShowGraphicsConfirm();
+	void HideGraphicsConfirm();
+	void RefreshGraphicsConfirmCountdown();
 
 	bool bUpdatingAudioSliders = false;
 	bool bAudioSettingsDirty = false;
@@ -220,4 +254,8 @@ private:
 	bool bGraphicsSettingsDirty = false;
 	
 	TArray<FIntPoint> ResolutionOptions;
+	
+	float GraphicsConfirmRemainingTime = 0.f;
+	
+	int32 GraphicsConfirmShownSeconds = INDEX_NONE;
 };

@@ -30,6 +30,11 @@ ALCOPlayerCharacter::ALCOPlayerCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.f);
+	// 스프링암: 3인칭일 때 거리 확보, 1인칭일 때는 길이 0
+	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+	SpringArm->SetupAttachment(RootComponent);
+	SpringArm->SetRelativeLocation(FVector(0.f, 0.f, CameraPivotHeight));
+	SpringArm->bUsePawnControlRotation = true;
 	// 손전등 (눈 높이 스프링암 시작점에 부착, 기본 꺼짐)
 	FlashlightComponent = CreateDefaultSubobject<USpotLightComponent>(TEXT("Flashlight"));
 	FlashlightComponent->SetupAttachment(SpringArm);
@@ -39,12 +44,6 @@ ALCOPlayerCharacter::ALCOPlayerCharacter()
 	FlashlightComponent->InnerConeAngle = 15.f;
 	FlashlightComponent->OuterConeAngle = 28.f;
 	FlashlightComponent->SetVisibility(false);
-	// 스프링암: 3인칭일 때 거리 확보, 1인칭일 때는 길이 0
-	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
-	SpringArm->SetupAttachment(RootComponent);
-	SpringArm->SetRelativeLocation(FVector(0.f, 0.f, CameraPivotHeight));
-	SpringArm->bUsePawnControlRotation = true;
-
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
@@ -73,6 +72,12 @@ ALCOPlayerCharacter::ALCOPlayerCharacter()
 	HeldCameraMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HeldCameraMesh->SetVisibility(false);
 	HeldCameraMesh->bCastHiddenShadow = true;
+	// 손전등 모델 (손 카메라와 같은 방식으로 손에 부착, 기본 숨김)
+	FlashlightMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FlashlightMesh"));
+	FlashlightMesh->SetupAttachment(GetMesh());
+	FlashlightMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FlashlightMesh->SetVisibility(false);
+	FlashlightMesh->bCastHiddenShadow = true;
 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
@@ -800,8 +805,12 @@ void ALCOPlayerCharacter::AttachHeldCamera()
 	// 1인칭에서는 팔과 같은 방식으로 그려야 손에 붙어 보임 (시야각 / 크기 동일)
 	HeldCameraMesh->SetFirstPersonPrimitiveType(bFirstPerson ? EFirstPersonPrimitiveType::FirstPerson : EFirstPersonPrimitiveType::None);
 	HeldCameraMesh->SetOwnerNoSee(false);
-}
 
+	// 손전등 모델도 같은 방식으로 시점에 맞는 손에 부착
+	FlashlightMesh->AttachToComponent(HandMesh, FAttachmentTransformRules::KeepRelativeTransform, FlashlightSocket);
+	FlashlightMesh->SetFirstPersonPrimitiveType(bFirstPerson ? EFirstPersonPrimitiveType::FirstPerson : EFirstPersonPrimitiveType::None);
+	FlashlightMesh->SetOwnerNoSee(false);
+}
 // ---------- 헤드밥 ----------
 
 void ALCOPlayerCharacter::UpdateHeadBob(float DeltaSeconds)
@@ -856,6 +865,7 @@ void ALCOPlayerCharacter::SetFlashlightOn(bool bOn)
 	bFlashlightOn = bOn;
 
 	FlashlightComponent->SetVisibility(bOn);
+	FlashlightMesh->SetVisibility(bOn);
 	UpdateFlashlight();
 
 	if (!bChanged)

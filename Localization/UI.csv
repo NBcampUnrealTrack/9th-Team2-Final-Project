@@ -111,3 +111,21 @@ SETTINGS_GRAPHICS_CONFIRM,이 디스플레이 설정을 유지하시겠습니까
 SETTINGS_GRAPHICS_CONFIRM_COUNTDOWN,{0}초 후 이전 설정으로 돌아갑니다,Reverting in {0} seconds,{0}秒後に元の設定に戻ります,{0}秒后恢复之前的设置,{0}秒後恢復先前的設定,Se restablecerá en {0} segundos,Retour dans {0} secondes,Zurücksetzen in {0} Sekunden,Revertendo em {0} segundos,Palautetaan {0} sekunnin kuluttua
 SETTINGS_GRAPHICS_KEEP,유지,Keep,維持,保留,保留,Mantener,Conserver,Beibehalten,Manter,Säilytä
 SETTINGS_GRAPHICS_REVERT,되돌리기,Revert,元に戻す,恢复,還原,Revertir,Annuler,Zurücksetzen,Reverter,Palauta
+KEYBIND_MOVE_FORWARD,앞으로 이동,Move Forward,前進,向前移动,向前移動,Avanzar,Avancer,Vorwärts,Mover para frente,Liiku eteenpäin
+KEYBIND_MOVE_BACKWARD,뒤로 이동,Move Backward,後退,向后移动,向後移動,Retroceder,Reculer,Rückwärts,Mover para trás,Liiku taaksepäin
+KEYBIND_MOVE_LEFT,왼쪽 이동,Move Left,左移動,向左移动,向左移動,Mover a la izquierda,Aller à gauche,Nach links,Mover para a esquerda,Liiku vasemmalle
+KEYBIND_MOVE_RIGHT,오른쪽 이동,Move Right,右移動,向右移动,向右移動,Mover a la derecha,Aller à droite,Nach rechts,Mover para a direita,Liiku oikealle
+KEYBIND_SPRINT,달리기,Sprint,ダッシュ,冲刺,衝刺,Correr,Courir,Sprinten,Correr,Juokse
+KEYBIND_CROUCH,앉기,Crouch,しゃがむ,蹲下,蹲下,Agacharse,S'accroupir,Ducken,Agachar,Kyykisty
+KEYBIND_INTERACT,상호작용,Interact,インタラクト,互动,互動,Interactuar,Interagir,Interagieren,Interagir,Vuorovaikuta
+KEYBIND_SENSE,감각,Sense,感覚,感知,感知,Sentido,Sens,Sinn,Sentido,Aisti
+KEYBIND_CAPTURE,촬영,Take Photo,撮影,拍照,拍照,Tomar foto,Prendre une photo,Foto aufnehmen,Tirar foto,Ota kuva
+KEYBIND_TOGGLEVIEW,시점 전환,Toggle View,視点切替,切换视角,切換視角,Cambiar vista,Changer de vue,Ansicht wechseln,Alternar visão,Vaihda näkymää
+KEYBIND_INVENTORY,인벤토리,Inventory,インベントリ,物品栏,物品欄,Inventario,Inventaire,Inventar,Inventário,Tavaraluettelo
+KEYBIND_NOTEBOOK,수첩,Notebook,手帳,笔记本,筆記本,Cuaderno,Carnet,Notizbuch,Caderno,Muistikirja
+KEYBIND_QUICKSLOT,퀵슬롯,Quick Slot,クイックスロット,快捷栏,快捷欄,Ranura rápida,Emplacement rapide,Schnellplatz,Atalho rápido,Pikapaikka
+KEYBIND_PRESS_KEY,키를 누르세요,Press a key,キーを押してください,请按键,請按鍵,Pulsa una tecla,Appuyez sur une touche,Taste drücken,Pressione uma tecla,Paina näppäintä
+KEYBIND_SWAPPED,{0} 키와 교체되었습니다,Swapped with {0},{0}とキーを入れ替えました,已与{0}交换按键,已與{0}交換按鍵,Intercambiado con {0},Échangé avec {0},Mit {0} getauscht,Trocado com {0},Vaihdettu: {0}
+KEYBIND_BLOCKED,사용할 수 없는 키입니다,This key cannot be used,このキーは使用できません,无法使用此按键,無法使用此按鍵,No se puede usar esta tecla,Cette touche ne peut pas être utilisée,Diese Taste kann nicht verwendet werden,Esta tecla não pode ser usada,Tätä näppäintä ei voi käyttää
+KEYBIND_FAILED,키를 변경하지 못했습니다,Failed to change key,キーを変更できませんでした,无法更改按键,無法變更按鍵,No se pudo cambiar la tecla,Impossible de changer la touche,Taste konnte nicht geändert werden,Não foi possível alterar a tecla,Näppäintä ei voitu vaihtaa
+SETTINGS_RESET_KEYS,키 설정 초기화,Reset Key Bindings,キー設定をリセット,重置按键设置,重設按鍵設定,Restablecer controles,Réinitialiser les touches,Tastenbelegung zurücksetzen,Redefinir teclas,Palauta näppäimet

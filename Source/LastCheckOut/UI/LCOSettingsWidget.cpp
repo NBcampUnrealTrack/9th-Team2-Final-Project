@@ -10,6 +10,9 @@
 #include "Localization/LCOLocalizationSubsystem.h"
 #include "UI/LCOAudioSettingsSubsystem.h"
 #include "Core/LCOGameSettingsSubsystem.h"
+#include "UI/LCOKeyBindingRowWidget.h"
+#include "Components/PanelWidget.h"
+#include "InputMappingContext.h"
 
 namespace
 {
@@ -99,6 +102,9 @@ void ULCOSettingsWidget::NativeConstruct()
 	RefreshLocalizedTexts();
 	InitializeGraphicsOptions();
 	InitializeGameSettingsControls();
+	RegisterKeyBindingMappingContexts();
+	RefreshKeyBindings();
+	SetKeyBindingMessage(FText::GetEmpty());
 
 	if (LanguageComboBox)
 	{
@@ -186,6 +192,7 @@ void ULCOSettingsWidget::HandleLanguageChanged(FName NewLanguage)
 	RefreshLocalizedTexts();
 	
 	InitializeGraphicsOptions();
+	RefreshKeyBindings();
 }
 
 void ULCOSettingsWidget::HandleMasterVolumeChanged(float Value)
@@ -652,6 +659,11 @@ void ULCOSettingsWidget::RefreshLocalizedTexts()
 	{
 		GraphicsRevertButtonText->SetText(LocalizationSubsystem->GetUIText(TEXT("SETTINGS_GRAPHICS_REVERT")));
 	}
+
+	if (ResetKeysButtonText)
+	{
+		ResetKeysButtonText->SetText(LocalizationSubsystem->GetUIText(TEXT("SETTINGS_RESET_KEYS")));
+	}
 	
 	GraphicsConfirmShownSeconds = INDEX_NONE;
 	RefreshGraphicsConfirmCountdown();
@@ -874,6 +886,12 @@ void ULCOSettingsWidget::BindGameSettingsControls()
 		GraphicsRevertButton->OnClicked.AddDynamic(this, &ThisClass::HandleGraphicsRevertClicked);
 	}
 
+	if (ResetKeysButton)
+	{
+		ResetKeysButton->OnClicked.RemoveDynamic(this, &ThisClass::HandleResetKeysClicked);
+		ResetKeysButton->OnClicked.AddDynamic(this, &ThisClass::HandleResetKeysClicked);
+	}
+
 	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Game settings bound: WindowMode=%s Resolution=%s Quality=%s Brightness=%s Sensitivity=%s InvertY=%s ConfirmPanel=%s"),
 		WindowModeComboBox ? TEXT("O") : TEXT("X"), ResolutionComboBox ? TEXT("O") : TEXT("X"),
 		QualityComboBox ? TEXT("O") : TEXT("X"), BrightnessSlider ? TEXT("O") : TEXT("X"),
@@ -936,6 +954,19 @@ void ULCOSettingsWidget::UnbindGameSettingsControls()
 	if (GraphicsRevertButton)
 	{
 		GraphicsRevertButton->OnClicked.RemoveDynamic(this, &ThisClass::HandleGraphicsRevertClicked);
+	}
+
+	if (ResetKeysButton)
+	{
+		ResetKeysButton->OnClicked.RemoveDynamic(this, &ThisClass::HandleResetKeysClicked);
+	}
+
+	for (ULCOKeyBindingRowWidget* Row : KeyBindingRows)
+	{
+		if (Row)
+		{
+			Row->OnKeySelected.RemoveDynamic(this, &ThisClass::HandleKeyBindingRowKeySelected);
+		}
 	}
 }
 
@@ -1153,4 +1184,148 @@ void ULCOSettingsWidget::RefreshGraphicsConfirmCountdown()
 	
 	const FText Pattern = LocalizationSubsystem->GetUIText(TEXT("SETTINGS_GRAPHICS_CONFIRM_COUNTDOWN"));
 	GraphicsConfirmCountdownText->SetText(FText::Format(FTextFormat(Pattern), FText::AsNumber(Seconds)));
+}
+
+void ULCOSettingsWidget::HandleKeyBindingRowKeySelected(FName MappingName, FKey NewKey)
+{
+	ULCOGameSettingsSubsystem* GameSettings = GetGameSettingsSubsystem();
+	if (!GameSettings)
+	{
+		return;
+	}
+
+	FName SwappedMappingName;
+	const ELCOKeyRemapResult Result = GameSettings->RemapKey(MappingName, NewKey, SwappedMappingName);
+	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Key remap: %s -> %s (Result = %d, Swapped = %s)"),
+		*MappingName.ToString(), *NewKey.ToString(), static_cast<int32>(Result), *SwappedMappingName.ToString());
+
+	const ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>();
+	switch (Result)
+	{
+	case ELCOKeyRemapResult::Swapped:
+		if (LocalizationSubsystem)
+		{
+			const FText SwappedName = GetKeyBindingDisplayName(SwappedMappingName, FText::FromName(SwappedMappingName));
+			SetKeyBindingMessage(FText::Format(FTextFormat(LocalizationSubsystem->GetUIText(TEXT("KEYBIND_SWAPPED"))), SwappedName));
+		}
+		break;
+
+	case ELCOKeyRemapResult::Blocked:
+		SetKeyBindingMessage(LocalizationSubsystem ? LocalizationSubsystem->GetUIText(TEXT("KEYBIND_BLOCKED")) : FText::GetEmpty());
+		break;
+
+	case ELCOKeyRemapResult::Failed:
+		SetKeyBindingMessage(LocalizationSubsystem ? LocalizationSubsystem->GetUIText(TEXT("KEYBIND_FAILED")) : FText::GetEmpty());
+		break;
+
+	default:
+		SetKeyBindingMessage(FText::GetEmpty());
+		break;
+	}
+	
+	RefreshKeyBindings();
+}
+
+void ULCOSettingsWidget::HandleResetKeysClicked()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Reset keys clicked"));
+	if (ULCOGameSettingsSubsystem* GameSettings = GetGameSettingsSubsystem())
+	{
+		GameSettings->ResetKeysToDefault();
+	}
+
+	SetKeyBindingMessage(FText::GetEmpty());
+	RefreshKeyBindings();
+}
+
+void ULCOSettingsWidget::RegisterKeyBindingMappingContexts()
+{
+	ULCOGameSettingsSubsystem* GameSettings = GetGameSettingsSubsystem();
+	if (!GameSettings)
+	{
+		return;
+	}
+
+	for (UInputMappingContext* MappingContext : KeyBindingMappingContexts)
+	{
+		GameSettings->RegisterKeyMappingContext(MappingContext);
+	}
+}
+
+void ULCOSettingsWidget::RefreshKeyBindings()
+{
+	const ULCOGameSettingsSubsystem* GameSettings = GetGameSettingsSubsystem();
+	if (!KeyBindingList || !GameSettings)
+	{
+		return;
+	}
+
+	if (!KeyBindingRowClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] KeyBindingRowClass is not set"));
+		return;
+	}
+
+	const TArray<FLCOKeyMappingInfo> Mappings = GameSettings->GetKeyMappings();
+
+	const ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>();
+	const FText KeySelectionText = LocalizationSubsystem ? LocalizationSubsystem->GetUIText(TEXT("KEYBIND_PRESS_KEY")) : FText::GetEmpty();
+
+	if (KeyBindingRows.Num() != Mappings.Num())
+	{
+		for (ULCOKeyBindingRowWidget* Row : KeyBindingRows)
+		{
+			if (Row)
+			{
+				Row->OnKeySelected.RemoveDynamic(this, &ThisClass::HandleKeyBindingRowKeySelected);
+			}
+		}
+		KeyBindingRows.Reset();
+		KeyBindingList->ClearChildren();
+
+		for (int32 Index = 0; Index < Mappings.Num(); ++Index)
+		{
+			ULCOKeyBindingRowWidget* Row = CreateWidget<ULCOKeyBindingRowWidget>(this, KeyBindingRowClass);
+			if (!Row)
+			{
+				continue;
+			}
+
+			Row->OnKeySelected.AddDynamic(this, &ThisClass::HandleKeyBindingRowKeySelected);
+			KeyBindingList->AddChild(Row);
+			KeyBindingRows.Add(Row);
+		}
+	}
+
+	for (int32 Index = 0; Index < Mappings.Num() && Index < KeyBindingRows.Num(); ++Index)
+	{
+		const FLCOKeyMappingInfo& Mapping = Mappings[Index];
+		if (ULCOKeyBindingRowWidget* Row = KeyBindingRows[Index])
+		{
+			Row->SetKeyBinding(Mapping.MappingName, GetKeyBindingDisplayName(Mapping.MappingName, Mapping.DisplayName), Mapping.CurrentKey, KeySelectionText);
+		}
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[LCOSettingsWidget] Key bindings refreshed: Rows=%d"), KeyBindingRows.Num());
+}
+
+FText ULCOSettingsWidget::GetKeyBindingDisplayName(FName MappingName, const FText& Fallback) const
+{
+	const ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>();
+	if (!LocalizationSubsystem)
+	{
+		return Fallback;
+	}
+	
+	const FString TextKey = FString(TEXT("KEYBIND_")) + MappingName.ToString().ToUpper();
+	const FText Text = LocalizationSubsystem->GetUIText(FName(*TextKey));
+	return Text.ToString() == TextKey ? Fallback : Text;
+}
+
+void ULCOSettingsWidget::SetKeyBindingMessage(const FText& Message)
+{
+	if (KeyBindingMessageText)
+	{
+		KeyBindingMessageText->SetText(Message);
+	}
 }

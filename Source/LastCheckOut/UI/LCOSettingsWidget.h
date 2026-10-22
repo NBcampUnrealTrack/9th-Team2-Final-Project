@@ -10,6 +10,9 @@ class USlider;
 class UCheckBox;
 class ULCOAudioSettingsSubsystem;
 class ULCOGameSettingsSubsystem;
+class ULCOKeyBindingRowWidget;
+class UInputMappingContext;
+class UPanelWidget;
 
 UCLASS()
 class LASTCHECKOUT_API ULCOSettingsWidget : public UUserWidget
@@ -167,6 +170,24 @@ protected:
 	
 	UPROPERTY(EditAnywhere, Category = "LCO|Settings", meta = (ClampMin = "1.0", Units = "s"))
 	float GraphicsConfirmDuration = 5.f;
+	
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UPanelWidget> KeyBindingList;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UTextBlock> KeyBindingMessageText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> ResetKeysButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UTextBlock> ResetKeysButtonText;
+	
+	UPROPERTY(EditAnywhere, Category = "LCO|Settings")
+	TSubclassOf<ULCOKeyBindingRowWidget> KeyBindingRowClass;
+	
+	UPROPERTY(EditAnywhere, Category = "LCO|Settings")
+	TArray<TObjectPtr<UInputMappingContext>> KeyBindingMappingContexts;
 
 private:
 	UFUNCTION()
@@ -226,6 +247,12 @@ private:
 	UFUNCTION()
 	void HandleGraphicsRevertClicked();
 
+	UFUNCTION()
+	void HandleKeyBindingRowKeySelected(FName MappingName, FKey NewKey);
+
+	UFUNCTION()
+	void HandleResetKeysClicked();
+
 	void BindLocalizationEvents();
 	void UnbindLocalizationEvents();
 	void ResolveAudioSliders();
@@ -247,6 +274,10 @@ private:
 	void ShowGraphicsConfirm();
 	void HideGraphicsConfirm();
 	void RefreshGraphicsConfirmCountdown();
+	void RegisterKeyBindingMappingContexts();
+	void RefreshKeyBindings();
+	FText GetKeyBindingDisplayName(FName MappingName, const FText& Fallback) const;
+	void SetKeyBindingMessage(const FText& Message);
 
 	bool bUpdatingAudioSliders = false;
 	bool bAudioSettingsDirty = false;
@@ -258,4 +289,7 @@ private:
 	float GraphicsConfirmRemainingTime = 0.f;
 	
 	int32 GraphicsConfirmShownSeconds = INDEX_NONE;
+
+	UPROPERTY()
+	TArray<TObjectPtr<ULCOKeyBindingRowWidget>> KeyBindingRows;
 };

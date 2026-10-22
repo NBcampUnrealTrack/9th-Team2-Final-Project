@@ -7,6 +7,39 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Engine/LocalPlayer.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputMappingContext.h"
+#include "UserSettings/EnhancedInputUserSettings.h"
+#include "GameplayTagContainer.h"
+
+namespace
+{
+	// 키 설정은 첫 번째 칸(First Slot)만 사용
+	constexpr EPlayerMappableKeySlot KeyMappingSlot = EPlayerMappableKeySlot::First;
+
+	// 설정창에 표시할 순서 (IA / IMC의 Player Mappable Key Settings Name)
+	const TArray<FName>& GetRemappableKeyNames()
+	{
+		static const TArray<FName> Names =
+		{
+			TEXT("Move_Forward"),
+			TEXT("Move_Backward"),
+			TEXT("Move_Left"),
+			TEXT("Move_Right"),
+			TEXT("Sprint"),
+			TEXT("Crouch"),
+			TEXT("Interact"),
+			TEXT("Sense"),
+			TEXT("Capture"),
+			TEXT("ToggleView"),
+			TEXT("Inventory"),
+			TEXT("Notebook"),
+			TEXT("QuickSlot")
+		};
+		return Names;
+	}
+}
 
 const FString ULCOGameSettingsSubsystem::SettingsSlotName(TEXT("LCO_Settings"));
 
@@ -374,4 +407,177 @@ ALCOPlayerCharacter* ULCOGameSettingsSubsystem::GetCurrentPlayer() const
 	const UGameInstance* GameInstance = GetGameInstance();
 	const APlayerController* PlayerController = GameInstance ? GameInstance->GetFirstLocalPlayerController() : nullptr;
 	return PlayerController ? Cast<ALCOPlayerCharacter>(PlayerController->GetPawn()) : nullptr;
+}
+
+// 키 설정
+
+UEnhancedInputUserSettings* ULCOGameSettingsSubsystem::GetInputUserSettings() const
+{
+	const UGameInstance* GameInstance = GetGameInstance();
+	const ULocalPlayer* LocalPlayer = GameInstance ? GameInstance->GetFirstGamePlayer() : nullptr;
+	const UEnhancedInputLocalPlayerSubsystem* InputSubsystem = LocalPlayer ? LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>() : nullptr;
+	return InputSubsystem ? InputSubsystem->GetUserSettings() : nullptr;
+}
+
+bool ULCOGameSettingsSubsystem::RegisterKeyMappingContext(UInputMappingContext* MappingContext)
+{
+	UEnhancedInputUserSettings* InputSettings = GetInputUserSettings();
+	if (!InputSettings || !MappingContext)
+	{
+		return false;
+	}
+
+	if (InputSettings->IsMappingContextRegistered(MappingContext))
+	{
+		return true;
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameSettings] RegisterKeyMappingContext: %s"), *MappingContext->GetName());
+	return InputSettings->RegisterInputMappingContext(MappingContext);
+}
+
+TArray<FLCOKeyMappingInfo> ULCOGameSettingsSubsystem::GetKeyMappings() const
+{
+	TArray<FLCOKeyMappingInfo> Result;
+
+	const UEnhancedInputUserSettings* InputSettings = GetInputUserSettings();
+	if (!InputSettings)
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameSettings] GetKeyMappings: Input user settings not found (Enable User Settings?)"));
+		return Result;
+	}
+
+	// 등록되지 않은 액션(아직 IMC에 없는 퀵슬롯 등)은 건너뜀
+	for (const FName& MappingName : GetRemappableKeyNames())
+	{
+		if (const FPlayerKeyMapping* Mapping = InputSettings->FindCurrentMappingForSlot(MappingName, KeyMappingSlot))
+		{
+			FLCOKeyMappingInfo& Info = Result.AddDefaulted_GetRef();
+			Info.MappingName = MappingName;
+			Info.DisplayName = Mapping->GetDisplayName();
+			Info.CurrentKey = Mapping->GetCurrentKey();
+			Info.DefaultKey = Mapping->GetDefaultKey();
+		}
+	}
+
+	return Result;
+}
+
+ELCOKeyRemapResult ULCOGameSettingsSubsystem::RemapKey(FName MappingName, FKey NewKey, FName& OutSwappedMappingName)
+{
+	OutSwappedMappingName = NAME_None;
+
+	UEnhancedInputUserSettings* InputSettings = GetInputUserSettings();
+	if (!InputSettings)
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameSettings] RemapKey: Input user settings not found (Enable User Settings?)"));
+		return ELCOKeyRemapResult::Failed;
+	}
+
+	if (IsKeyBlocked(NewKey))
+	{
+		// Log Test
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameSettings] RemapKey: %s -> %s blocked"), *MappingName.ToString(), *NewKey.ToString());
+		return ELCOKeyRemapResult::Blocked;
+	}
+
+	const FPlayerKeyMapping* CurrentMapping = InputSettings->FindCurrentMappingForSlot(MappingName, KeyMappingSlot);
+	if (!CurrentMapping)
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameSettings] RemapKey: %s not found"), *MappingName.ToString());
+		return ELCOKeyRemapResult::Failed;
+	}
+
+	const FKey OldKey = CurrentMapping->GetCurrentKey();
+	if (OldKey == NewKey)
+	{
+		return ELCOKeyRemapResult::Unchanged;
+	}
+
+	// 같은 키를 쓰던 액션 찾기 → 그 액션은 이 액션의 원래 키로 교체
+	for (const FName& OtherName : GetRemappableKeyNames())
+	{
+		if (OtherName == MappingName)
+		{
+			continue;
+		}
+
+		const FPlayerKeyMapping* OtherMapping = InputSettings->FindCurrentMappingForSlot(OtherName, KeyMappingSlot);
+		if (OtherMapping && OtherMapping->GetCurrentKey() == NewKey)
+		{
+			OutSwappedMappingName = OtherName;
+			break;
+		}
+	}
+
+	FGameplayTagContainer FailureReason;
+
+	FMapPlayerKeyArgs Args;
+	Args.MappingName = MappingName;
+	Args.Slot = KeyMappingSlot;
+	Args.NewKey = NewKey;
+	InputSettings->MapPlayerKey(Args, FailureReason);
+
+	if (!FailureReason.IsEmpty())
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameSettings] RemapKey: %s -> %s failed (%s)"),
+			*MappingName.ToString(), *NewKey.ToString(), *FailureReason.ToStringSimple());
+		OutSwappedMappingName = NAME_None;
+		return ELCOKeyRemapResult::Failed;
+	}
+
+	if (!OutSwappedMappingName.IsNone())
+	{
+		FMapPlayerKeyArgs SwapArgs;
+		SwapArgs.MappingName = OutSwappedMappingName;
+		SwapArgs.Slot = KeyMappingSlot;
+		SwapArgs.NewKey = OldKey;
+		InputSettings->MapPlayerKey(SwapArgs, FailureReason);
+	}
+
+	InputSettings->SaveSettings();
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameSettings] RemapKey: %s %s -> %s (Swapped = %s)"),
+		*MappingName.ToString(), *OldKey.ToString(), *NewKey.ToString(), *OutSwappedMappingName.ToString());
+
+	OnKeyMappingChanged.Broadcast(MappingName, OutSwappedMappingName);
+	return OutSwappedMappingName.IsNone() ? ELCOKeyRemapResult::Success : ELCOKeyRemapResult::Swapped;
+}
+
+void ULCOGameSettingsSubsystem::ResetKeysToDefault()
+{
+	UEnhancedInputUserSettings* InputSettings = GetInputUserSettings();
+	if (!InputSettings)
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameSettings] ResetKeysToDefault: Input user settings not found (Enable User Settings?)"));
+		return;
+	}
+
+	FGameplayTagContainer FailureReason;
+	InputSettings->ResetKeyProfileIdToDefault(InputSettings->GetActiveKeyProfileId(), FailureReason);
+	InputSettings->SaveSettings();
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameSettings] ResetKeysToDefault"));
+
+	OnKeyMappingChanged.Broadcast(NAME_None, NAME_None);
+}
+
+bool ULCOGameSettingsSubsystem::IsKeyBlocked(const FKey& Key)
+{
+	if (!Key.IsValid())
+	{
+		return true;
+	}
+
+	// 게임패드 / 터치 / 마우스 이동 같은 축 입력은 지정 불가 (키보드 / 마우스 버튼만)
+	if (Key.IsGamepadKey() || Key.IsTouch() || Key.IsAnalog())
+	{
+		return true;
+	}
+
+	// ESC / O: 옵션(일시정지) 고정 키, Windows 키: 시스템 키
+	return Key == EKeys::Escape || Key == EKeys::O || Key == EKeys::LeftCommand || Key == EKeys::RightCommand;
 }

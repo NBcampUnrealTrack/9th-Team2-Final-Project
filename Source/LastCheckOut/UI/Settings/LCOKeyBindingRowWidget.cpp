@@ -1,4 +1,4 @@
-#include "UI/LCOKeyBindingRowWidget.h"
+#include "UI/Settings/LCOKeyBindingRowWidget.h"
 
 #include "Components/InputKeySelector.h"
 #include "Components/TextBlock.h"

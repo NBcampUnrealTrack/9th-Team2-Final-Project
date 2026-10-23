@@ -29,6 +29,13 @@ public:
 	// 컴포넌트의 슬롯 정보로 4칸 갱신
 	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
 	void RefreshSlots(ULCOQuickSlotComponent* QuickSlot);
+	
+	
+	// 위젯의 용도를 설정한다.
+	// false: 일반 HUD 슬롯 표시
+	// true : Q 소비 아이템 휠 표시
+	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
+	void SetWheelMode(bool bInWheelMode);
 
 	// 휠 선택 표시 (-1 = 선택 없음)
 	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
@@ -85,4 +92,9 @@ private:
 
 	TWeakObjectPtr<ULCOQuickSlotComponent> CachedQuickSlot;
 	int32 SelectedIndex = INDEX_NONE;
+	
+	// 현재 위젯이 Q 휠인지 여부
+	// HUD와 Q 휠은 같은 위젯 클래스를 사용하므로 용도를 구분한다.
+	UPROPERTY(Transient)
+	bool bIsWheelMode = false;
 };

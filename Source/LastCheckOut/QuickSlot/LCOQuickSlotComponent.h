@@ -79,7 +79,7 @@ public:
 
 	// 슬롯 아이템의 현재 보유 수량 (인벤토리 기준)
 	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
-	int32 GetSlotItemCount(int32 SlotIndex) const;
+	int GetSlotItemCount(int32 SlotIndex) const;
 
 	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
 	bool IsWheelOpen() const { return bWheelOpen; }

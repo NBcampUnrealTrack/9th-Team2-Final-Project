@@ -30,9 +30,6 @@ void ULCOQuickSlotComponent::BeginPlay()
 	// BP에서 배열 크기를 바꿨어도 항상 4칸 유지
 	SlotItemIDs.SetNum(NumSlots);
 
-	// 1번 칸 카메라 고정
-	ApplyPinnedSlot();
-
 	APawn* OwnerPawn = Cast<APawn>(GetOwner());
 	if (!OwnerPawn)
 	{
@@ -274,29 +271,33 @@ void ULCOQuickSlotComponent::TrySetupForController(AController* NewController)
 void ULCOQuickSlotComponent::CreateWidgets(APlayerController* PC)
 {
 	RemoveWidgets();
+	
+	// 일반 HUD 퀵슬롯 위젯 생성
+	HUDWidget = CreateWidget<ULCOQuickSlotWidget>(PC, HUDWidgetClass);
 
-	if (HUDWidgetClass)
+	if (HUDWidget)
 	{
-		HUDWidget = CreateWidget<ULCOQuickSlotWidget>(PC, HUDWidgetClass);
-		if (HUDWidget)
-		{
-			HUDWidget->AddToViewport(HUDZOrder);
-			HUDWidget->SetVisibility(ESlateVisibility::Collapsed);
-		}
+		// HUD는 일반 퀵슬롯 표시 모드로 설정
+		HUDWidget->SetWheelMode(false);
+
+		HUDWidget->AddToViewport(HUDZOrder);
+		HUDWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LCOQuickSlot] HUDWidgetClass가 비어 있음"));
 	}
+	
+	// Q 입력 시 표시할 원형 퀵슬롯 휠 위젯 생성
+	WheelWidget = CreateWidget<ULCOQuickSlotWidget>(PC, WheelWidgetClass);
 
-	if (WheelWidgetClass)
+	if (WheelWidget)
 	{
-		WheelWidget = CreateWidget<ULCOQuickSlotWidget>(PC, WheelWidgetClass);
-		if (WheelWidget)
-		{
-			WheelWidget->AddToViewport(WheelZOrder);
-			WheelWidget->SetVisibility(ESlateVisibility::Collapsed);
-		}
+		// Q 휠은 소비 아이템 전용 표시 모드로 설정
+		WheelWidget->SetWheelMode(true);
+
+		WheelWidget->AddToViewport(WheelZOrder);
+		WheelWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	else
 	{
@@ -401,7 +402,14 @@ void ULCOQuickSlotComponent::SwapSlots(int32 SlotA, int32 SlotB)
 
 FName ULCOQuickSlotComponent::GetSlotItem(int32 SlotIndex) const
 {
-	return IsValidSlotIndex(SlotIndex) && SlotItemIDs.IsValidIndex(SlotIndex) ? SlotItemIDs[SlotIndex] : NAME_None;
+	// 슬롯 번호가 유효하지 않으면 빈 아이템 ID를 반환한다.
+	if (SlotIndex < 0 || SlotIndex >= SlotItemIDs.Num())
+	{
+		return NAME_None;
+	}
+
+	// 해당 슬롯의 아이템 ID를 반환한다.
+	return SlotItemIDs[SlotIndex];
 }
 
 int32 ULCOQuickSlotComponent::FindSlotOfItem(FName ItemID) const
@@ -416,15 +424,29 @@ int32 ULCOQuickSlotComponent::FindSlotOfItem(FName ItemID) const
 
 int32 ULCOQuickSlotComponent::GetSlotItemCount(int32 SlotIndex) const
 {
-	// 카메라는 인벤토리에 없지만 항상 사용 가능
-	if (IsPinnedSlot(SlotIndex))
+	// 슬롯 번호가 유효하지 않으면 수량 0을 반환한다.
+	if (SlotIndex < 0 || SlotIndex >= SlotItemIDs.Num())
 	{
-		return 1;
+		return 0;
 	}
 
-	const FName ItemID = GetSlotItem(SlotIndex);
+	// 슬롯에 아이템이 없으면 수량 0을 반환한다.
+	const FName ItemID = SlotItemIDs[SlotIndex];
+
+	if (ItemID.IsNone())
+	{
+		return 0;
+	}
+
+	// 인벤토리에서 실제 아이템 보유 수량을 조회한다.
 	const UInventoryComponent* Inventory = GetInventory();
-	return (Inventory && !ItemID.IsNone()) ? Inventory->GetItemCount(ItemID) : 0;
+
+	if (!Inventory)
+	{
+		return 0;
+	}
+
+	return Inventory->GetItemCount(ItemID);
 }
 
 bool ULCOQuickSlotComponent::CanAssignItem(FName ItemID) const
@@ -450,9 +472,9 @@ bool ULCOQuickSlotComponent::CanAssignItem(FName ItemID) const
 
 bool ULCOQuickSlotComponent::IsPinnedSlot(int32 SlotIndex) const
 {
-	return bPinCameraToFirstSlot && SlotIndex == 0 && !CameraItemID.IsNone();
+	// 카메라는 더 이상 소비 아이템 퀵슬롯에 고정하지 않는다.
+	return false;
 }
-
 void ULCOQuickSlotComponent::ApplyPinnedSlot()
 {
 	if (!bPinCameraToFirstSlot || CameraItemID.IsNone())
@@ -507,42 +529,71 @@ void ULCOQuickSlotComponent::RefreshWidgets()
 // 사용
 // ======================================================================
 
+
 bool ULCOQuickSlotComponent::UseSlot(int32 SlotIndex)
 {
-	// 1번 고정 칸: 카메라 들기 (이미 들고 있으면 그대로)
-	if (IsPinnedSlot(SlotIndex))
+	// 슬롯 번호가 올바른지 확인한다.
+	if (!IsValidSlotIndex(SlotIndex))
 	{
-		SetCameraEquipped(true);
-		return true;
+		return false;
 	}
 
+	// Q 휠 슬롯에서 소비 아이템 ID를 가져온다.
 	const FName ItemID = GetSlotItem(SlotIndex);
+
+	// 비어 있는 슬롯이면 사용하지 않는다.
 	if (ItemID.IsNone())
 	{
 		return false;
 	}
 
+	// 인벤토리에서 해당 아이템의 보유 수량을 확인한다.
 	if (GetSlotItemCount(SlotIndex) <= 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[LCOQuickSlot] %d번 슬롯 아이템(%s) 보유 수량 없음"), SlotIndex + 1, *ItemID.ToString());
+		UE_LOG(
+			LogTemp,
+			Log,
+			TEXT("[LCOQuickSlot] %d번 슬롯 아이템(%s) 보유 수량 없음"),
+			SlotIndex + 1,
+			*ItemID.ToString()
+		);
+
 		return false;
 	}
 
-	// 실제 효과 / 소모는 인벤토리가 처리 (증거품, 열쇠 등 사용 불가 아이템은 false)
+	// 실제 아이템 효과 적용과 소모는 인벤토리에서 처리한다.
 	UInventoryComponent* Inventory = GetInventory();
+
 	if (!Inventory || !Inventory->UseItem(ItemID))
 	{
-		UE_LOG(LogTemp, Log, TEXT("[LCOQuickSlot] %d번 슬롯 아이템(%s) 사용 불가"), SlotIndex + 1, *ItemID.ToString());
+		UE_LOG(
+			LogTemp,
+			Log,
+			TEXT("[LCOQuickSlot] %d번 슬롯 아이템(%s) 사용 불가"),
+			SlotIndex + 1,
+			*ItemID.ToString()
+		);
+
 		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[LCOQuickSlot] %d번 슬롯 사용: %s"), SlotIndex + 1, *ItemID.ToString());
+	// 아이템 사용 성공을 알린다.
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("[LCOQuickSlot] %d번 슬롯 사용: %s"),
+		SlotIndex + 1,
+		*ItemID.ToString()
+	);
+
 	OnQuickSlotItemUsed.Broadcast(SlotIndex, ItemID);
 
-	// 수량 변화는 OnInventoryChanged로 갱신되지만, 사용 불가 → 가능 등 상태 반영을 위해 한 번 더
+	// UI를 갱신한다.
 	RefreshWidgets();
+
 	return true;
 }
+
 
 // ======================================================================
 // 달리기 상태 → HUD 표시
@@ -767,17 +818,19 @@ void ULCOQuickSlotComponent::SetCameraEquipped(bool bEquip)
 
 void ULCOQuickSlotComponent::HandleCameraKeyPressed()
 {
+	// Q 휠이 열려 있는 동안에는 장비 입력을 무시한다.
 	if (bWheelOpen)
 	{
 		return;
 	}
 
-	// 카메라 장착
-	SetCameraEquipped(true);
+	// 카메라가 켜져 있으면 끄고, 꺼져 있으면 켜기
+	SetCameraEquipped(!bCameraEquipped);
 }
 
 void ULCOQuickSlotComponent::HandleFlashlightKeyPressed()
 {
+	// Q 휠을 사용하는 동안에는 장비 입력을 무시한다.
 	if (bWheelOpen)
 	{
 		return;

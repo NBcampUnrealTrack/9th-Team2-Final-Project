@@ -245,6 +245,28 @@ void ULCOQuickSlotComponent::TrySetupForController(AController* NewController)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LCOQuickSlot] CaptureAction 미지정 - 카메라를 들어도 촬영 키 없음"));
 	}
+	
+	// 숫자키 1: 카메라 장착
+	if (EIC && CameraKeyAction)
+	{
+		EIC->BindAction(
+			CameraKeyAction,
+			ETriggerEvent::Started,
+			this,
+			&ThisClass::HandleCameraKeyPressed
+		);
+	}
+
+	// 숫자키 2: 손전등 켜기 / 끄기
+	if (EIC && FlashlightKeyAction)
+	{
+		EIC->BindAction(
+			FlashlightKeyAction,
+			ETriggerEvent::Started,
+			this,
+			&ThisClass::HandleFlashlightKeyPressed
+		);
+	}
 
 	CreateWidgets(PC);
 }
@@ -419,12 +441,6 @@ bool ULCOQuickSlotComponent::CanAssignItem(FName ItemID) const
 	if (!ItemData)
 	{
 		return false;
-	}
-
-	// 장비 아이템은 퀵슬롯 등록 허용
-	if (ItemData->ItemType == EItemType::Equipment)
-	{
-		return true;
 	}
 
 	// 효과가 있는 소비 아이템만 퀵슬롯 등록 허용
@@ -747,6 +763,42 @@ void ULCOQuickSlotComponent::SetCameraEquipped(bool bEquip)
 	OnCameraEquipChanged.Broadcast(bCameraEquipped);
 	RefreshWidgets();
 	UpdateHUDVisibility();
+}
+
+void ULCOQuickSlotComponent::HandleCameraKeyPressed()
+{
+	if (bWheelOpen)
+	{
+		return;
+	}
+
+	// 카메라 장착
+	SetCameraEquipped(true);
+}
+
+void ULCOQuickSlotComponent::HandleFlashlightKeyPressed()
+{
+	if (bWheelOpen)
+	{
+		return;
+	}
+
+	UInventoryComponent* Inventory = GetInventory();
+	if (!Inventory)
+	{
+		return;
+	}
+
+	const FName FlashlightID(TEXT("Flashlight"));
+
+	// 손전등을 획득한 경우에만 사용
+	if (!Inventory->HasItem(FlashlightID))
+	{
+		return;
+	}
+
+	// 손전등은 소모하지 않고 켜기 / 끄기
+	Inventory->UseEquipment(FlashlightID);
 }
 
 void ULCOQuickSlotComponent::HandleCapturePressed()

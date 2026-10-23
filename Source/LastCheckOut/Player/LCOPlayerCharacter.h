@@ -550,6 +550,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Flashlight")
 	TObjectPtr<USpotLightComponent> FlashlightComponent;
 	
+	// 손에 든 손전등 모델 (켜져 있을 때만 보임)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Flashlight")
+	TObjectPtr<UStaticMeshComponent> FlashlightMesh;
+	
 	// ---------- 손전등 ----------
 	// 눈 위치 기준 손전등 위치 (X: 앞, Y: 오른쪽, Z: 위). 3인칭에서 내 몸에 가리지 않게 살짝 앞으로
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Flashlight")
@@ -558,6 +562,10 @@ protected:
 	// 켜고 끌 때 소리 (비워두면 소리 없음)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Flashlight")
 	TObjectPtr<USoundBase> FlashlightToggleSound;
+	
+	// 손전등 모델을 붙일 손 소켓 (카메라는 오른손 hand_r)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Flashlight")
+	FName FlashlightSocket = TEXT("hand_l");
 	
 	// ---------- 버프 화면 효과 ----------
 	// 버프 시작 / 종료 시 효과가 완전히 켜지거나 꺼지는 데 걸리는 시간(초)

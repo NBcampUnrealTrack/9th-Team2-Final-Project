@@ -11,7 +11,10 @@ void ALCOPlayerController::BeginPlay()
 	{
 		if (DefaultMappingContext)
 		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+			// 키 설정(사용자 설정)에 이 IMC의 매핑을 등록 → 키 변경 / 기본값 복원 / 저장 가능
+			FModifyContextOptions Options;
+			Options.bNotifyUserSettings = true;
+			Subsystem->AddMappingContext(DefaultMappingContext, 0, Options);
 		}
 		else
 		{

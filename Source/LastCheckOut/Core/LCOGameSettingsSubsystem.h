@@ -3,13 +3,51 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "GameFramework/GameUserSettings.h"
+#include "InputCoreTypes.h"
 #include "LCOGameSettingsSubsystem.generated.h"
 
 class ALCOPlayerCharacter;
 class ULCOGameSettingsSaveGame;
+class UInputMappingContext;
+class UEnhancedInputUserSettings;
 
 // 설정 값이 바뀌었을 때 (설정창 표시 갱신용)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLCOSettingsChanged);
+
+// 키가 바뀌었을 때 (SwappedMappingName: 서로 교체된 액션, 교체가 없으면 None / 기본값 복원은 둘 다 None)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOKeyMappingChanged, FName, MappingName, FName, SwappedMappingName);
+
+// 키 변경 결과
+UENUM(BlueprintType)
+enum class ELCOKeyRemapResult : uint8
+{
+	Success,	// 변경됨
+	Swapped,	// 변경됨 + 같은 키를 쓰던 액션과 서로 교체
+	Unchanged,	// 이미 같은 키
+	Blocked,	// 지정할 수 없는 키 (ESC, O, Windows 키, 게임패드 / 마우스 이동 등)
+	Failed		// 키 설정을 쓸 수 없음 (Enable User Settings 꺼짐, 없는 액션 등)
+};
+
+// 설정창 조작 탭에 표시할 키 1개
+USTRUCT(BlueprintType)
+struct FLCOKeyMappingInfo
+{
+	GENERATED_BODY()
+
+	// IA / IMC의 Player Mappable Key Settings Name (예: Sprint, Move_Forward)
+	UPROPERTY(BlueprintReadOnly, Category = "LCO|Settings|Key")
+	FName MappingName;
+
+	// IA / IMC의 DisplayName (UI.csv에 글자 키가 없을 때 사용)
+	UPROPERTY(BlueprintReadOnly, Category = "LCO|Settings|Key")
+	FText DisplayName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "LCO|Settings|Key")
+	FKey CurrentKey;
+
+	UPROPERTY(BlueprintReadOnly, Category = "LCO|Settings|Key")
+	FKey DefaultKey;
+};
 
 // 그래픽 / 게임플레이 설정의 저장·불러오기·적용 담당 (GameInstance 단위라 맵을 이동해도 유지)
 // - 설정창 위젯(LCOSettingsWidget)은 이 함수들만 호출
@@ -27,7 +65,7 @@ public:
 	// (해상도 / 화면 모드 / 품질은 엔진이 시작할 때 GameUserSettings.ini 값을 자동 적용)
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
-	// ---------- 그래픽 (Set 후 ApplyGraphicsSettings를 불러야 실제 적용) ----------
+	// 그래픽 (Set 후 ApplyGraphicsSettings를 불러야 실제 적용)
 
 	// 화면 모드: Fullscreen(전체 화면) / WindowedFullscreen(테두리 없는 창) / Windowed(창 모드)
 	UFUNCTION(BlueprintPure, Category = "LCO|Settings|Graphics")
@@ -61,7 +99,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Graphics")
 	void RevertGraphicsSettings();
 
-	// ---------- 밝기 (즉시 적용 + 저장) ----------
+	// 그래픽 확인 창
+	// 1) ApplyGraphicsSettingsForConfirm: 화면에만 적용 (저장 안 함)
+	// 2) 유지 → ConfirmGraphicsSettings: 저장 / 되돌리기 또는 시간 초과 → RevertAppliedGraphicsSettings: 직전 확정 값으로 복구
+
+	// 화면 모드 / 해상도 / 품질을 화면에만 적용하고 확인 대기 (저장 안 함)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Graphics")
+	void ApplyGraphicsSettingsForConfirm();
+
+	// 확인 대기 중인 그래픽 설정을 확정하고 저장 (유지 버튼)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Graphics")
+	void ConfirmGraphicsSettings();
+
+	// 확인 대기 중인 그래픽 설정을 버리고 직전 확정 값으로 복구 (되돌리기 버튼 / 시간 초과 / 설정창 닫힘)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Graphics")
+	void RevertAppliedGraphicsSettings();
+
+	// 확인 대기 중인지 (적용 후 유지 / 되돌리기 선택 전)
+	UFUNCTION(BlueprintPure, Category = "LCO|Settings|Graphics")
+	bool IsWaitingGraphicsConfirm() const { return bWaitingGraphicsConfirm; }
+
+	// 밝기 (즉시 적용 + 저장)
 
 	// 엔진 감마 값. 기본 2.2, MinBrightness ~ MaxBrightness 범위로 제한
 	UFUNCTION(BlueprintPure, Category = "LCO|Settings|Graphics")
@@ -70,7 +128,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Graphics")
 	void SetBrightness(float Value);
 
-	// ---------- 게임플레이 (즉시 적용 + 저장) ----------
+	// 게임플레이 (즉시 적용 + 저장)
 
 	// 마우스 감도. 1.0 기본, MinLookSensitivity ~ MaxLookSensitivity 범위로 제한
 	UFUNCTION(BlueprintPure, Category = "LCO|Settings|Gameplay")
@@ -89,7 +147,33 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Gameplay")
 	void ApplyGameplaySettingsToPlayer(ALCOPlayerCharacter* Player) const;
 
-	// ---------- 공통 ----------
+	// 키 설정 (Enhanced Input User Settings 사용, 엔진이 플레이어별 저장 파일에 자동 저장·불러오기)
+
+	// 메인 메뉴처럼 캐릭터가 없어 IMC가 등록되지 않은 곳에서도 키 목록을 보이도록 IMC 등록
+	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Key")
+	bool RegisterKeyMappingContext(UInputMappingContext* MappingContext);
+
+	// 바꿀 수 있는 키 목록 (설정창 표시 순서)
+	UFUNCTION(BlueprintPure, Category = "LCO|Settings|Key")
+	TArray<FLCOKeyMappingInfo> GetKeyMappings() const;
+
+	// 키 변경: 막을 키 검사 → 같은 키를 쓰던 액션이 있으면 서로 교체 → 저장
+	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Key")
+	ELCOKeyRemapResult RemapKey(FName MappingName, FKey NewKey, FName& OutSwappedMappingName);
+
+	// 모든 키를 IMC 기본 키로 되돌리고 저장
+	UFUNCTION(BlueprintCallable, Category = "LCO|Settings|Key")
+	void ResetKeysToDefault();
+
+	// 지정할 수 없는 키인지 (ESC / O / Windows 키 / 게임패드 / 마우스 이동 등 축 입력)
+	UFUNCTION(BlueprintPure, Category = "LCO|Settings|Key")
+	static bool IsKeyBlocked(const FKey& Key);
+
+	// 키가 바뀌었을 때 (설정창 조작 탭 갱신, 교체 안내 표시)
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Settings|Key")
+	FOnLCOKeyMappingChanged OnKeyMappingChanged;
+
+	// 공통
 
 	// 전체 기본값으로 되돌리고 저장·적용 (감도 1.0 / 반전 끔 / 밝기 2.2 / 그래픽은 엔진 기본값)
 	UFUNCTION(BlueprintCallable, Category = "LCO|Settings")
@@ -118,8 +202,22 @@ private:
 	// 지금 조종 중인 캐릭터 (메인 메뉴 등 캐릭터가 없으면 nullptr)
 	ALCOPlayerCharacter* GetCurrentPlayer() const;
 
+	// 첫 번째 로컬 플레이어의 Enhanced Input 키 설정 (Enable User Settings가 꺼져 있으면 nullptr)
+	UEnhancedInputUserSettings* GetInputUserSettings() const;
+
 	// 엔진 그래픽 설정 객체
 	static UGameUserSettings* GetEngineSettings();
+
+	// 지금 화면에 적용된 그래픽 값을 "확정 값"으로 기억 (되돌리기 기준)
+	void CaptureConfirmedGraphics();
+
+	// 마지막으로 확정된 화면 모드 / 해상도 / 품질 (확인 창에서 되돌릴 때 사용)
+	EWindowMode::Type ConfirmedWindowMode = EWindowMode::Windowed;
+	FIntPoint ConfirmedResolution = FIntPoint::ZeroValue;
+	int32 ConfirmedQuality = 3;
+
+	// 적용 후 유지 / 되돌리기 선택을 기다리는 중
+	bool bWaitingGraphicsConfirm = false;
 
 	static const FString SettingsSlotName;
 	static constexpr int32 SettingsUserIndex = 0;

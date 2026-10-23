@@ -51,6 +51,17 @@ struct FLCOPlayerCarryData
 	UPROPERTY()
 	float MaxStaminaBuffRemainingTime = 0.f;
 
+	// 직감 남은 사용 횟수. -1이면 기록 없음 (이 항목이 생기기 전 세이브) → 복원하지 않음
+	UPROPERTY()
+	int32 SenseCharges = -1;
+
+	// 패시브 아이템 영구 효과 배율 (기본 1.0)
+	UPROPERTY()
+	float PermanentMoveSpeedMultiplier = 1.f;
+
+	UPROPERTY()
+	float PermanentRegenMultiplier = 1.f;
+
 	// 보관된 데이터가 있는지
 	UPROPERTY()
 	bool bHasData = false;

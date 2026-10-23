@@ -413,11 +413,22 @@ bool ULCOQuickSlotComponent::CanAssignItem(FName ItemID) const
 	}
 
 	const UInventoryComponent* Inventory = GetInventory();
-	const FItemData* ItemData = Inventory ? Inventory->GetItemData(ItemID) : nullptr;
+	const FItemData* ItemData =
+		Inventory ? Inventory->GetItemData(ItemID) : nullptr;
 
-	// 직접 사용할 수 있는 소비 아이템만 (BuffType이 None인 카메라 필름 등은 제외)
-	return ItemData
-		&& ItemData->ItemType == EItemType::Consumable
+	if (!ItemData)
+	{
+		return false;
+	}
+
+	// 장비 아이템은 퀵슬롯 등록 허용
+	if (ItemData->ItemType == EItemType::Equipment)
+	{
+		return true;
+	}
+
+	// 효과가 있는 소비 아이템만 퀵슬롯 등록 허용
+	return ItemData->ItemType == EItemType::Consumable
 		&& !ItemData->BuffEffects.IsEmpty();
 }
 

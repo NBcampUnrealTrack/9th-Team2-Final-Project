@@ -4,6 +4,7 @@
 #include "LastCheckOut/Story/LCOStorySubsystem.h"
 #include "Notebook/LCONotebookSubsystem.h"
 #include "Player/LCOPlayerCharacter.h"
+#include "Player/LCOStaminaComponent.h"
 #include "Inventory/InventoryComponent.h"
 #include "QuickSlot/LCOQuickSlotComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -299,6 +300,16 @@ bool ALCOGameMode::CapturePlayerCarryData(FLCOPlayerCarryData& OutData) const
 		OutData.MaxStaminaBuffRemainingTime = Player->GetMaxStaminaBuffRemainingTime();
 	}
 
+	// 직감 남은 사용 횟수 (세이브 시에는 SaveManager가 먼저 전체 회복 → 가득 찬 값이 저장됨)
+	OutData.SenseCharges = Player->GetCurrentSenseCharges();
+
+	// 패시브 아이템 영구 효과 배율
+	OutData.PermanentMoveSpeedMultiplier = Player->GetPermanentMoveSpeedMultiplier();
+	if (const ULCOStaminaComponent* Stamina = Player->GetStamina())
+	{
+		OutData.PermanentRegenMultiplier = Stamina->GetPermanentRegenMultiplier();
+	}
+
 	return true;
 }
 
@@ -361,9 +372,23 @@ void ALCOGameMode::RestorePlayerCarryData()
 	PendingMaxStaminaBuffTime = Data.MaxStaminaBuffRemainingTime;
 	ApplyPendingBuffsWhenLoaded();
 
+	// 5) 직감 남은 사용 횟수 (기록이 없는 예전 세이브면 새 캐릭터 기본값 그대로)
+	if (Data.SenseCharges >= 0)
+	{
+		Player->SetSenseCharges(Data.SenseCharges);
+	}
+
+	// 6) 패시브 아이템 영구 효과 (인벤토리는 그대로 복사해서 획득 효과가 다시 적용되지 않으므로 직접 복원)
+	Player->SetPermanentMoveSpeedMultiplier(Data.PermanentMoveSpeedMultiplier);
+	if (ULCOStaminaComponent* Stamina = Player->GetStamina())
+	{
+		Stamina->SetPermanentRegenMultiplier(Data.PermanentRegenMultiplier);
+	}
+
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] RestorePlayerCarryData: Items = %d, MoveSpeedBuff = %.1fs, MaxStaminaBuff = %.1fs"),
-		Data.InventorySlots.Num(), Data.MoveSpeedBuffRemainingTime, Data.MaxStaminaBuffRemainingTime);
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] RestorePlayerCarryData: Items = %d, MoveSpeedBuff = %.1fs, MaxStaminaBuff = %.1fs, SenseCharges = %d, PermMoveSpeed = %.2f, PermRegen = %.2f"),
+		Data.InventorySlots.Num(), Data.MoveSpeedBuffRemainingTime, Data.MaxStaminaBuffRemainingTime,
+		Data.SenseCharges, Data.PermanentMoveSpeedMultiplier, Data.PermanentRegenMultiplier);
 }
 
 AActor* ALCOGameMode::ChoosePlayerStart_Implementation(AController* Player)

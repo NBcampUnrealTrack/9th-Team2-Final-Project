@@ -34,6 +34,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "NPC|Movement")
 	void SetRunSpeed();
 
+	// 현재 속도에 곱하는 배율(문 통과 같은 구간에서 일시적으로 느리게). SetWalkSpeed/SetRunSpeed로 속도가 바뀌어도 유지된다.
+	UFUNCTION(BlueprintCallable, Category = "NPC|Movement")
+	void SetMoveSpeedScale(float NewScale);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -48,6 +52,13 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Movement")
 	float RunSpeed = 450.f;
+
+private:
+	// 배율을 곱하기 전의 속도와 현재 배율
+	float BaseMoveSpeed = 0.f;
+	float MoveSpeedScale = 1.f;
+
+protected:
 #pragma endregion
 
 #pragma region 대화
@@ -74,6 +85,9 @@ public:
 	// ILCOInteractionReceiver
 	virtual void HandleInteraction_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) override;
 	virtual bool IsInteractionLocked_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const override;
+
+	// 플레이어가 관리인에게 쫓기는 중인지 (체이싱 중에는 F 대화를 막는다)
+	bool IsPlayerBeingChased() const;
 
 protected:
 	virtual void Tick(float DeltaSeconds) override;

@@ -2,10 +2,12 @@
 
 #include "AIController.h"
 #include "AI/Activity/LCOActivitySpot.h"
+#include "AI/Chasing/LCOChasingManager.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "DrawDebugHelpers.h"
 #include "BrainComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 #pragma region 초기화와 이동 속도
 
@@ -53,7 +55,14 @@ void ALCONPCBase::PossessedBy(AController* NewController)
 
 void ALCONPCBase::SetMovementSpeed(float NewSpeed)
 {
-	GetCharacterMovement()->MaxWalkSpeed = NewSpeed;
+	BaseMoveSpeed = NewSpeed;
+	GetCharacterMovement()->MaxWalkSpeed = BaseMoveSpeed * MoveSpeedScale;
+}
+
+void ALCONPCBase::SetMoveSpeedScale(float NewScale)
+{
+	MoveSpeedScale = FMath::Max(NewScale, 0.f);
+	GetCharacterMovement()->MaxWalkSpeed = BaseMoveSpeed * MoveSpeedScale;
 }
 
 void ALCONPCBase::SetWalkSpeed()
@@ -149,7 +158,7 @@ void ALCONPCBase::EndConversation()
 
 void ALCONPCBase::HandleInteraction_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor)
 {
-	if (bCanTalk)
+	if (bCanTalk && !IsPlayerBeingChased())
 	{
 		BeginConversation(Interactor);
 	}
@@ -157,8 +166,14 @@ void ALCONPCBase::HandleInteraction_Implementation(ULCOInteractComponent* Source
 
 bool ALCONPCBase::IsInteractionLocked_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const
 {
-	// 대화할 수 없는 NPC이거나 이미 대화 중이면 상호작용 불가
-	return !bCanTalk || bInConversation;
+	// 대화할 수 없는 NPC이거나 이미 대화 중이면 상호작용 불가. 체이싱 중에는 F로 말을 걸 수 없다. (대화로 관리인에게 잡히는 것을 피하는 것을 막는다)
+	return !bCanTalk || bInConversation || IsPlayerBeingChased();
+}
+
+bool ALCONPCBase::IsPlayerBeingChased() const
+{
+	const ALCOChasingManager* Manager = Cast<ALCOChasingManager>(UGameplayStatics::GetActorOfClass(this, ALCOChasingManager::StaticClass()));
+	return Manager && Manager->IsChasing();
 }
 
 #pragma endregion

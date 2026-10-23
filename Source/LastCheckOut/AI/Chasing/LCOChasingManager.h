@@ -200,9 +200,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Chasing|Youth")
 	float YouthTestAutoEndTime = 3.f;
 
-	// 대화가 끝난 뒤 청년이 퇴장할 지점. 이 중 플레이어에게서 가장 멀고 도달 가능한 곳으로 간다.
-	UPROPERTY(EditInstanceOnly, Category = "Chasing|Youth")
-	TArray<TObjectPtr<ATargetPoint>> LeavePoints;
+	// 대화가 끝난 뒤 청년이 플레이어 반대 방향으로 걸어가는 최대 거리(cm). 복도를 따라 이 거리까지 걷다가 사라진다. (별도의 퇴장 지점은 필요 없다)
+	UPROPERTY(EditAnywhere, Category = "Chasing|Youth", meta = (ClampMin = "300.0"))
+	float YouthLeaveWalkDistance = 1500.f;
 
 	// 퇴장을 시작한 뒤 이 시간(초)이 지나면 어디에 있든 사라진다.
 	UPROPERTY(EditAnywhere, Category = "Chasing|Youth")
@@ -229,7 +229,8 @@ private:
 
 	// 발견 후 플레이어와 대화하고 퇴장하는 중인 청년 (체이싱이 끝난 뒤에도 유지된다)
 	TWeakObjectPtr<ALCOSigolYouth> EncounterYouth;
-	TWeakObjectPtr<ATargetPoint> YouthLeaveTarget;
+	FVector YouthLeaveDestination = FVector::ZeroVector;
+	bool bHasYouthLeaveDestination = false;
 	double YouthPhaseStartTime = 0.0;
 
 	FTimerHandle YouthApproachTimer;
@@ -260,7 +261,7 @@ protected:
 
 	// 발자국 간격(cm). 청년 쪽 끝을 기준으로 이 간격마다 놓는다.
 	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
-	float FootprintSpacing = 140.f;
+	float FootprintSpacing = 110.f;
 
 	// 왼발/오른발을 경로 좌우로 벌리는 거리(cm)
 	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
@@ -286,6 +287,22 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
 	float FootprintWallClearance = 40.f;
 
+	// 안내선을 벽에서 떨어지려고 옆으로 옮기는 최대 거리(cm). 코너에서 과하게 바깥쪽으로 밀려나는 것을 제한한다.
+	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
+	float FootprintMaxWallPush = 120.f;
+
+	// 벽에서 떨어지려고 옮긴 정도가 코너 앞뒤로 완만하게 이어지는 거리(cm). 클수록 코너 주변의 안내선이 넓고 완만하게 휜다. 0이면 이어 붙이지 않는다.
+	UPROPERTY(EditAnywhere, Category = "Chasing|Guide", meta = (ClampMin = "0.0"))
+	float FootprintWallBlendDistance = 250.f;
+
+	// 안내선을 촘촘하게 나누는 간격(cm). 작을수록 선이 매끄럽지만 경로를 구할 때 한 번 드는 계산이 늘어난다.
+	UPROPERTY(EditAnywhere, Category = "Chasing|Guide", meta = (ClampMin = "20.0"))
+	float GuideLineStep = 50.f;
+
+	// 안내선을 부드럽게 다듬는 횟수. 클수록 코너가 둥글어진다. 0이면 다듬지 않는다.
+	UPROPERTY(EditAnywhere, Category = "Chasing|Guide", meta = (ClampMin = "0", ClampMax = "10"))
+	int32 GuideLineSmoothPasses = 3;
+
 	// 플레이어가 안내 경로에서 이 거리(cm) 넘게 벗어나면 다른 방향으로 간 것으로 본다.
 	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
 	float GuideDeviationDistance = 400.f;
@@ -293,6 +310,10 @@ protected:
 	// 다른 방향으로 간 채 이 시간(초)이 지나면 기존 발자국을 지우고 지금 위치에서 다시 그린다.
 	UPROPERTY(EditAnywhere, Category = "Chasing|Guide")
 	float GuideRerouteDelay = 4.f;
+
+	// 안내선을 화면에 그린다. (테스트용) 빨강: 엔진이 구한 원래 최단 경로, 초록: 벽 거리를 반영해 만든 최종 안내선, 노랑/주황 구: 왼발/오른발 위치, 회색 구: 지나간 발자국
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chasing|Guide")
+	bool bDrawGuideLine = false;
 
 private:
 	// 경로 이탈을 확인하고(필요하면 다시 그림) 지나간 발자국을 지운 뒤 보이는 발자국을 갱신한다.
@@ -312,11 +333,11 @@ private:
 	// 짧은 주기로 지나간 발자국만 확인한다. (경로 계산 없음)
 	void CheckPassedFootprints();
 
-	// 위치가 벽(NavMesh 가장자리)에 너무 가까우면 벽에서 멀어지는 쪽으로 옮긴다.
-	FVector PushAwayFromWall(const FVector& Location) const;
-
 	// 보일 발자국을 골라 데칼(또는 디버그 표시)에 반영한다.
 	void RefreshFootprintDecals();
+
+	// 안내선을 디버그로 그린다. (bDrawGuideLine, 패키징 빌드 제외)
+	void DrawGuideLineDebug() const;
 
 	FTimerHandle PathGuideTimer;
 	FTimerHandle PassCheckTimer;
@@ -343,6 +364,9 @@ private:
 	// 안내 경로(체이싱이 시작될 때 구하고, 크게 벗어나면 다시 구한다)와 누적 거리
 	TArray<FVector> RoutePoints;
 	TArray<float> RouteCumulative;
+
+	// 디버그 표시용: 벽 거리를 반영하기 전의 촘촘하게 나눈 원래 최단 경로
+	TArray<FVector> DebugRawLine;
 	bool bHasRoute = false;
 
 	// 경로에서 벗어나기 시작한 시각. 벗어나 있지 않으면 음수.

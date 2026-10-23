@@ -612,44 +612,70 @@ void ALCOChasingManager::StartYouthLeave()
 		return;
 	}
 
-	// 퇴장 지점 중 플레이어에게서 가장 멀고 청년이 도달할 수 있는 곳을 고른다.
-	ATargetPoint* BestPoint = nullptr;
-	double BestDistance = -1.0;
-	for (ATargetPoint* Point : LeavePoints)
+	// 플레이어 반대 방향으로 걸어갈 목적지를 고른다. 청년 위치에서 여러 방향으로 NavMesh 위 직선을 쏘아, 벽에 막히기 전까지 가장 멀리 가면서
+	// 플레이어에게서 가장 멀어지는 곳을 택한다. (복도를 따라 걷고, 플레이어 쪽으로 되돌아오지 않는다)
+	const FVector YouthLocation = Youth->GetActorLocation();
+	const FVector PlayerLocation = PlayerPawn->GetActorLocation();
+	const FVector ProjectExtent(50.f, 50.f, 100.f);
+	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
+
+	constexpr int32 DirectionCount = 16;
+	bHasYouthLeaveDestination = false;
+	double BestScore = -1.0;
+	for (int32 i = 0; i < DirectionCount; ++i)
 	{
-		if (!Point)
+		const FVector Direction = FRotator(0.f, i * (360.f / DirectionCount), 0.f).Vector();
+
+		FVector HitLocation = YouthLocation;
+		FVector End = YouthLocation + Direction * YouthLeaveWalkDistance;
+		if (UNavigationSystemV1::NavigationRaycast(this, YouthLocation, End, HitLocation))
+		{
+			End = HitLocation; // 벽에 막히면 그 앞까지
+		}
+
+		// 벽 가장자리에 붙지 않도록 조금 안쪽으로 당긴다.
+		End -= Direction * 50.f;
+
+		FNavLocation Projected;
+		if (!NavSys || !NavSys->ProjectPointToNavigation(End, Projected, ProjectExtent))
+		{
+			continue;
+		}
+
+		// 너무 가까운 곳(막다른 방향)은 제외하고, 플레이어에게서 가장 멀어지는 곳을 고른다.
+		if (FVector::Dist2D(YouthLocation, Projected.Location) < 300.f)
 		{
 			continue;
 		}
 
 		double PathLength = 0.0;
-		if (UNavigationSystemV1::GetPathLength(GetWorld(), Youth->GetActorLocation(), Point->GetActorLocation(), PathLength) != ENavigationQueryResult::Success)
+		if (UNavigationSystemV1::GetPathLength(GetWorld(), YouthLocation, Projected.Location, PathLength) != ENavigationQueryResult::Success)
 		{
 			continue;
 		}
 
-		const double Distance = FVector::Dist(Point->GetActorLocation(), PlayerPawn->GetActorLocation());
-		if (Distance > BestDistance)
+		const double Score = FVector::Dist2D(Projected.Location, PlayerLocation);
+		if (Score > BestScore)
 		{
-			BestDistance = Distance;
-			BestPoint = Point;
+			BestScore = Score;
+			YouthLeaveDestination = Projected.Location;
+			bHasYouthLeaveDestination = true;
 		}
 	}
 
-	YouthLeaveTarget = BestPoint;
-	if (BestPoint)
+	if (bHasYouthLeaveDestination)
 	{
 		if (AAIController* AI = Cast<AAIController>(Youth->GetController()))
 		{
-			AI->MoveToLocation(BestPoint->GetActorLocation(), 100.f);
+			AI->MoveToLocation(YouthLeaveDestination, 100.f);
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[LCOChasingManager] No valid LeavePoint. The youth disappears after the timeout."));
+		UE_LOG(LogTemp, Warning, TEXT("[LCOChasingManager] No valid direction to walk away. The youth disappears after the timeout."));
 	}
 
-	// 퇴장 지점 도착 / 시야 밖 / 시간 초과 중 먼저 만족하는 조건으로 제거한다.
+	// 목적지 도착 / 시야 밖 / 시간 초과 중 먼저 만족하는 조건으로 제거한다.
 	YouthPhaseStartTime = GetWorld()->GetTimeSeconds();
 	GetWorldTimerManager().SetTimer(YouthLeaveTimer, this, &ALCOChasingManager::CheckYouthLeave, 0.3f, true);
 }
@@ -671,14 +697,11 @@ void ALCOChasingManager::CheckYouthLeave()
 		return;
 	}
 
-	// 2) 퇴장 지점 도착
-	if (const ATargetPoint* Target = YouthLeaveTarget.Get())
+	// 2) 목적지 도착
+	if (bHasYouthLeaveDestination && FVector::Dist2D(Youth->GetActorLocation(), YouthLeaveDestination) <= 150.f)
 	{
-		if (FVector::Dist(Youth->GetActorLocation(), Target->GetActorLocation()) <= 150.f)
-		{
-			CleanupYouth();
-			return;
-		}
+		CleanupYouth();
+		return;
 	}
 
 	// 3) 플레이어 시야 밖에서 충분히 멀리 떨어짐 (눈앞에서 사라지는 어색함 방지)
@@ -693,7 +716,7 @@ void ALCOChasingManager::CleanupYouth()
 	GetWorldTimerManager().ClearTimer(YouthApproachTimer);
 	GetWorldTimerManager().ClearTimer(YouthAutoEndTimer);
 	GetWorldTimerManager().ClearTimer(YouthLeaveTimer);
-	YouthLeaveTarget.Reset();
+	bHasYouthLeaveDestination = false;
 
 	if (ALCOSigolYouth* Youth = EncounterYouth.Get())
 	{
@@ -782,6 +805,11 @@ void ALCOChasingManager::UpdatePathGuide()
 
 	MarkPassedFootprints();
 	RefreshFootprintDecals();
+
+	if (bDrawGuideLine)
+	{
+		DrawGuideLineDebug();
+	}
 }
 
 bool ALCOChasingManager::BuildGuideRoute(const FVector& StartLocation, const FVector& TargetLocation)
@@ -799,58 +827,327 @@ bool ALCOChasingManager::BuildGuideRoute(const FVector& StartLocation, const FVe
 		return false;
 	}
 
-	RoutePoints = Path->PathPoints;
-	RouteCumulative.Add(0.f);
-	for (int32 i = 1; i < RoutePoints.Num(); ++i)
+	// 점 목록의 누적 거리를 구한다.
+	auto MakeCumulative = [](const TArray<FVector>& Points, TArray<float>& OutCumulative)
 	{
-		RouteCumulative.Add(RouteCumulative.Last() + FVector::Dist(RoutePoints[i - 1], RoutePoints[i]));
-	}
-	const float TotalLength = RouteCumulative.Last();
+		OutCumulative.Reset();
+		OutCumulative.Add(0.f);
+		for (int32 i = 1; i < Points.Num(); ++i)
+		{
+			OutCumulative.Add(OutCumulative.Last() + FVector::Dist(Points[i - 1], Points[i]));
+		}
+	};
 
-	// 경로상 거리 D에 해당하는 위치와 진행 방향
-	auto GetPointAtDistance = [this](float Distance, FVector& OutLocation, FVector& OutDirection)
+	// 선 위 거리 D에 해당하는 위치와 진행 방향
+	auto PointAt = [](const TArray<FVector>& Points, const TArray<float>& Cumulative, float Distance, FVector& OutLocation, FVector& OutDirection)
 	{
 		int32 Index = 0;
-		while (Index < RoutePoints.Num() - 2 && RouteCumulative[Index + 1] < Distance)
+		while (Index < Points.Num() - 2 && Cumulative[Index + 1] < Distance)
 		{
 			++Index;
 		}
 
-		const float SegmentLength = FMath::Max(RouteCumulative[Index + 1] - RouteCumulative[Index], KINDA_SMALL_NUMBER);
-		const float Alpha = FMath::Clamp((Distance - RouteCumulative[Index]) / SegmentLength, 0.f, 1.f);
-		OutLocation = FMath::Lerp(RoutePoints[Index], RoutePoints[Index + 1], Alpha);
-		OutDirection = (RoutePoints[Index + 1] - RoutePoints[Index]).GetSafeNormal();
+		const float SegmentLength = FMath::Max(Cumulative[Index + 1] - Cumulative[Index], KINDA_SMALL_NUMBER);
+		const float Alpha = FMath::Clamp((Distance - Cumulative[Index]) / SegmentLength, 0.f, 1.f);
+		OutLocation = FMath::Lerp(Points[Index], Points[Index + 1], Alpha);
+		OutDirection = (Points[Index + 1] - Points[Index]).GetSafeNormal();
 	};
 
-	// 발자국 위치는 청년 쪽 끝을 기준으로 일정 간격마다 한 번에 정한다. 플레이어가 서 있던 위치와 무관하게 줄의 모양이 항상 같다.
-	// 플레이어 바로 앞(FirstOffset)보다 가까운 곳에는 놓지 않는다.
-	const float FirstOffset = 100.f;
-	for (int32 m = 1; m < 1000; ++m)
+	// ---- 1) 엔진이 구한 최단 경로(꼭짓점 목록)를 일정 간격으로 촘촘하게 나눈다.
+	TArray<float> SourceCumulative;
+	MakeCumulative(Path->PathPoints, SourceCumulative);
+	const float SourceLength = SourceCumulative.Last();
+
+	TArray<FVector> Line;
+	const float Step = FMath::Max(GuideLineStep, 20.f);
+	for (float Distance = 0.f; Distance < SourceLength; Distance += Step)
 	{
-		const float Distance = TotalLength - m * FootprintSpacing;
-		if (Distance < FirstOffset)
+		FVector Location, Direction;
+		PointAt(Path->PathPoints, SourceCumulative, Distance, Location, Direction);
+		Line.Add(Location);
+	}
+	Line.Add(Path->PathPoints.Last());
+	DebugRawLine = Line;
+
+	// ---- 2) 안내선 전체를 벽과의 거리까지 반영해 미리 만든다. (발자국마다 따로 계산하지 않는다)
+	//         가장 가까운 벽의 반대쪽으로 미는 대신, 경로의 왼쪽/오른쪽으로 벽까지의 거리를 각각 재서 "옆으로 옮길 거리" 하나(왼쪽이 +)로 다룬다.
+	//         양쪽 벽 사이를 오가며 방향이 뒤집히는 일이 없고, 복도 한가운데를 넘어서까지 옮기지 않는다.
+	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
+	const FVector ProjectExtent(30.f, 30.f, 100.f);
+
+	// 발자국이 이 위치에서 좌우로 FootprintSideOffset만큼 더 벌어지므로, 그만큼 더 띄운다.
+	const float Needed = FootprintWallClearance + FootprintSideOffset;
+	const float ProbeRange = FMath::Max(Needed * 2.f, 300.f);
+
+	// 점에서 방향 Dir로 NavMesh 가장자리(벽)까지의 수평 거리. 가장자리가 없으면 ProbeRange.
+	auto DistanceToBorder = [this, ProbeRange](const FVector& Origin, const FVector& Dir)
+	{
+		FVector HitLocation = Origin;
+		if (UNavigationSystemV1::NavigationRaycast(this, Origin, Origin + Dir * ProbeRange, HitLocation))
+		{
+			return static_cast<float>(FVector::Dist2D(Origin, HitLocation));
+		}
+		return ProbeRange;
+	};
+
+	// 2-1) 각 점에서 좌우 벽까지의 거리를 재서 옆으로 옮길 거리를 구한다.
+	TArray<FVector> Lefts;
+	TArray<float> Offsets;
+	Lefts.Init(FVector::LeftVector, Line.Num());
+	Offsets.Init(0.f, Line.Num());
+	if (FootprintWallClearance > 0.f)
+	{
+		for (int32 i = 0; i < Line.Num(); ++i)
+		{
+			FVector Direction = Line[FMath::Min(i + 1, Line.Num() - 1)] - Line[FMath::Max(i - 1, 0)];
+			Direction.Z = 0.f;
+			Direction = Direction.GetSafeNormal();
+			if (Direction.IsNearlyZero())
+			{
+				continue;
+			}
+
+			// Direction x Up은 진행 방향의 왼쪽이다. (언리얼은 앞 +X, 오른쪽 +Y, 위 +Z라서 X x Z = -Y = 왼쪽)
+			const FVector Left = FVector::CrossProduct(Direction, FVector::UpVector).GetSafeNormal();
+			Lefts[i] = Left;
+
+			const float DistanceLeft = DistanceToBorder(Line[i], Left);
+			const float DistanceRight = DistanceToBorder(Line[i], -Left);
+
+			float Offset = 0.f;
+			if (DistanceLeft < Needed && DistanceRight < Needed)
+			{
+				// 양쪽 다 모자라는 좁은 곳은 가운데로 옮긴다.
+				Offset = (DistanceLeft - DistanceRight) * 0.5f;
+			}
+			else if (DistanceLeft < Needed)
+			{
+				// 왼쪽 벽이 가깝다: 오른쪽으로 옮기되, 복도 가운데를 넘지 않는다.
+				Offset = -FMath::Min(Needed - DistanceLeft, (DistanceRight - DistanceLeft) * 0.5f);
+			}
+			else if (DistanceRight < Needed)
+			{
+				// 오른쪽 벽이 가깝다: 왼쪽으로 옮기되, 복도 가운데를 넘지 않는다.
+				Offset = FMath::Min(Needed - DistanceRight, (DistanceLeft - DistanceRight) * 0.5f);
+			}
+
+			Offsets[i] = FMath::Clamp(Offset, -FootprintMaxWallPush, FootprintMaxWallPush);
+		}
+	}
+
+	// 2-2) 옮긴 정도를 코너 앞뒤로 완만하게 이어 붙인다. 평균을 내면 희석되어 다시 벽에 붙으므로, 거리에 따라 줄어드는 값 중 절댓값이 가장 큰 것을 쓴다.
+	//      (코너에서 가장 많이 옮긴 값은 그대로 두고, 앞뒤로 FootprintWallBlendDistance까지 서서히 줄어든다)
+	TArray<float> Blended = Offsets;
+	if (FootprintWallBlendDistance > 0.f)
+	{
+		const int32 BlendSteps = FMath::CeilToInt(FootprintWallBlendDistance / Step);
+		for (int32 i = 0; i < Line.Num(); ++i)
+		{
+			for (int32 k = 1; k <= BlendSteps; ++k)
+			{
+				const float Weight = 1.f - (k * Step) / FootprintWallBlendDistance;
+				if (Weight <= 0.f)
+				{
+					break;
+				}
+
+				for (const int32 Neighbor : {i - k, i + k})
+				{
+					if (Offsets.IsValidIndex(Neighbor))
+					{
+						const float Candidate = Offsets[Neighbor] * Weight;
+						if (FMath::Abs(Candidate) > FMath::Abs(Blended[i]))
+						{
+							Blended[i] = Candidate;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// 2-3) 옮기는 방향이 바뀌는 곳(왼쪽 벽 구간 -> 오른쪽 벽 구간)이 급하게 꺾이지 않도록 옮길 거리를 한 번 다듬는다.
+	for (int32 Pass = 0; Pass < GuideLineSmoothPasses; ++Pass)
+	{
+		TArray<float> Smoothed = Blended;
+		for (int32 i = 1; i < Blended.Num() - 1; ++i)
+		{
+			Smoothed[i] = Blended[i - 1] * 0.25f + Blended[i] * 0.5f + Blended[i + 1] * 0.25f;
+		}
+		Blended = Smoothed;
+	}
+
+	// 2-4') 옮긴 점을 걸을 수 있는 바닥 위로 맞춘다.
+	TArray<FVector> Displaced;
+	Displaced.SetNum(Line.Num());
+	for (int32 i = 0; i < Line.Num(); ++i)
+	{
+		FVector Moved = Line[i] + Lefts[i] * Blended[i];
+
+		FNavLocation Projected;
+		if (NavSys && NavSys->ProjectPointToNavigation(Moved, Projected, ProjectExtent))
+		{
+			Moved = Projected.Location;
+		}
+		else
+		{
+			Moved = Line[i];
+		}
+		Displaced[i] = Moved;
+	}
+
+	// 2-4) 선을 부드럽게 다듬는다. 양 끝은 고정하고, 다듬은 점이 걸을 수 없는 곳으로 나가면 다듬기 전 점을 쓴다.
+	for (int32 Pass = 0; Pass < GuideLineSmoothPasses; ++Pass)
+	{
+		TArray<FVector> Smoothed = Displaced;
+		for (int32 i = 1; i < Displaced.Num() - 1; ++i)
+		{
+			FVector Candidate = Displaced[i - 1] * 0.25f + Displaced[i] * 0.5f + Displaced[i + 1] * 0.25f;
+
+			FNavLocation Projected;
+			if (NavSys && NavSys->ProjectPointToNavigation(Candidate, Projected, ProjectExtent))
+			{
+				Candidate.Z = Projected.Location.Z;
+				Smoothed[i] = Candidate;
+			}
+		}
+		Displaced = Smoothed;
+	}
+
+	RoutePoints = Displaced;
+	MakeCumulative(RoutePoints, RouteCumulative);
+	const float TotalLength = RouteCumulative.Last();
+
+	// ---- 3) 완성된 선 위에 발자국을 놓는다.
+	//         코너에서 안쪽 발은 짧은 호, 바깥쪽 발은 긴 호를 따라 걸으므로, 안내선을 좌우로 FootprintSideOffset만큼 옮긴 왼발 선/오른발 선을 따로 만들고
+	//         각 선 위에서 자기 걸음 간격(2 x FootprintSpacing)마다 찍는다. 플레이어 위치와 무관하게 줄의 모양이 항상 같고, 플레이어 바로 앞(FirstOffset)보다 가까운 곳에는 놓지 않는다.
+	TArray<FVector> FootLines[2]; // [0] 왼발, [1] 오른발
+	TArray<float> FootCumulative[2];
+	for (int32 Side = 0; Side < 2; ++Side)
+	{
+		const float Sign = (Side == 0) ? 1.f : -1.f;
+		FootLines[Side].SetNum(RoutePoints.Num());
+		for (int32 i = 0; i < RoutePoints.Num(); ++i)
+		{
+			FVector Tangent = RoutePoints[FMath::Min(i + 1, RoutePoints.Num() - 1)] - RoutePoints[FMath::Max(i - 1, 0)];
+			Tangent.Z = 0.f;
+			Tangent = Tangent.GetSafeNormal();
+
+			// Direction x Up은 진행 방향의 왼쪽이다. (언리얼은 앞 +X, 오른쪽 +Y, 위 +Z라서 X x Z = -Y = 왼쪽)
+			const FVector Left = FVector::CrossProduct(Tangent, FVector::UpVector).GetSafeNormal();
+			FootLines[Side][i] = RoutePoints[i] + Left * (Sign * FootprintSideOffset);
+		}
+
+		// 안쪽 발 선은 코너에서 좁아져 각질 수 있으므로 양 끝을 고정하고 한 번 더 다듬는다.
+		for (int32 Pass = 0; Pass < 2; ++Pass)
+		{
+			TArray<FVector> Smoothed = FootLines[Side];
+			for (int32 i = 1; i < FootLines[Side].Num() - 1; ++i)
+			{
+				Smoothed[i] = FootLines[Side][i - 1] * 0.25f + FootLines[Side][i] * 0.5f + FootLines[Side][i + 1] * 0.25f;
+			}
+			FootLines[Side] = Smoothed;
+		}
+		MakeCumulative(FootLines[Side], FootCumulative[Side]);
+	}
+
+	// 선 위에서 점 Location과 가장 가까운 곳의 누적 거리
+	auto ArcOfNearest = [](const TArray<FVector>& Points, const TArray<float>& Cumulative, const FVector& Location)
+	{
+		float BestArc = 0.f;
+		float BestDistSq = TNumericLimits<float>::Max();
+		for (int32 i = 0; i + 1 < Points.Num(); ++i)
+		{
+			const FVector Segment = Points[i + 1] - Points[i];
+			const float SegmentLengthSq = FMath::Max(Segment.SizeSquared(), KINDA_SMALL_NUMBER);
+			const float Alpha = FMath::Clamp(FVector::DotProduct(Location - Points[i], Segment) / SegmentLengthSq, 0.f, 1.f);
+			const float DistSq = FVector::DistSquared(Location, Points[i] + Segment * Alpha);
+			if (DistSq < BestDistSq)
+			{
+				BestDistSq = DistSq;
+				BestArc = Cumulative[i] + FMath::Sqrt(SegmentLengthSq) * Alpha;
+			}
+		}
+		return BestArc;
+	};
+
+	// 왼발은 왼발 선을 따라 자기 걸음 간격(2 x FootprintSpacing)마다 놓는다. (같은 발끼리의 간격이 코너에서도 일정하다)
+	// 오른발은 오른발 선 위에서, 이웃한 왼발 두 개의 한가운데에 가장 가까운 곳에 놓는다. (왼발/오른발이 항상 번갈아 일정하게 걷는다)
+	const float FirstOffset = 100.f;
+	const float HalfSpacing = FootprintSpacing * 0.5f;
+	const float LeftTotal = FootCumulative[0].Last();
+	const float RightTotal = FootCumulative[1].Last();
+
+	auto AddFootprint = [&](bool bLeft, const FVector& Location, float FootArc) -> bool
+	{
+		const TArray<FVector>& Foot = FootLines[bLeft ? 0 : 1];
+		const TArray<float>& Cumulative = FootCumulative[bLeft ? 0 : 1];
+		const float FootTotal = Cumulative.Last();
+
+		// 이 발자국이 안내선 위 어디쯤인지(지나감 판정용 거리)는 안내선에 수직으로 내려 구한다.
+		const float CenterArc = ArcOfNearest(RoutePoints, RouteCumulative, Location);
+		if (CenterArc < FirstOffset)
+		{
+			return false;
+		}
+
+		// 코너에서 발끝 방향이 갑자기 꺾이지 않도록, 앞뒤 반 간격 지점을 잇는 방향을 쓴다.
+		FVector Before, After, SegmentDirection, Unused;
+		PointAt(Foot, Cumulative, FMath::Clamp(FootArc - HalfSpacing, 0.f, FootTotal), Before, SegmentDirection);
+		PointAt(Foot, Cumulative, FMath::Clamp(FootArc + HalfSpacing, 0.f, FootTotal), After, Unused);
+		FVector Direction = After - Before;
+		Direction.Z = 0.f;
+		Direction = Direction.GetSafeNormal();
+		if (Direction.IsNearlyZero())
+		{
+			Direction = SegmentDirection;
+		}
+
+		FPlacedFootprint Footprint;
+		Footprint.Location = Location;
+		Footprint.Yaw = Direction.Rotation().Yaw + FootprintYawOffset;
+		Footprint.bLeft = bLeft;
+		Footprint.RouteDistance = CenterArc;
+		PlacedFootprints.Add(Footprint);
+		return true;
+	};
+
+	// 청년 쪽 끝의 왼발 위치에서 시작해, 한 걸음(왼발 -> 다음 왼발)마다 오른발 한 번, 왼발 한 번을 놓는다.
+	FVector PreviousLeft, Unused;
+	PointAt(FootLines[0], FootCumulative[0], LeftTotal, PreviousLeft, Unused);
+	for (int32 k = 1; k < 500; ++k)
+	{
+		const float LeftArc = LeftTotal - k * 2.f * FootprintSpacing;
+		if (LeftArc <= 0.f)
 		{
 			break;
 		}
 
-		FVector Location, Direction;
-		GetPointAtDistance(Distance, Location, Direction);
+		FVector LeftLocation;
+		PointAt(FootLines[0], FootCumulative[0], LeftArc, LeftLocation, Unused);
 
-		// m이 짝수면 왼발, 홀수면 오른발이다.
-		const bool bLeft = (m % 2 == 0);
+		// 오른발: 이웃한 왼발 두 개의 한가운데에 가장 가까운 오른발 선 위의 점 (m = 2k - 1)
+		const FVector Middle = (PreviousLeft + LeftLocation) * 0.5f;
+		const float RightArc = ArcOfNearest(FootLines[1], FootCumulative[1], Middle);
+		FVector RightLocation;
+		PointAt(FootLines[1], FootCumulative[1], FMath::Clamp(RightArc, 0.f, RightTotal), RightLocation, Unused);
+		if (!AddFootprint(false, RightLocation, RightArc))
+		{
+			break;
+		}
 
-		// 최단 경로는 코너의 안쪽 모서리에 붙어서 지나므로, 벽에서 너무 가까우면 벽에서 떨어지도록 옮긴다.
-		const FVector Centered = PushAwayFromWall(Location);
+		// 왼발 (m = 2k)
+		if (!AddFootprint(true, LeftLocation, LeftArc))
+		{
+			break;
+		}
 
-		// Direction x Up은 진행 방향의 왼쪽이다. (언리얼은 앞 +X, 오른쪽 +Y, 위 +Z라서 X x Z = -Y = 왼쪽)
-		const FVector Left = FVector::CrossProduct(Direction, FVector::UpVector).GetSafeNormal();
+		PreviousLeft = LeftLocation;
+	}
 
-		FPlacedFootprint Footprint;
-		Footprint.Location = Centered + Left * (bLeft ? FootprintSideOffset : -FootprintSideOffset);
-		Footprint.Yaw = Direction.Rotation().Yaw + FootprintYawOffset;
-		Footprint.bLeft = bLeft;
-		Footprint.RouteDistance = Distance;
-		PlacedFootprints.Add(Footprint);
+	if (bDrawGuideLine)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LCOChasingManager] Guide footprints placed: %d (route length %.0f)"), PlacedFootprints.Num(), TotalLength);
 	}
 
 	bHasRoute = true;
@@ -922,55 +1219,6 @@ void ALCOChasingManager::CheckPassedFootprints()
 	{
 		RefreshFootprintDecals();
 	}
-}
-
-FVector ALCOChasingManager::PushAwayFromWall(const FVector& Location) const
-{
-	if (FootprintWallClearance <= 0.f)
-	{
-		return Location;
-	}
-
-	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
-	const ARecastNavMesh* NavMesh = NavSys ? Cast<ARecastNavMesh>(NavSys->GetDefaultNavDataInstance(FNavigationSystem::DontCreate)) : nullptr;
-	if (!NavMesh)
-	{
-		return Location;
-	}
-
-	// 발자국은 이 위치에서 좌우로 FootprintSideOffset만큼 더 벌어지므로, 그만큼 더 띄운다.
-	const float Needed = FootprintWallClearance + FootprintSideOffset;
-
-	// 벽까지의 거리가 모자라면 벽의 반대쪽으로 조금씩 밀어낸다. (좁은 복도에서 양쪽 벽 사이를 오가지 않도록 절반씩 민다)
-	FVector Result = Location;
-	for (int32 Iteration = 0; Iteration < 3; ++Iteration)
-	{
-		FVector WallPoint = FVector::ZeroVector;
-		const float DistanceToWall = NavMesh->FindDistanceToWall(Result, nullptr, Needed, &WallPoint);
-		if (DistanceToWall < 0.f || DistanceToWall >= Needed)
-		{
-			break;
-		}
-
-		FVector Away = Result - WallPoint;
-		Away.Z = 0.f;
-		Away = Away.GetSafeNormal();
-		if (Away.IsNearlyZero())
-		{
-			break;
-		}
-
-		Result += Away * ((Needed - DistanceToWall) * 0.5f);
-	}
-
-	// 걸을 수 있는 영역(바닥 높이)으로 되돌린다.
-	FNavLocation Projected;
-	if (NavSys->ProjectPointToNavigation(Result, Projected, FVector(50.f, 50.f, 100.f)))
-	{
-		return Projected.Location;
-	}
-
-	return Location;
 }
 
 void ALCOChasingManager::RefreshFootprintDecals()
@@ -1059,6 +1307,40 @@ void ALCOChasingManager::RefreshFootprintDecals()
 	}
 }
 
+void ALCOChasingManager::DrawGuideLineDebug() const
+{
+#if ENABLE_DRAW_DEBUG
+	UWorld* World = GetWorld();
+	if (!World || !bHasRoute)
+	{
+		return;
+	}
+
+	// 갱신 주기보다 조금 길게 그려서 끊김 없이 보이게 한다.
+	const float Duration = GuideUpdateInterval + 0.05f;
+	const FVector Lift(0.f, 0.f, 15.f);
+
+	// 빨강: 엔진이 구한 원래 최단 경로(코너 안쪽 모서리를 스친다)
+	for (int32 i = 0; i + 1 < DebugRawLine.Num(); ++i)
+	{
+		DrawDebugLine(World, DebugRawLine[i] + Lift, DebugRawLine[i + 1] + Lift, FColor::Red, false, Duration, 0, 3.f);
+	}
+
+	// 초록: 벽 거리를 반영해 만든 최종 안내선. 발자국은 이 선 위에 놓이고 좌우로 FootprintSideOffset만큼 벌어진다.
+	for (int32 i = 0; i + 1 < RoutePoints.Num(); ++i)
+	{
+		DrawDebugLine(World, RoutePoints[i] + Lift, RoutePoints[i + 1] + Lift, FColor::Green, false, Duration, 0, 5.f);
+	}
+
+	// 노랑: 왼발, 주황: 오른발, 회색: 지나간 발자국
+	for (const FPlacedFootprint& Footprint : PlacedFootprints)
+	{
+		const FColor Color = Footprint.bPassed ? FColor(90, 90, 90) : (Footprint.bLeft ? FColor::Yellow : FColor::Orange);
+		DrawDebugSphere(World, Footprint.Location + Lift, 12.f, 8, Color, false, Duration, 0, 1.f);
+	}
+#endif
+}
+
 void ALCOChasingManager::HidePathGuide()
 {
 	for (UDecalComponent* Decal : FootprintPool)
@@ -1076,6 +1358,7 @@ void ALCOChasingManager::ResetPathGuide()
 	RoutePoints.Reset();
 	RouteCumulative.Reset();
 	bHasRoute = false;
+	DebugRawLine.Reset();
 	OffRouteStartTime = -1.0;
 	HidePathGuide();
 }

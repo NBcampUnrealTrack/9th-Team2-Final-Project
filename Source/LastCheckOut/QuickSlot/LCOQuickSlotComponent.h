@@ -57,7 +57,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
 	bool IsPinnedSlot(int32 SlotIndex) const;
 
-	// 슬롯에 아이템 등록 (소비 아이템만). 다른 슬롯에 같은 아이템이 있으면 그 슬롯은 비움. ItemID가 None이면 비우기
+	// 슬롯에 아이템 등록 다른 슬롯에 같은 아이템이 있으면 그 슬롯은 비움. ItemID가 None이면 비우기
 	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
 	bool AssignSlot(int32 SlotIndex, FName ItemID);
 
@@ -79,7 +79,7 @@ public:
 
 	// 슬롯 아이템의 현재 보유 수량 (인벤토리 기준)
 	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
-	int32 GetSlotItemCount(int32 SlotIndex) const;
+	int GetSlotItemCount(int32 SlotIndex) const;
 
 	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot")
 	bool IsWheelOpen() const { return bWheelOpen; }
@@ -151,6 +151,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Input")
 	TObjectPtr<UInputAction> CaptureAction;
 
+	// 숫자키 1: 카메라 장착
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Input")
+	TObjectPtr<UInputAction> CameraKeyAction;
+
+	// 숫자키 2: 손전등 켜기 / 끄기
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Input")
+	TObjectPtr<UInputAction> FlashlightKeyAction;
+	
 	// ---------- 카메라 고정 칸 ----------
 
 	// 1번 칸에 카메라 고정
@@ -209,6 +217,12 @@ private:
 
 	// 카메라를 든 상태에서 촬영 키 입력
 	void HandleCapturePressed();
+	
+	// 숫자키 1: 카메라 장착
+	void HandleCameraKeyPressed();
+
+	// 숫자키 2: 손전등 켜기 / 끄기
+	void HandleFlashlightKeyPressed();
 
 	UFUNCTION()
 	void HandleControllerChanged(APawn* Pawn, AController* OldController, AController* NewController);

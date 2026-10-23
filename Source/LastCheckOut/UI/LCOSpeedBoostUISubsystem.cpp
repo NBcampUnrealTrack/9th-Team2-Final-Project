@@ -28,7 +28,7 @@ namespace
 ULCOSpeedBoostUISubsystem::ULCOSpeedBoostUISubsystem()
 {
 	SpeedBoostPostProcessMaterial = TSoftObjectPtr<UMaterialInterface>(
-		FSoftObjectPath(TEXT("/Game/HJ/Material_Test/M_PP_SpeedBoost.M_PP_SpeedBoost")));
+		FSoftObjectPath(TEXT("/Game/Materials_PostProcess/M_PP_SpeedBoost.M_PP_SpeedBoost")));
 }
 
 void ULCOSpeedBoostUISubsystem::Initialize(FSubsystemCollectionBase& Collection)

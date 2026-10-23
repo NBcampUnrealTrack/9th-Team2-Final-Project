@@ -93,3 +93,6 @@ Content/MetaHumans/
 
 # 로컬 전용 대용량 에셋 (Git 추적 제외)
 /Content/IgnoredAssets/
+
+# 손전등 외부 에셋 (Fab, 구글 드라이브로 공유)
+/Content/DynamicFlashlight/

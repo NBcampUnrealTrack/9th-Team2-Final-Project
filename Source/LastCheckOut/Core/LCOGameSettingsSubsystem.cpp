@@ -35,7 +35,9 @@ namespace
 			TEXT("ToggleView"),
 			TEXT("Inventory"),
 			TEXT("Notebook"),
-			TEXT("QuickSlot")
+			TEXT("QuickSlot"),
+			TEXT("CameraKey"),
+			TEXT("FlashlightKey")
 		};
 		return Names;
 	}

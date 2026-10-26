@@ -124,6 +124,8 @@ KEYBIND_TOGGLEVIEW,시점 전환,Toggle View,視点切替,切换视角,切換視
 KEYBIND_INVENTORY,인벤토리,Inventory,インベントリ,物品栏,物品欄,Inventario,Inventaire,Inventar,Inventário,Tavaraluettelo
 KEYBIND_NOTEBOOK,수첩,Notebook,手帳,笔记本,筆記本,Cuaderno,Carnet,Notizbuch,Caderno,Muistikirja
 KEYBIND_QUICKSLOT,퀵슬롯,Quick Slot,クイックスロット,快捷栏,快捷欄,Ranura rápida,Emplacement rapide,Schnellplatz,Atalho rápido,Pikapaikka
+KEYBIND_CAMERAKEY,카메라,Camera,カメラ,相机,相機,Cámara,Appareil photo,Kamera,Câmera,Kamera
+KEYBIND_FLASHLIGHTKEY,손전등,Flashlight,懐中電灯,手电筒,手電筒,Linterna,Lampe torche,Taschenlampe,Lanterna,Taskulamppu
 KEYBIND_PRESS_KEY,키를 누르세요,Press a key,キーを押してください,请按键,請按鍵,Pulsa una tecla,Appuyez sur une touche,Taste drücken,Pressione uma tecla,Paina näppäintä
 KEYBIND_SWAPPED,{0} 키와 교체되었습니다,Swapped with {0},{0}とキーを入れ替えました,已与{0}交换按键,已與{0}交換按鍵,Intercambiado con {0},Échangé avec {0},Mit {0} getauscht,Trocado com {0},Vaihdettu: {0}
 KEYBIND_BLOCKED,사용할 수 없는 키입니다,This key cannot be used,このキーは使用できません,无法使用此按键,無法使用此按鍵,No se puede usar esta tecla,Cette touche ne peut pas être utilisée,Diese Taste kann nicht verwendet werden,Esta tecla não pode ser usada,Tätä näppäintä ei voi käyttää

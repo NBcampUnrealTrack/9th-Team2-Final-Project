@@ -2,10 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Chaos/ChaosEngineInterface.h"
 #include "LCOFootstepComponent.generated.h"
 
 class USoundBase;
 class ALCOPlayerCharacter;
+class ALCOFootstepSurfaceVolume;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOFootstep, FVector, Location, float, Loudness);
 
@@ -38,6 +40,14 @@ protected:
 	// 재생할 발소리 (비워두면 소리 없이 AI 소음만 발생)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Footstep|Sound")
 	TObjectPtr<USoundBase> FootstepSound;
+	
+	// 바닥 종류(Physical Surface)별 발소리. 등록 안 된 바닥은 FootstepSound 사용
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Footstep|Sound")
+	TMap<TEnumAsByte<EPhysicalSurface>, TObjectPtr<USoundBase>> SurfaceSounds;
+
+	// 발밑 바닥을 찾는 트레이스 길이 (cm)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Footstep|Sound", meta = (ClampMin = "1"))
+	float SurfaceTraceDistance = 50.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Footstep|Sound", meta = (ClampMin = "0"))
 	float WalkVolume = 0.6f;
@@ -96,7 +106,10 @@ protected:
 private:
 	// 현재 상태(걷기 / 달리기 / 웅크리기)에 맞는 설정값
 	void GetCurrentSettings(float& OutStepDistance, float& OutVolume, float& OutLoudness, float& OutRange) const;
-
+	// 발밑 바닥 종류에 맞는 발소리 (없으면 FootstepSound)
+	USoundBase* FindSurfaceSound(const FVector& FootLocation) const;
+	// 캐릭터가 들어가 있는 발소리 볼륨 중 우선순위가 가장 높은 것 (없으면 nullptr)
+	const ALCOFootstepSurfaceVolume* FindSurfaceVolume() const;
 	UPROPERTY(Transient)
 	TObjectPtr<ALCOPlayerCharacter> Character;
 

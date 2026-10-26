@@ -190,7 +190,10 @@ void ULCOMainMenuWidget::StartGameWithMode(ELCOGameStartMode InStartMode)
 		return;
 	}
 
-	if (GameLevel.IsNull())
+	const bool bUseNewGameLevel = InStartMode == ELCOGameStartMode::NewGame && !NewGameLevel.IsNull();
+	const TSoftObjectPtr<UWorld> TargetLevel = bUseNewGameLevel ? NewGameLevel : GameLevel;
+
+	if (TargetLevel.IsNull())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LCOMainMenu] GameLevel이 비어 있음 - WBP 클래스 디폴트에서 지정 필요"));
 		return;
@@ -210,5 +213,6 @@ void ULCOMainMenuWidget::StartGameWithMode(ELCOGameStartMode InStartMode)
 
 	BP_OnStartTransition();
 
-	UGameplayStatics::OpenLevelBySoftObjectPtr(this, GameLevel);
+	UE_LOG(LogTemp, Warning, TEXT("[LCOMainMenu] StartGame: Open %s"), *TargetLevel.ToString());
+	UGameplayStatics::OpenLevelBySoftObjectPtr(this, TargetLevel);
 }

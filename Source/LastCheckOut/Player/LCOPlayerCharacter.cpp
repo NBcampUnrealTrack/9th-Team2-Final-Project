@@ -71,14 +71,11 @@ ALCOPlayerCharacter::ALCOPlayerCharacter()
 	HeldCameraMesh->SetupAttachment(GetMesh());
 	HeldCameraMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	HeldCameraMesh->SetVisibility(false);
-	HeldCameraMesh->bCastHiddenShadow = true;
 	// 손전등 모델 (손 카메라와 같은 방식으로 손에 부착, 기본 숨김)
 	FlashlightMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FlashlightMesh"));
 	FlashlightMesh->SetupAttachment(GetMesh());
 	FlashlightMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	FlashlightMesh->SetVisibility(false);
-	FlashlightMesh->bCastHiddenShadow = true;
-
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
 

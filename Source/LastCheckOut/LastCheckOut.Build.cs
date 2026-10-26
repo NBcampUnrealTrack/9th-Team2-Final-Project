@@ -11,7 +11,7 @@ public class LastCheckOut : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] 
 			{ "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AIModule", 
 				"NavigationSystem", "GameplayTasks", "UMG", "Slate", "SlateCore", "MoviePlayer", 
-				"GameplayTags" });
+				"GameplayTags","PhysicsCore", "Slate", "SlateCore" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

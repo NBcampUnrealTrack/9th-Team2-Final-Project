@@ -6,6 +6,7 @@
 #include "Perception/AISense_Hearing.h"
 #include "Sound/SoundBase.h"
 #include "DrawDebugHelpers.h"
+#include "Player/LCOFootstepSurfaceVolume.h"
 
 ULCOFootstepComponent::ULCOFootstepComponent()
 {
@@ -67,9 +68,10 @@ void ULCOFootstepComponent::PlayFootstep()
 	const float HalfHeight = Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	const FVector FootLocation = Character->GetActorLocation() - FVector(0.f, 0.f, HalfHeight);
 
-	if (FootstepSound)
+	// 발밑 바닥 종류에 맞는 소리 (카펫 / 타일 / 나무 등)
+	if (USoundBase* Sound = FindSurfaceSound(FootLocation))
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, FootstepSound, FootLocation, Volume);
+		UGameplayStatics::PlaySoundAtLocation(this, Sound, FootLocation, Volume);
 	}
 
 	// AI 청각 소음 (AI 쪽에서 청각 감지 설정이 있어야 반응함)
@@ -106,4 +108,60 @@ void ULCOFootstepComponent::GetCurrentSettings(float& OutStepDistance, float& Ou
 		OutLoudness = WalkLoudness;
 		OutRange = WalkNoiseRange;
 	}
+}
+
+USoundBase* ULCOFootstepComponent::FindSurfaceSound(const FVector& FootLocation) const
+{
+	// 1. 발소리 볼륨 (맵 구역별 지정)이 있으면 우선
+	if (const ALCOFootstepSurfaceVolume* Volume = FindSurfaceVolume())
+	{
+		if (const TObjectPtr<USoundBase>* Found = SurfaceSounds.Find(Volume->GetSurface()))
+		{
+			if (*Found)
+			{
+				return *Found;
+			}
+		}
+	}
+
+	// 2. 발밑 바닥의 Physical Material
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(LCOFootstepSurface), false, GetOwner());
+	Params.bReturnPhysicalMaterial = true;
+
+	const FVector Start = FootLocation + FVector(0.f, 0.f, 10.f);
+	const FVector End = FootLocation - FVector(0.f, 0.f, SurfaceTraceDistance);
+
+	FHitResult Hit;
+	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
+	{
+		const EPhysicalSurface Surface = UGameplayStatics::GetSurfaceType(Hit);
+		if (const TObjectPtr<USoundBase>* Found = SurfaceSounds.Find(Surface))
+		{
+			if (*Found)
+			{
+				return *Found;
+			}
+		}
+	}
+
+	// 3. 지정 안 된 곳은 기본 발소리
+	return FootstepSound;
+}
+const ALCOFootstepSurfaceVolume* ULCOFootstepComponent::FindSurfaceVolume() const
+{
+	TArray<AActor*> Overlapping;
+	GetOwner()->GetOverlappingActors(Overlapping, ALCOFootstepSurfaceVolume::StaticClass());
+
+	// 겹친 볼륨이 여러 개면 우선순위가 높은 것
+	const ALCOFootstepSurfaceVolume* Best = nullptr;
+	for (AActor* Actor : Overlapping)
+	{
+		const ALCOFootstepSurfaceVolume* Volume = Cast<ALCOFootstepSurfaceVolume>(Actor);
+		if (Volume && (!Best || Volume->GetPriority() > Best->GetPriority()))
+		{
+			Best = Volume;
+		}
+	}
+
+	return Best;
 }

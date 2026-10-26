@@ -12,6 +12,8 @@ class UPanelWidget;
 class UScrollBox;
 class UTextBlock;
 class UWidgetSwitcher;
+class UCanvasPanel;
+class USizeBox;
 class ULCONotebookListItemWidget;
 class ULCONotebookSubsystem;
 
@@ -86,6 +88,7 @@ public:
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeDestruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	// ---------- BP 연출용 이벤트 ----------
 
@@ -112,6 +115,18 @@ protected:
 	// 지도 탭 데이터 (DA_NotebookMap)
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook")
 	TObjectPtr<ULCONotebookMapData> MapData;
+	
+	// 지도 이미지 최대 크기 (SizeBox_Map이 있을 때 이미지 비율을 유지하며 맞춤)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Map")
+	FVector2D MaxMapSize = FVector2D(500.f, 340.f);
+ 
+	// 현재 위치 문구 (UI.csv 키, {0} = 구역, {1} = 층. 키가 없으면 "현재 위치: {0} {1}")
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Map")
+	FName MapCurrentLocationTextKey = TEXT("NOTEBOOK_MAP_CURRENT_LOCATION");
+ 
+	// 위치를 알 수 없을 때 문구 (UI.csv 키. 키가 없으면 "현재 위치: 확인 불가")
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook|Map")
+	FName MapUnknownLocationTextKey = TEXT("NOTEBOOK_MAP_LOCATION_UNKNOWN");
 
 	// 탭별 페이지 제목 (Txt_PageTitle에 표시, 비우면 표시 안 함)
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|Notebook")
@@ -253,6 +268,26 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Txt_MapAreaName;
+	
+	// 층 버튼 목록 (VerticalBox 권장)
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UPanelWidget> Panel_MapFloorList;
+ 
+	// Img_Map을 감싸는 SizeBox (이미지 비율 유지용)
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<USizeBox> SizeBox_Map;
+ 
+	// Img_Map 위에 겹치는 Canvas Panel (마커 배치용)
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCanvasPanel> Canvas_MapMarker;
+ 
+	// 현재 위치 화살표 (Canvas_MapMarker 안, 위쪽을 가리키는 이미지)
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UImage> Img_PlayerMarker;
+ 
+	// "현재 위치: 별관 2F"
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Txt_MapCurrentLocation;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> Btn_Close;
@@ -332,6 +367,9 @@ private:
 
 	UFUNCTION()
 	void HandleMapAreaClicked(int32 ItemIndex);
+	
+	UFUNCTION()
+	void HandleMapFloorClicked(int32 ItemIndex);
 
 	// 추리 탭
 	UFUNCTION()
@@ -361,7 +399,19 @@ private:
 	void ClearDetail();
 
 	void RebuildMapAreaList();
-	void SelectMapArea(int32 ItemIndex);
+	void SelectMapArea(int32 ItemIndex, int32 PreferredFloorIndex = INDEX_NONE);
+	void RebuildMapFloorList();
+	void SelectMapFloor(int32 FloorIndex);
+	void ShowMapImage(UTexture2D* Texture);
+	void UpdatePlayerMapMarker();
+	void UpdateMapLocationText();
+ 
+	// 플레이어가 있는 구역/층 갱신 (바뀌었으면 true)
+	bool RefreshPlayerMapLocation();
+	bool GetPlayerMapView(FVector& OutLocation, float& OutYaw) const;
+	const FLCONotebookMapArea* GetSelectedMapArea() const;
+	const FLCONotebookMapFloor* GetSelectedMapFloor() const;
+	static int32 FindDefaultMapFloor(const FLCONotebookMapArea& Area);
 
 	void RebuildDeductionCandidates();
 	void RefreshDeductionSlots();
@@ -400,6 +450,15 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<ULCONotebookListItemWidget>> MapAreaItemWidgets;
+	
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<ULCONotebookListItemWidget>> MapFloorItemWidgets;
+ 
+	int32 SelectedMapFloorIndex = INDEX_NONE;
+ 
+	// 플레이어가 있는 구역/층 (없으면 INDEX_NONE)
+	int32 PlayerMapAreaIndex = INDEX_NONE;
+	int32 PlayerMapFloorIndex = INDEX_NONE;
 
 	// 현재 탭에 표시 중인 항목 (목록 순서와 동일)
 	TArray<FLCONotebookEntry> CurrentEntries;

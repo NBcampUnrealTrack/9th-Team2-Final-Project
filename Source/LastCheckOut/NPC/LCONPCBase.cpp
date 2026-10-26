@@ -6,7 +6,6 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "DrawDebugHelpers.h"
 #include "BrainComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -110,11 +109,20 @@ void ALCONPCBase::DropCarriedProp()
 
 	Prop->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	Prop->SetActorEnableCollision(true);
+	CarriedProp.Reset();
+}
 
-	// 놓은 물건이 이 NPC의 이동을 막지 않게 한다. (카트를 앞에 놓고 그 앞을 지나 복귀해야 하는 경우 등)
-	// 플레이어와 다른 NPC는 여전히 물건에 막힌다.
-	GetCapsuleComponent()->IgnoreActorWhenMoving(Prop, true);
+void ALCONPCBase::DropCarriedPropAt(const FVector& Location, const FRotator& Rotation)
+{
+	AActor* Prop = CarriedProp.Get();
+	if (!Prop)
+	{
+		return;
+	}
 
+	Prop->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	Prop->SetActorLocationAndRotation(Location, FRotator(0.f, Rotation.Yaw, 0.f));
+	Prop->SetActorEnableCollision(true);
 	CarriedProp.Reset();
 }
 

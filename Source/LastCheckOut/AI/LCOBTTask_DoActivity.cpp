@@ -305,7 +305,15 @@ void ULCOBTTask_DoActivity::RunNextStep()
 		break;
 
 	case ELCOActivityStepType::ReleaseProp:
-		NPC->DropCarriedProp();
+		// 지점에 놓는 자리가 지정돼 있으면 거기로 옮겨 놓고(길을 막지 않는다), 없으면 그 자리에 놓는다.
+		if (const AActor* DropPoint = Spot->GetPropDropPoint())
+		{
+			NPC->DropCarriedPropAt(DropPoint->GetActorLocation(), DropPoint->GetActorRotation());
+		}
+		else
+		{
+			NPC->DropCarriedProp();
+		}
 		ScheduleNextStep(Step.Duration);
 		break;
 

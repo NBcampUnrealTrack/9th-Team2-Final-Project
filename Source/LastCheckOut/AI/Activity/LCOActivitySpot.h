@@ -95,6 +95,9 @@ public:
 	// GrabProp 동작이 잡는 물건 (벨보이가 미는 카트 등)
 	AActor* GetLinkedProp() const { return LinkedProp; }
 
+	// ReleaseProp 동작이 물건을 놓는 자리. 없으면 NPC가 서 있는 앞에 그대로 놓는다.
+	AActor* GetPropDropPoint() const { return PropDropPoint; }
+
 	// 슬롯을 예약한다. 이미 다른 NPC가 쓰고 있으면 실패한다.
 	bool TryReserve(AActor* User);
 	void Release(AActor* User);
@@ -136,6 +139,11 @@ protected:
 	// GrabProp 동작이 잡는 물건(예: 짐 카트). 레벨에 놓은 지점에서 물건을 지정한다.
 	UPROPERTY(EditInstanceOnly, Category = "Activity")
 	TObjectPtr<AActor> LinkedProp;
+
+	// ReleaseProp 동작이 물건을 놓는 자리(예: TargetPoint). 길 한쪽이나 벽 옆에 두면 NPC와 플레이어가 물건을 돌아갈 필요가 없다.
+	// 위치와 정면 방향(Yaw)을 쓴다. 비워 두면 물건이 NPC 앞에 그대로 놓인다.
+	UPROPERTY(EditInstanceOnly, Category = "Activity")
+	TObjectPtr<AActor> PropDropPoint;
 
 private:
 	TWeakObjectPtr<AActor> Occupant;

@@ -72,6 +72,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "NPC|Prop")
 	void DropCarriedProp();
 
+	// 들고 있던 물건을 지정한 위치와 방향에 놓는다. 충돌을 다시 켠다.
+	void DropCarriedPropAt(const FVector& Location, const FRotator& Rotation);
+
 	UFUNCTION(BlueprintPure, Category = "NPC|Prop")
 	AActor* GetCarriedProp() const { return CarriedProp.Get(); }
 

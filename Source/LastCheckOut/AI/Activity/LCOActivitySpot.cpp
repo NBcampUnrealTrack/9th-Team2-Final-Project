@@ -1,6 +1,7 @@
 #include "AI/Activity/LCOActivitySpot.h"
 
 #include "Components/ArrowComponent.h"
+#include "Components/TextRenderComponent.h"
 
 ALCOActivitySpot::ALCOActivitySpot()
 {
@@ -12,6 +13,14 @@ ALCOActivitySpot::ALCOActivitySpot()
 	Arrow = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
 	Arrow->SetupAttachment(Root);
 	Arrow->ArrowSize = 1.5f;
+
+	NameLabel = CreateDefaultSubobject<UTextRenderComponent>(TEXT("NameLabel"));
+	NameLabel->SetupAttachment(Root);
+	NameLabel->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
+	NameLabel->SetHorizontalAlignment(EHTA_Center);
+	NameLabel->SetWorldSize(30.f);
+	NameLabel->SetTextRenderColor(FColor::Yellow);
+	NameLabel->SetHiddenInGame(true);
 
 	// 기본 동작: 슬롯으로 이동 -> 슬롯 방향으로 돌기 -> 3초 대기
 	FLCOActivityStep MoveStep;
@@ -46,3 +55,30 @@ void ALCOActivitySpot::Release(AActor* User)
 		Occupant.Reset();
 	}
 }
+
+FString ALCOActivitySpot::GetDisplayName() const
+{
+	return ActivityName.IsNone() ? GetName() : ActivityName.ToString();
+}
+
+void ALCOActivitySpot::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	if (NameLabel)
+	{
+		NameLabel->SetText(FText::FromString(GetDisplayName()));
+	}
+}
+
+#if WITH_EDITOR
+void ALCOActivitySpot::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.GetPropertyName() == GET_MEMBER_NAME_CHECKED(ALCOActivitySpot, ActivityName) && !ActivityName.IsNone())
+	{
+		SetActorLabel(ActivityName.ToString());
+	}
+}
+#endif

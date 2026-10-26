@@ -29,8 +29,23 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Caretaker|Door")
 	float DoorBendAlpha = 0.f;
 
+	// 대화할 때 눈높이를 맞추려고 상체를 숙인 정도 0~1. 문 통과와 자세가 달라서 따로 둔다. 애님 BP가 읽는다.
+	UPROPERTY(BlueprintReadOnly, Category = "Caretaker|Conversation")
+	float ConversationBendAlpha = 0.f;
+
 protected:
+	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
+
+	// 대화할 때 숙이고 펴는 속도(초당 alpha 변화량). 천천히 숙이는 것이 자연스럽다.
+	UPROPERTY(EditAnywhere, Category = "Caretaker|Conversation", meta = (ClampMin = "0.1"))
+	float ConversationBendBlendSpeed = 1.5f;
+
+	UFUNCTION()
+	void HandleConversationStarted(AActor* Partner);
+
+	UFUNCTION()
+	void HandleConversationEnded();
 
 	// 허리를 숙이고 펴는 속도(초당 alpha 변화량). 클수록 빨리 숙인다.
 	UPROPERTY(EditAnywhere, Category = "Caretaker|Door", meta = (ClampMin = "0.1"))

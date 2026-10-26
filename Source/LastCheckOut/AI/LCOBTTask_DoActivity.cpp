@@ -25,6 +25,8 @@ namespace
 		case ELCOActivityStepType::FacePlayer: return TEXT("FacePlayer");
 		case ELCOActivityStepType::OpenDoor: return TEXT("OpenDoor");
 		case ELCOActivityStepType::CloseDoor: return TEXT("CloseDoor");
+		case ELCOActivityStepType::GrabProp: return TEXT("GrabProp");
+		case ELCOActivityStepType::ReleaseProp: return TEXT("ReleaseProp");
 		}
 		return TEXT("Unknown");
 	}
@@ -208,7 +210,7 @@ void ULCOBTTask_DoActivity::RunNextStep()
 	const FLCOActivityStep& Step = Steps[StepIndex];
 
 	// 머리 위에 현재 동작과 지점 이름을 표시한다.
-	NPC->SetDebugStatus(FString::Printf(TEXT("%s\n%s"), GetStepTypeName(Step.Type), *GetNameSafe(Spot)));
+	NPC->SetDebugStatus(FString::Printf(TEXT("%s\n%s"), GetStepTypeName(Step.Type), *Spot->GetDisplayName()));
 
 	switch (Step.Type)
 	{
@@ -288,6 +290,24 @@ void ULCOBTTask_DoActivity::RunNextStep()
 		ScheduleNextStep(Step.Duration);
 		break;
 	}
+
+	case ELCOActivityStepType::GrabProp:
+		// 지점에 연결된 물건(카트 등)을 NPC 앞에 붙인다. 물건이 없으면 경고만 남기고 넘어간다.
+		if (AActor* Prop = Spot->GetLinkedProp())
+		{
+			NPC->AttachCarriedProp(Prop, Step.PropOffset, Step.PropYaw);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[LCOBTTask_DoActivity] %s has no LinkedProp to grab."), *GetNameSafe(Spot));
+		}
+		ScheduleNextStep(Step.Duration);
+		break;
+
+	case ELCOActivityStepType::ReleaseProp:
+		NPC->DropCarriedProp();
+		ScheduleNextStep(Step.Duration);
+		break;
 
 	case ELCOActivityStepType::FacePlayer:
 	{

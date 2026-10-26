@@ -6,6 +6,7 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "DrawDebugHelpers.h"
 #include "BrainComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -73,6 +74,48 @@ void ALCONPCBase::SetWalkSpeed()
 void ALCONPCBase::SetRunSpeed()
 {
 	SetMovementSpeed(RunSpeed);
+}
+
+#pragma endregion
+
+#pragma region 들고 있는 물건
+
+void ALCONPCBase::AttachCarriedProp(AActor* Prop, FVector Offset, float Yaw)
+{
+	if (!Prop)
+	{
+		return;
+	}
+
+	// 이미 들고 있으면 먼저 놓는다.
+	DropCarriedProp();
+
+	Prop->SetActorEnableCollision(false);
+	Prop->AttachToActor(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
+	// 캐릭터의 기준점은 캡슐 중심이므로, Z는 발바닥(바닥) 기준이 되도록 캡슐 절반 높이만큼 내린다.
+	Prop->SetActorRelativeLocation(FVector(Offset.X, Offset.Y, Offset.Z - GetSimpleCollisionHalfHeight()));
+	Prop->SetActorRelativeRotation(FRotator(0.f, Yaw, 0.f));
+
+	CarriedProp = Prop;
+}
+
+void ALCONPCBase::DropCarriedProp()
+{
+	AActor* Prop = CarriedProp.Get();
+	if (!Prop)
+	{
+		return;
+	}
+
+	Prop->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	Prop->SetActorEnableCollision(true);
+
+	// 놓은 물건이 이 NPC의 이동을 막지 않게 한다. (카트를 앞에 놓고 그 앞을 지나 복귀해야 하는 경우 등)
+	// 플레이어와 다른 NPC는 여전히 물건에 막힌다.
+	GetCapsuleComponent()->IgnoreActorWhenMoving(Prop, true);
+
+	CarriedProp.Reset();
 }
 
 #pragma endregion

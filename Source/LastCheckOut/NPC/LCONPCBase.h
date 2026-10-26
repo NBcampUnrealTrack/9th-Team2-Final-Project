@@ -61,6 +61,24 @@ private:
 protected:
 #pragma endregion
 
+#pragma region 들고 있는 물건
+public:
+	// 물건(예: 짐 카트)을 NPC 앞에 붙여 함께 움직이게 한다. Offset은 NPC 기준 위치(Z는 발바닥 기준), Yaw는 정면에서 더 돌릴 각도이다.
+	// 붙어 있는 동안 물건의 충돌은 꺼서 NPC나 플레이어가 막히지 않게 한다. 이미 들고 있으면 먼저 놓는다.
+	UFUNCTION(BlueprintCallable, Category = "NPC|Prop")
+	void AttachCarriedProp(AActor* Prop, FVector Offset, float Yaw);
+
+	// 들고 있던 물건을 현재 위치에 놓는다. 충돌을 다시 켠다.
+	UFUNCTION(BlueprintCallable, Category = "NPC|Prop")
+	void DropCarriedProp();
+
+	UFUNCTION(BlueprintPure, Category = "NPC|Prop")
+	AActor* GetCarriedProp() const { return CarriedProp.Get(); }
+
+private:
+	TWeakObjectPtr<AActor> CarriedProp;
+#pragma endregion
+
 #pragma region 대화
 public:
 	// 대화를 시작한다. AI를 멈추고 대화 상대를 바라본다.

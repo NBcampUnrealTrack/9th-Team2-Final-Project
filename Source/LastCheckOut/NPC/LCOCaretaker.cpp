@@ -34,6 +34,25 @@ bool ALCOCaretaker::GetNextPatrolLocation(FVector& OutLocation)
 	return true;
 }
 
+void ALCOCaretaker::BeginPlay()
+{
+	Super::BeginPlay();
+
+	OnConversationStarted.AddDynamic(this, &ALCOCaretaker::HandleConversationStarted);
+	OnConversationEnded.AddDynamic(this, &ALCOCaretaker::HandleConversationEnded);
+}
+
+void ALCOCaretaker::HandleConversationStarted(AActor* Partner)
+{
+	// 대화가 끝나고 숙임을 다시 펴는 동안에도 Tick이 필요하므로 켠다.
+	SetActorTickEnabled(true);
+}
+
+void ALCOCaretaker::HandleConversationEnded()
+{
+	SetActorTickEnabled(true);
+}
+
 void ALCOCaretaker::EnterDoorBendZone()
 {
 	++DoorBendZoneCount;
@@ -56,8 +75,11 @@ void ALCOCaretaker::Tick(float DeltaSeconds)
 	DoorBendAlpha = FMath::FInterpConstantTo(DoorBendAlpha, Target, DeltaSeconds, DoorBendBlendSpeed);
 	SetMoveSpeedScale(FMath::Lerp(1.f, DoorBendSpeedScale, DoorBendAlpha));
 
+	// 대화 중이면 숙이고, 끝나면 편다.
+	ConversationBendAlpha = FMath::FInterpConstantTo(ConversationBendAlpha, IsInConversation() ? 1.f : 0.f, DeltaSeconds, ConversationBendBlendSpeed);
+
 	// 베이스 Tick이 대화/디버그가 없으면 Tick을 꺼 버리므로, 숙이는 동안과 펴는 동안은 다시 켠다.
-	if (DoorBendZoneCount > 0 || DoorBendAlpha > 0.f)
+	if (DoorBendZoneCount > 0 || DoorBendAlpha > 0.f || ConversationBendAlpha > 0.f)
 	{
 		SetActorTickEnabled(true);
 	}

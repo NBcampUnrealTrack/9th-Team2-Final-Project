@@ -7,6 +7,11 @@
 #include "Player/LCOPlayerController.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/SizeBox.h"
+#include "GameFramework/Pawn.h"
+#include "Engine/Texture2D.h"
 #include "Components/PanelWidget.h"
 #include "Components/ScrollBox.h"
 #include "Components/ScrollBoxSlot.h"
@@ -545,8 +550,19 @@ void ULCONotebookWidget::HandleNotebookChanged()
 }
 
 // ======================================================================
-// 지도
+// 지도 (구역 → 층 → 현재 위치 마커)
 // ======================================================================
+
+void ULCONotebookWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	// 지도 탭을 보고 있을 때만 마커 갱신
+	if (CurrentTab == ELCONotebookTab::Map && IsInViewport())
+	{
+		UpdatePlayerMapMarker();
+	}
+}
 
 void ULCONotebookWidget::RebuildMapAreaList()
 {
@@ -558,6 +574,16 @@ void ULCONotebookWidget::RebuildMapAreaList()
 	Panel_MapAreaList->ClearChildren();
 	MapAreaItemWidgets.Reset();
 
+	// 마커는 중심 기준으로 배치
+	if (Img_PlayerMarker)
+	{
+		if (UCanvasPanelSlot* MarkerSlot = Cast<UCanvasPanelSlot>(Img_PlayerMarker->Slot))
+		{
+			MarkerSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+			MarkerSlot->SetAutoSize(true);
+		}
+	}
+
 	if (!MapData || MapData->Areas.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LCONotebook] MapData가 비어 있음 - WBP 클래스 디폴트에서 DA_NotebookMap 지정 필요"));
@@ -565,6 +591,11 @@ void ULCONotebookWidget::RebuildMapAreaList()
 		{
 			Img_Map->SetVisibility(ESlateVisibility::Hidden);
 		}
+		if (Img_PlayerMarker)
+		{
+			Img_PlayerMarker->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		UpdateMapLocationText();
 		return;
 	}
 
@@ -585,8 +616,18 @@ void ULCONotebookWidget::RebuildMapAreaList()
 		}
 	}
 
-	// 마지막으로 보던 구역 유지
-	SelectMapArea(MapData->Areas.IsValidIndex(SelectedMapAreaIndex) ? SelectedMapAreaIndex : 0);
+	// 플레이어가 있는 구역/층을 먼저 보여주고, 위치를 모르면 마지막으로 보던 구역 유지
+	RefreshPlayerMapLocation();
+	if (MapData->Areas.IsValidIndex(PlayerMapAreaIndex))
+	{
+		SelectMapArea(PlayerMapAreaIndex, PlayerMapFloorIndex);
+	}
+	else
+	{
+		SelectMapArea(MapData->Areas.IsValidIndex(SelectedMapAreaIndex) ? SelectedMapAreaIndex : 0);
+	}
+
+	UpdateMapLocationText();
 }
 
 void ULCONotebookWidget::HandleMapAreaClicked(int32 ItemIndex)
@@ -594,13 +635,19 @@ void ULCONotebookWidget::HandleMapAreaClicked(int32 ItemIndex)
 	SelectMapArea(ItemIndex);
 }
 
-void ULCONotebookWidget::SelectMapArea(int32 ItemIndex)
+void ULCONotebookWidget::HandleMapFloorClicked(int32 ItemIndex)
+{
+	SelectMapFloor(ItemIndex);
+}
+
+void ULCONotebookWidget::SelectMapArea(int32 ItemIndex, int32 PreferredFloorIndex)
 {
 	if (!MapData || !MapData->Areas.IsValidIndex(ItemIndex))
 	{
 		return;
 	}
 
+	const bool bAreaChanged = (ItemIndex != SelectedMapAreaIndex);
 	SelectedMapAreaIndex = ItemIndex;
 
 	for (int32 i = 0; i < MapAreaItemWidgets.Num(); ++i)
@@ -612,12 +659,119 @@ void ULCONotebookWidget::SelectMapArea(int32 ItemIndex)
 	}
 
 	const FLCONotebookMapArea& Area = MapData->Areas[ItemIndex];
+	RebuildMapFloorList();
 
+	// 층이 없는 구역 (외부 등) → 구역 이미지 한 장
+	if (Area.Floors.Num() == 0)
+	{
+		SelectedMapFloorIndex = INDEX_NONE;
+		ShowMapImage(Area.MapImage);
+
+		if (Txt_MapAreaName)
+		{
+			Txt_MapAreaName->SetText(Area.AreaName);
+		}
+
+		UpdatePlayerMapMarker();
+		return;
+	}
+
+	// 보여줄 층: 지정 층 → 플레이어 층 → 같은 구역에서 보던 층 → 1F → 첫 번째 층
+	int32 FloorIndex = PreferredFloorIndex;
+	if (!Area.Floors.IsValidIndex(FloorIndex))
+	{
+		if (PlayerMapAreaIndex == ItemIndex && Area.Floors.IsValidIndex(PlayerMapFloorIndex))
+		{
+			FloorIndex = PlayerMapFloorIndex;
+		}
+		else if (!bAreaChanged && Area.Floors.IsValidIndex(SelectedMapFloorIndex))
+		{
+			FloorIndex = SelectedMapFloorIndex;
+		}
+		else
+		{
+			FloorIndex = FindDefaultMapFloor(Area);
+		}
+	}
+
+	SelectMapFloor(FloorIndex);
+}
+
+void ULCONotebookWidget::RebuildMapFloorList()
+{
+	if (!Panel_MapFloorList)
+	{
+		return;
+	}
+
+	Panel_MapFloorList->ClearChildren();
+	MapFloorItemWidgets.Reset();
+
+	const FLCONotebookMapArea* Area = GetSelectedMapArea();
+	const bool bHasFloors = Area && Area->Floors.Num() > 0;
+
+	Panel_MapFloorList->SetVisibility(bHasFloors ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+
+	if (!bHasFloors || !ListItemWidgetClass)
+	{
+		return;
+	}
+
+	// DA에 입력한 순서 그대로 (위층부터)
+	for (int32 i = 0; i < Area->Floors.Num(); ++i)
+	{
+		ULCONotebookListItemWidget* Item = CreateWidget<ULCONotebookListItemWidget>(GetOwningPlayer(), ListItemWidgetClass);
+		if (!Item)
+		{
+			MapFloorItemWidgets.Add(nullptr);
+			continue;
+		}
+
+		Item->SetItemData(i, Area->Floors[i].FloorName, false);
+		Item->OnItemClicked.AddUniqueDynamic(this, &ThisClass::HandleMapFloorClicked);
+		Panel_MapFloorList->AddChild(Item);
+		MapFloorItemWidgets.Add(Item);
+	}
+}
+
+void ULCONotebookWidget::SelectMapFloor(int32 FloorIndex)
+{
+	const FLCONotebookMapArea* Area = GetSelectedMapArea();
+	if (!Area || !Area->Floors.IsValidIndex(FloorIndex))
+	{
+		return;
+	}
+
+	SelectedMapFloorIndex = FloorIndex;
+
+	for (int32 i = 0; i < MapFloorItemWidgets.Num(); ++i)
+	{
+		if (MapFloorItemWidgets[i])
+		{
+			MapFloorItemWidgets[i]->SetSelected(i == SelectedMapFloorIndex);
+		}
+	}
+
+	const FLCONotebookMapFloor& Floor = Area->Floors[FloorIndex];
+
+	// 층 이미지가 비어 있으면 구역 이미지로 대체
+	ShowMapImage(Floor.MapImage ? Floor.MapImage.Get() : Area->MapImage.Get());
+
+	if (Txt_MapAreaName)
+	{
+		Txt_MapAreaName->SetText(FText::Format(FText::FromString(TEXT("{0} {1}")), Area->AreaName, Floor.FloorName));
+	}
+
+	UpdatePlayerMapMarker();
+}
+
+void ULCONotebookWidget::ShowMapImage(UTexture2D* Texture)
+{
 	if (Img_Map)
 	{
-		if (Area.MapImage)
+		if (Texture)
 		{
-			Img_Map->SetBrushFromTexture(Area.MapImage);
+			Img_Map->SetBrushFromTexture(Texture);
 			Img_Map->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
 		else
@@ -626,10 +780,156 @@ void ULCONotebookWidget::SelectMapArea(int32 ItemIndex)
 		}
 	}
 
-	if (Txt_MapAreaName)
+	// 이미지 비율을 유지하며 MaxMapSize 안에 맞춤 (마커 위치가 어긋나지 않도록)
+	if (SizeBox_Map && Texture && Texture->GetSizeX() > 0 && Texture->GetSizeY() > 0)
 	{
-		Txt_MapAreaName->SetText(Area.AreaName);
+		const FVector2D TextureSize(Texture->GetSizeX(), Texture->GetSizeY());
+		const float Scale = FMath::Min(MaxMapSize.X / TextureSize.X, MaxMapSize.Y / TextureSize.Y);
+
+		SizeBox_Map->SetWidthOverride(TextureSize.X * Scale);
+		SizeBox_Map->SetHeightOverride(TextureSize.Y * Scale);
 	}
+}
+
+void ULCONotebookWidget::UpdatePlayerMapMarker()
+{
+	// 지도를 연 채로 층을 옮기면 현재 위치 문구 갱신
+	if (RefreshPlayerMapLocation())
+	{
+		UpdateMapLocationText();
+	}
+
+	if (!Img_PlayerMarker)
+	{
+		return;
+	}
+
+	// 플레이어가 있는 층을 보고 있을 때만 마커 표시
+	const FLCONotebookMapFloor* Floor = GetSelectedMapFloor();
+	const bool bShowMarker = Floor
+		&& SelectedMapAreaIndex == PlayerMapAreaIndex
+		&& SelectedMapFloorIndex == PlayerMapFloorIndex;
+
+	Img_PlayerMarker->SetVisibility(bShowMarker ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	if (!bShowMarker)
+	{
+		return;
+	}
+
+	FVector Location;
+	float Yaw = 0.f;
+	if (!GetPlayerMapView(Location, Yaw))
+	{
+		return;
+	}
+
+	// 실제 화면에 그려진 지도 크기 기준으로 배치
+	FVector2D MapSize = Canvas_MapMarker ? Canvas_MapMarker->GetCachedGeometry().GetLocalSize() : FVector2D::ZeroVector;
+	if (MapSize.IsNearlyZero() && Img_Map)
+	{
+		MapSize = Img_Map->GetCachedGeometry().GetLocalSize();
+	}
+
+	if (UCanvasPanelSlot* MarkerSlot = Cast<UCanvasPanelSlot>(Img_PlayerMarker->Slot))
+	{
+		MarkerSlot->SetPosition(Floor->WorldToUV(Location) * MapSize);
+	}
+
+	// 마커 이미지는 위쪽을 가리키는 화살표 기준
+	Img_PlayerMarker->SetRenderTransformAngle(Yaw + Floor->MarkerYawOffset);
+}
+
+void ULCONotebookWidget::UpdateMapLocationText()
+{
+	if (!Txt_MapCurrentLocation)
+	{
+		return;
+	}
+
+	if (MapData
+		&& MapData->Areas.IsValidIndex(PlayerMapAreaIndex)
+		&& MapData->Areas[PlayerMapAreaIndex].Floors.IsValidIndex(PlayerMapFloorIndex))
+	{
+		const FLCONotebookMapArea& Area = MapData->Areas[PlayerMapAreaIndex];
+		const FText Format = GetUITextOrDefault(MapCurrentLocationTextKey, FText::FromString(TEXT("현재 위치: {0} {1}")));
+		Txt_MapCurrentLocation->SetText(FText::Format(Format, Area.AreaName, Area.Floors[PlayerMapFloorIndex].FloorName));
+	}
+	else
+	{
+		Txt_MapCurrentLocation->SetText(GetUITextOrDefault(MapUnknownLocationTextKey, FText::FromString(TEXT("현재 위치: 확인 불가"))));
+	}
+}
+
+bool ULCONotebookWidget::RefreshPlayerMapLocation()
+{
+	int32 NewAreaIndex = INDEX_NONE;
+	int32 NewFloorIndex = INDEX_NONE;
+
+	FVector Location;
+	float Yaw = 0.f;
+	if (MapData && GetPlayerMapView(Location, Yaw))
+	{
+		for (int32 AreaIndex = 0; AreaIndex < MapData->Areas.Num() && NewAreaIndex == INDEX_NONE; ++AreaIndex)
+		{
+			const TArray<FLCONotebookMapFloor>& Floors = MapData->Areas[AreaIndex].Floors;
+			for (int32 FloorIndex = 0; FloorIndex < Floors.Num(); ++FloorIndex)
+			{
+				if (Floors[FloorIndex].ContainsLocation(Location))
+				{
+					NewAreaIndex = AreaIndex;
+					NewFloorIndex = FloorIndex;
+					break;
+				}
+			}
+		}
+	}
+
+	const bool bChanged = (NewAreaIndex != PlayerMapAreaIndex) || (NewFloorIndex != PlayerMapFloorIndex);
+	PlayerMapAreaIndex = NewAreaIndex;
+	PlayerMapFloorIndex = NewFloorIndex;
+	return bChanged;
+}
+
+bool ULCONotebookWidget::GetPlayerMapView(FVector& OutLocation, float& OutYaw) const
+{
+	const APlayerController* PC = GetOwningPlayer();
+	const APawn* Pawn = PC ? PC->GetPawn() : nullptr;
+	if (!Pawn)
+	{
+		return false;
+	}
+
+	OutLocation = Pawn->GetActorLocation();
+	OutYaw = PC->GetControlRotation().Yaw;
+	return true;
+}
+
+const FLCONotebookMapArea* ULCONotebookWidget::GetSelectedMapArea() const
+{
+	return (MapData && MapData->Areas.IsValidIndex(SelectedMapAreaIndex))
+		? &MapData->Areas[SelectedMapAreaIndex]
+		: nullptr;
+}
+
+const FLCONotebookMapFloor* ULCONotebookWidget::GetSelectedMapFloor() const
+{
+	const FLCONotebookMapArea* Area = GetSelectedMapArea();
+	return (Area && Area->Floors.IsValidIndex(SelectedMapFloorIndex))
+		? &Area->Floors[SelectedMapFloorIndex]
+		: nullptr;
+}
+
+int32 ULCONotebookWidget::FindDefaultMapFloor(const FLCONotebookMapArea& Area)
+{
+	// 처음 여는 구역은 1F부터 (없으면 맨 위 층)
+	for (int32 i = 0; i < Area.Floors.Num(); ++i)
+	{
+		if (Area.Floors[i].FloorName.ToString().Equals(TEXT("1F"), ESearchCase::IgnoreCase))
+		{
+			return i;
+		}
+	}
+	return 0;
 }
 
 // ======================================================================

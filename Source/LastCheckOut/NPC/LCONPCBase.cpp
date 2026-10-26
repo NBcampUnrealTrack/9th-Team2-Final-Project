@@ -97,6 +97,7 @@ void ALCONPCBase::AttachCarriedProp(AActor* Prop, FVector Offset, float Yaw)
 	Prop->SetActorRelativeRotation(FRotator(0.f, Yaw, 0.f));
 
 	CarriedProp = Prop;
+	SetMoveSpeedScale(CarriedPropSpeedScale);
 }
 
 void ALCONPCBase::DropCarriedProp()
@@ -110,6 +111,7 @@ void ALCONPCBase::DropCarriedProp()
 	Prop->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	Prop->SetActorEnableCollision(true);
 	CarriedProp.Reset();
+	SetMoveSpeedScale(1.f);
 }
 
 void ALCONPCBase::DropCarriedPropAt(const FVector& Location, const FRotator& Rotation)
@@ -124,6 +126,7 @@ void ALCONPCBase::DropCarriedPropAt(const FVector& Location, const FRotator& Rot
 	Prop->SetActorLocationAndRotation(Location, FRotator(0.f, Rotation.Yaw, 0.f));
 	Prop->SetActorEnableCollision(true);
 	CarriedProp.Reset();
+	SetMoveSpeedScale(1.f);
 }
 
 #pragma endregion

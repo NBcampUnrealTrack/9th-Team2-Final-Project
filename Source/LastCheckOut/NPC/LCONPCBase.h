@@ -78,6 +78,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "NPC|Prop")
 	AActor* GetCarriedProp() const { return CarriedProp.Get(); }
 
+protected:
+	// 물건을 들고(밀고) 있는 동안의 이동 속도 배율. 무거운 것을 미는 느낌으로 느리게 걷는다.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC|Prop", meta = (ClampMin = "0.1", ClampMax = "1.0"))
+	float CarriedPropSpeedScale = 0.7f;
+
 private:
 	TWeakObjectPtr<AActor> CarriedProp;
 #pragma endregion

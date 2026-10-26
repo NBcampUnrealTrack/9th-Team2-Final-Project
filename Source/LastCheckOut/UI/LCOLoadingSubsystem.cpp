@@ -397,6 +397,7 @@ void ULCOLoadingSubsystem::RemoveScreens()
 
 void ULCOLoadingSubsystem::FinishLoading(bool bSuccess, const TCHAR* Reason)
 {
+	const bool bWasLoading = bLoading;
 	if (bLoading)
 	{
 		bLastLoadingFailed = !bSuccess;
@@ -419,6 +420,11 @@ void ULCOLoadingSubsystem::FinishLoading(bool bSuccess, const TCHAR* Reason)
 	LoadingStartTime = 0.0;
 	PreparationStartTime = 0.0;
 	RequiredLoadingCompletedTime = -1.0;
+
+	if (bWasLoading)
+	{
+		OnLoadingFinished.Broadcast(bSuccess);
+	}
 }
 
 void ULCOLoadingSubsystem::HandleWorldCleanup(UWorld* World, bool /*bSessionEnded*/, bool /*bCleanupResources*/)

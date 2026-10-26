@@ -12,6 +12,9 @@ class UInputComponent;
 class ULCOLoadingOverlayWidget;
 struct FWorldContext;
 
+// Broadcast after the loading screen is removed. bSuccess is false when loading failed or timed out (fail-open).
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOLoadingFinished, bool, bSuccess);
+
 UCLASS()
 class LASTCHECKOUT_API ULCOLoadingSubsystem : public UGameInstanceSubsystem
 {
@@ -30,6 +33,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Loading")
 	bool DidLastLoadingFail() const { return bLastLoadingFailed; }
+
+	// Fired after screens are removed and player input is released (arrival events, intro dialogue, etc.).
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Loading")
+	FOnLCOLoadingFinished OnLoadingFinished;
 
 private:
 	void HandlePreLoadMap(const FWorldContext& WorldContext, const FString& MapName);

@@ -49,12 +49,13 @@ protected:
 	void BP_OnSettingsClosed();
 
 	// ---------- 설정값 (WBP 클래스 디폴트에서 지정) ----------
-
-	// 새 게임 / 이어하기 시 열 레벨
+	
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|MainMenu")
 	TSoftObjectPtr<UWorld> GameLevel;
-
-	// 이어하기 판단용 세이브 슬롯 이름 (세이브 시스템 담당자와 맞출 것)
+	
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|MainMenu")
+	TSoftObjectPtr<UWorld> NewGameLevel;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|MainMenu")
 	FString SaveSlotName = TEXT("LCO_Save_0");
 

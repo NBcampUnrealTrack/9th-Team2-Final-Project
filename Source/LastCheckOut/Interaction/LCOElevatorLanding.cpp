@@ -45,9 +45,16 @@ void ALCOElevatorLanding::BeginPlay()
 
 void ALCOElevatorLanding::HandleInteraction_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor)
 {
-	if (IsValid(Elevator))
+	if (!IsValid(Elevator))
 	{
-		Elevator->RequestFloor(FloorID, Interactor);
+		return;
+	}
+
+	// 이미 이 층에 있으면 RequestFloor가 true여도 이동하지 않으므로 알림 없음
+	const bool bAlreadyHere = Elevator->GetCurrentFloorIndex() == MyFloorIndex;
+	if (Elevator->RequestFloor(FloorID, Interactor) && !bAlreadyHere)
+	{
+		OnLandingCalled(SourceComponent);
 	}
 }
 

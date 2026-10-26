@@ -51,6 +51,10 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Elevator")
 	void OnLandingInitialized(bool bDoorsOpen);
 
+	// 호출 버튼으로 엘리베이터를 불렀을 때 (다른 층에 있어서 이동이 시작될 때만). 호출 버튼 불 켜기 등 → OnLandingDoorsOpening에서 끄기
+	UFUNCTION(BlueprintImplementableEvent, Category = "Elevator")
+	void OnLandingCalled(ULCOInteractComponent* CallButton);
+
 	// 이 층에서 바깥 문이 열리기 시작할 때 (엘리베이터의 DoorDuration 동안)
 	UFUNCTION(BlueprintImplementableEvent, Category = "Elevator")
 	void OnLandingDoorsOpening();

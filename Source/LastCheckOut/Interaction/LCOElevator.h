@@ -139,6 +139,10 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Elevator")
 	void OnDoorsOpening(int32 FloorIndex);
 
+	// 다른 층 요청이 받아들여졌을 때 (문이 닫히기 직전). 안쪽 버튼 불 켜기 등 → OnArrived에서 끄기
+	UFUNCTION(BlueprintImplementableEvent, Category = "Elevator")
+	void OnFloorRequested(int32 FromFloorIndex, int32 ToFloorIndex, AActor* Requester);
+
 	// Car가 움직이기 시작할 때 (모터 소리 등)
 	UFUNCTION(BlueprintImplementableEvent, Category = "Elevator")
 	void OnMoveStarted(int32 FromFloorIndex, int32 ToFloorIndex);

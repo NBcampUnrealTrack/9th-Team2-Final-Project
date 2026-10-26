@@ -138,6 +138,7 @@ bool ALCOElevator::RequestFloor(FName FloorID, AActor* Requester)
 
 	UE_LOG(LogTemp, Log, TEXT("[LCOElevator] %s Request: %s -> %s"), *GetName(), *GetCurrentFloorID().ToString(), *FloorID.ToString());
 
+	OnFloorRequested(CurrentFloorIndex, TargetFloorIndex, Requester);
 	StartClosingDoors();
 	return true;
 }

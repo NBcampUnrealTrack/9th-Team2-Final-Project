@@ -13,7 +13,6 @@
 #include "Localization/LCOLocalizationSubsystem.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
-#include "Notebook/NotebookComponent.h"
 #include "Notebook/LCONotebookSubsystem.h"
 #include "NPC/LCONPCBase.h"
 #include "Player/LCOPlayerController.h"
@@ -1371,12 +1370,14 @@ bool ULCODialogueWidget::ShouldRestoreGameOnlyInputMode(APlayerController* PC) c
 bool ULCODialogueWidget::HasEvidenceToken(FName EvidenceID) const
 {
 	const AActor* InteractorActor = Interactor.Get();
+
 	if (!IsValid(InteractorActor))
 	{
 		return false;
 	}
 
-	if (const UInventoryComponent* Inventory = InteractorActor->FindComponentByClass<UInventoryComponent>())
+	if (const UInventoryComponent* Inventory =
+		InteractorActor->FindComponentByClass<UInventoryComponent>())
 	{
 		if (Inventory->HasItem(EvidenceID))
 		{
@@ -1384,11 +1385,16 @@ bool ULCODialogueWidget::HasEvidenceToken(FName EvidenceID) const
 		}
 	}
 
-	if (const UNotebookComponent* Notebook = InteractorActor->FindComponentByClass<UNotebookComponent>())
+	if (const ULCONotebookSubsystem* Notebook =
+		GetGameInstance()->GetSubsystem<ULCONotebookSubsystem>())
 	{
-		return Notebook->HasEvidence(EvidenceID);
+		if (Notebook->HasEntry(EvidenceID))
+		{
+			return true;
+		}
 	}
 
+	// 인벤토리와 수첩 어디에도 증거가 없으면 false 반환
 	return false;
 }
 

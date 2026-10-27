@@ -35,7 +35,24 @@ ALCOPlayerCharacter::ALCOPlayerCharacter()
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->SetRelativeLocation(FVector(0.f, 0.f, CameraPivotHeight));
 	SpringArm->bUsePawnControlRotation = true;
-	// 손전등 (눈 높이 스프링암 시작점에 부착, 기본 꺼짐)
+	// 손전등 (눈 높이 스프링암 시작점에 부착, 기본 꺼짐)(Camera->bUsePawnControlRotation =
+	// 1인칭 손전등 팔 (카메라에 부착, 내 화면에서만 보임, 기본 숨김)
+	FlashlightArmsMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FlashlightArmsMesh"));
+	FlashlightArmsMesh->SetupAttachment(Camera);
+	FlashlightArmsMesh->SetOnlyOwnerSee(true);
+	FlashlightArmsMesh->FirstPersonPrimitiveType = EFirstPersonPrimitiveType::FirstPerson;
+	FlashlightArmsMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	FlashlightArmsMesh->CastShadow = false;
+	FlashlightArmsMesh->SetVisibility(false);
+
+	// 1인칭 손전등 팔이 들고 있는 손전등 모델
+	FirstPersonFlashlightMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FirstPersonFlashlightMesh"));
+	FirstPersonFlashlightMesh->SetupAttachment(FlashlightArmsMesh, TEXT("hand_r"));
+	FirstPersonFlashlightMesh->SetOnlyOwnerSee(true);
+	FirstPersonFlashlightMesh->FirstPersonPrimitiveType = EFirstPersonPrimitiveType::FirstPerson;
+	FirstPersonFlashlightMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FirstPersonFlashlightMesh->CastShadow = false;
+	FirstPersonFlashlightMesh->SetVisibility(false);
 	FlashlightComponent = CreateDefaultSubobject<USpotLightComponent>(TEXT("Flashlight"));
 	FlashlightComponent->SetupAttachment(SpringArm);
 	FlashlightComponent->SetRelativeLocation(FlashlightOffset);
@@ -119,6 +136,11 @@ void ALCOPlayerCharacter::BeginPlay()
 	HidingComponent->OnHidingChanged.AddUniqueDynamic(this, &ALCOPlayerCharacter::HandleHidingChanged);
 	// BP에서 바꾼 위치 반영, 시작은 꺼짐
 	FlashlightComponent->SetRelativeLocation(FlashlightOffset);
+	// 1인칭 손전등 팔 애니메이션 (항상 재생해 두고, 켜져 있을 때만 보임)
+	if (FlashlightArmsAnim)
+	{
+		FlashlightArmsMesh->PlayAnimation(FlashlightArmsAnim, true);
+	}
 	SetFlashlightOn(false);
 }
 
@@ -315,6 +337,7 @@ void ALCOPlayerCharacter::SetViewMode(ELCOViewMode NewMode)
 
 	// 손 카메라를 시점에 맞는 손에 부착
 	AttachHeldCamera();
+	UpdateFlashlightVisuals();
 	// 1인칭에서는 내 몸 가림 처리 끄기 (그림자가 디더로 깨지는 문제 방지)
 	CameraOcclusionComponent->SetSelfOcclusionEnabled(!bFirstPerson);
 }
@@ -803,10 +826,9 @@ void ALCOPlayerCharacter::AttachHeldCamera()
 	HeldCameraMesh->SetFirstPersonPrimitiveType(bFirstPerson ? EFirstPersonPrimitiveType::FirstPerson : EFirstPersonPrimitiveType::None);
 	HeldCameraMesh->SetOwnerNoSee(false);
 
-	// 손전등 모델도 같은 방식으로 시점에 맞는 손에 부착
-	FlashlightMesh->AttachToComponent(HandMesh, FAttachmentTransformRules::KeepRelativeTransform, FlashlightSocket);
-	FlashlightMesh->SetFirstPersonPrimitiveType(bFirstPerson ? EFirstPersonPrimitiveType::FirstPerson : EFirstPersonPrimitiveType::None);
-	FlashlightMesh->SetOwnerNoSee(false);
+	// 전신용 손전등 모델은 항상 3인칭 몸 손에 부착 (1인칭에서는 카메라에 붙은 손전등 팔이 대신 보여줌)
+	FlashlightMesh->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, FlashlightSocket);
+	FlashlightMesh->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::None);
 }
 // ---------- 헤드밥 ----------
 
@@ -862,7 +884,7 @@ void ALCOPlayerCharacter::SetFlashlightOn(bool bOn)
 	bFlashlightOn = bOn;
 
 	FlashlightComponent->SetVisibility(bOn);
-	FlashlightMesh->SetVisibility(bOn);
+	UpdateFlashlightVisuals();
 	UpdateFlashlight();
 
 	if (!bChanged)
@@ -888,4 +910,26 @@ void ALCOPlayerCharacter::UpdateFlashlight()
 
 	// 1인칭 / 3인칭 모두 화면이 바라보는 방향으로 비춤
 	FlashlightComponent->SetWorldRotation(Controller->GetControlRotation());
+}
+void ALCOPlayerCharacter::UpdateFlashlightVisuals()
+{
+	const bool bFirstPerson = (ViewMode == ELCOViewMode::FirstPerson);
+	const bool bShowArms = bFlashlightOn && bFirstPerson;
+
+	// 1인칭: 카메라에 붙은 손전등 팔 + 그 손의 손전등 모델 (자식까지 같이)
+	FlashlightArmsMesh->SetVisibility(bShowArms, true);
+
+	// 전신용 손전등 모델: 켜져 있을 때 보이지만, 1인칭에서는 내 화면에서 숨김 (손전등 팔이 대신 보임)
+	FlashlightMesh->SetVisibility(bFlashlightOn);
+	FlashlightMesh->SetOwnerNoSee(bFirstPerson);
+
+	// 1인칭 전신 메시의 오른팔은 손전등 팔과 겹치지 않게 숨김
+	if (bShowArms)
+	{
+		FirstPersonMesh->HideBoneByName(FlashlightArmBone, EPhysBodyOp::PBO_None);
+	}
+	else
+	{
+		FirstPersonMesh->UnHideBoneByName(FlashlightArmBone);
+	}
 }

@@ -1177,7 +1177,8 @@ bool ULCODialogueWidget::UsesActOneNotebookConditions() const
 	static const TSet<FName> DialogueIDs =
 	{
 		TEXT("Bellboy"), TEXT("Caretaker"), TEXT("Cleaner"),
-		TEXT("FrontDesk"), TEXT("Manager"), TEXT("OldProfessor")
+		TEXT("FrontDesk"), TEXT("Manager"), TEXT("OldProfessor"),
+		TEXT("SeniorCleaner")
 	};
 	// Preserve the existing SigolYouth and WorkSenior condition policies.
 	return DialogueIDs.Contains(ActiveDialogueID);

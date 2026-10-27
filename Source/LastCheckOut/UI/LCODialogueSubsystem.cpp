@@ -10,6 +10,10 @@
 #include "Player/LCOPlayerInteractionComponent.h"
 #include "TimerManager.h"
 #include "UI/LCODialogueWidget.h"
+#include "Story/LCOStorySubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "UObject/SoftObjectPath.h"
 
 ULCODialogueSubsystem::ULCODialogueSubsystem()
@@ -255,10 +259,11 @@ void ULCODialogueSubsystem::CleanupDialogue()
 	DialogueWidget = nullptr;
 }
 
-void ULCODialogueSubsystem::BeginDialogueProgressTransaction(FName DialogueID, bool bStartedFirstConversation)
+void ULCODialogueSubsystem::BeginDialogueProgressTransaction(FName DialogueID, bool bStartedFirstConversation, FName ProgressKey)
 {
 	PendingProgressTransaction.DialogueID = DialogueID;
 	PendingProgressTransaction.bStartedFirstConversation = bStartedFirstConversation;
+	PendingProgressTransaction.ProgressKey = ProgressKey.IsNone() ? DialogueID : ProgressKey;
 }
 
 void ULCODialogueSubsystem::CommitDialogueProgressTransaction(FName DialogueID, bool bCompletedNormally, bool bCompletedFirstConversation)
@@ -271,10 +276,74 @@ void ULCODialogueSubsystem::CommitDialogueProgressTransaction(FName DialogueID, 
 
 	if (bCompletedNormally && bCompletedFirstConversation && PendingProgressTransaction.bStartedFirstConversation)
 	{
-		CompletedFirstConversationNPCIds.Add(DialogueID);
+		CompletedFirstConversationNPCIds.Add(PendingProgressTransaction.ProgressKey);
 	}
 
 	PendingProgressTransaction.Reset();
+}
+
+void ULCODialogueSubsystem::GetChapterDialogueSettings(FName NPCId, FString& OutNodePrefix, FName& OutProgressKey) const
+{
+	// FIRST_01 / DEFAULT_01, 기록 이름 = NPCId
+	OutNodePrefix.Reset();
+	OutProgressKey = NPCId;
+
+	const ULocalPlayer* LocalPlayer = GetLocalPlayer();
+	const UGameInstance* GameInstance = LocalPlayer ? LocalPlayer->GetGameInstance() : nullptr;
+	const ULCOStorySubsystem* StorySubsystem = GameInstance ? GameInstance->GetSubsystem<ULCOStorySubsystem>() : nullptr;
+	if (!StorySubsystem)
+	{
+		return;
+	}
+
+	// "Chapter2" → 2
+	const FString ChapterString = StorySubsystem->GetCurrentChapterID().ToString();
+	const FString ChapterPrefix(TEXT("Chapter"));
+	if (!ChapterString.StartsWith(ChapterPrefix))
+	{
+		return;
+	}
+
+	const int32 ChapterNumber = FCString::Atoi(*ChapterString.RightChop(ChapterPrefix.Len()));
+	if (ChapterNumber < 2)
+	{
+		return;
+	}
+
+	// NPC의 CSV에 해당 챕터 대화가 없다면 → 1막 대화 사용
+	const FString ChapterNodePrefix = FString::Printf(TEXT("C%d_"), ChapterNumber);
+	if (!HasDialogueFlowNode(NPCId, FName(*(ChapterNodePrefix + TEXT("FIRST_01")))))
+	{
+		return;
+	}
+
+	OutNodePrefix = ChapterNodePrefix;
+	OutProgressKey = FName(*FString::Printf(TEXT("%s_%s"), *NPCId.ToString(), *ChapterString));
+}
+
+bool ULCODialogueSubsystem::HasDialogueFlowNode(FName DialogueID, FName NodeID)
+{
+	const FString FlowPath = FPaths::Combine(
+		FPaths::ProjectDir(),
+		TEXT("Localization"),
+		FString::Printf(TEXT("DialogueFlow_%s.csv"), *DialogueID.ToString()));
+
+	TArray<FString> Lines;
+	if (!FFileHelper::LoadFileToStringArray(Lines, *FlowPath))
+	{
+		return false;
+	}
+
+	// 첫 번째 열(NodeID)이 같은 줄이 있는지
+	const FString NodePrefix = NodeID.ToString() + TEXT(",");
+	for (const FString& Line : Lines)
+	{
+		if (Line.TrimStart().StartsWith(NodePrefix))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void ULCODialogueSubsystem::DiscardDialogueProgressTransaction(FName DialogueID)
@@ -409,11 +478,20 @@ void ULCODialogueSubsystem::TryStartDialogueForInteraction(ULCOInteractComponent
 	NPC->OnConversationEnded.AddDynamic(this, &ThisClass::HandleNPCConversationEnded);
 
 	const FName NPCId = NPC->GetNPCId();
-	const bool bPlayFirstConversation = !CompletedFirstConversationNPCIds.Contains(NPCId);
 
-	BeginDialogueProgressTransaction(NPCId, bPlayFirstConversation);
+	FString NodePrefix;
+	FName ProgressKey;
+	GetChapterDialogueSettings(NPCId, NodePrefix, ProgressKey);
 
-	if (!DialogueWidget->OpenDialogue(NPC, Interactor, bPlayFirstConversation))
+	const bool bPlayFirstConversation = !CompletedFirstConversationNPCIds.Contains(ProgressKey);
+
+	UE_LOG(LogTemp, Log, TEXT("[LCODialogue] NPC dialogue: NPC = %s, NodePrefix = %s, ProgressKey = %s, First = %s"),
+		*NPCId.ToString(), NodePrefix.IsEmpty() ? TEXT("None") : *NodePrefix, *ProgressKey.ToString(),
+		bPlayFirstConversation ? TEXT("true") : TEXT("false"));
+
+	BeginDialogueProgressTransaction(NPCId, bPlayFirstConversation, ProgressKey);
+
+	if (!DialogueWidget->OpenDialogue(NPC, Interactor, bPlayFirstConversation, NodePrefix))
 	{
 		NPC->OnConversationEnded.RemoveDynamic(this, &ThisClass::HandleNPCConversationEnded);
 		ActiveNPC.Reset();

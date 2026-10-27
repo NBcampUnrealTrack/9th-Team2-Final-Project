@@ -83,8 +83,9 @@ class LASTCHECKOUT_API ULCODialogueWidget : public UUserWidget
 public:
 	ULCODialogueWidget(const FObjectInitializer& ObjectInitializer);
 
+	// NodePrefix: 챕터별 대화 시작 노드 앞글자 (예: "C2_" → C2_FIRST_01 / C2_DEFAULT_01). 비우면 FIRST_01 / DEFAULT_01
 	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
-	bool OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, bool bPlayFirstConversation);
+	bool OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, bool bPlayFirstConversation, const FString& NodePrefix = TEXT(""));
 
 	// NPC 없이 대화 열기 (전화기 등). DialogueFlow_<DialogueID>.csv를 StartNodeID부터 재생
 	// 이미 대화 중이거나 CSV / 노드가 없으면 false

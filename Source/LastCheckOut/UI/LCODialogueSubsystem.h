@@ -26,10 +26,15 @@ struct FLCODialogueProgressTransaction
 	UPROPERTY(Transient)
 	bool bStartedFirstConversation = false;
 
+	// 첫 대화 완료 기록에 쓸 이름 (1막: NPCId, 2막 이후: NPCId_Chapter2). 비어 있으면 DialogueID 사용
+	UPROPERTY(Transient)
+	FName ProgressKey = NAME_None;
+
 	void Reset()
 	{
 		DialogueID = NAME_None;
 		bStartedFirstConversation = false;
+		ProgressKey = NAME_None;
 	}
 };
 
@@ -90,7 +95,13 @@ private:
 	void HandlePostLoadMapWithWorld(UWorld* LoadedWorld);
 	void TryCreateDialogue(APlayerController* PlayerController);
 	void CleanupDialogue();
-	void BeginDialogueProgressTransaction(FName DialogueID, bool bStartedFirstConversation);
+	void BeginDialogueProgressTransaction(FName DialogueID, bool bStartedFirstConversation, FName ProgressKey = NAME_None);
+
+	// 현재 챕터에 맞는 NPC 대화 시작 노드 앞글자(OutNodePrefix)와 첫 대화 기록 이름(OutProgressKey)을 구함
+	// 2막 이후라도 CSV에 해당 챕터 노드(C2_FIRST_01)가 없으면 1막 대화를 그대로 사용
+	void GetChapterDialogueSettings(FName NPCId, FString& OutNodePrefix, FName& OutProgressKey) const;
+
+	static bool HasDialogueFlowNode(FName DialogueID, FName NodeID);
 	void CommitDialogueProgressTransaction(FName DialogueID, bool bCompletedNormally, bool bCompletedFirstConversation);
 	void DiscardDialogueProgressTransaction(FName DialogueID);
 	void BindToPlayerController(APlayerController* PlayerController);

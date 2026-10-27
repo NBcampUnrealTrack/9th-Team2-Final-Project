@@ -10,7 +10,7 @@
 UENUM(BlueprintType)
 enum class ELCOStoryFlag : uint8
 {
-	// 증언
+	// 1막 증언
 	T01 UMETA(DisplayName = "T01 [교수] 수십 년 단골 (지질 조사)"),
 	T02 UMETA(DisplayName = "T02 [교수] 화재 전 직원들 이상 행동"),
 	T03 UMETA(DisplayName = "T03 [지배인] 실족사 조기 종결 희망"),
@@ -23,7 +23,7 @@ enum class ELCOStoryFlag : uint8
 	T10 UMETA(DisplayName = "T10 [프론트] 사고 기록 출처 추궁"),
 	T11 UMETA(DisplayName = "T11 [프론트] 별관 407호 투숙객 안 받음"),
 
-	// 조합 키워드 (추리)
+	// 1막 조합 키워드 (추리)
 	K01 UMETA(DisplayName = "K01 1981년 화재의 의문점"),
 	K02 UMETA(DisplayName = "K02 신관의 건축 시기와 구조 변경"),
 	K03 UMETA(DisplayName = "K03 과거 사망 사건의 공통점"),
@@ -32,6 +32,19 @@ enum class ELCOStoryFlag : uint8
 	K06 UMETA(DisplayName = "K06 실족사에 대한 호텔의 대응"),
 	K07 UMETA(DisplayName = "K07 조사 종결"),
 	K08 UMETA(DisplayName = "K08 실족사 사고에 대하여"),
+
+	// 2막 증언
+	T12 UMETA(DisplayName = "T12 [청소부] 407호는 선임 청소부 전담"),
+	T13 UMETA(DisplayName = "T13 [관리인] 직원 구역 출입 · 촬영 제한"),
+	T14 UMETA(DisplayName = "T14 [선임 청소부] 지배인 지시로 407호 특별 관리"),
+	T15 UMETA(DisplayName = "T15 [선임 청소부] 구관 1·2층 잔존, 본관 지하 시설"),
+
+	// 2막 조합 키워드 (추리)
+	K09 UMETA(DisplayName = "K09 407호의 기묘한 점"),
+	K10 UMETA(DisplayName = "K10 비정상적인 객실 관리"),
+	K11 UMETA(DisplayName = "K11 구관의 존재"),
+	K12 UMETA(DisplayName = "K12 407호의 특별 관리"),
+	K13 UMETA(DisplayName = "K13 수상한 청소 장비"),
 };
 
 // 수첩 추리 탭 조합 결과

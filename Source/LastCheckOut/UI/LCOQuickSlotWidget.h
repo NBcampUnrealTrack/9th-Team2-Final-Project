@@ -73,6 +73,10 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<ULCOQuickSlotEntryWidget> Slot_4;
+	
+	// 원형 퀵슬롯 전용 다섯 번째 슬롯
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<ULCOQuickSlotEntryWidget> Slot_5;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Txt_SelectedName;

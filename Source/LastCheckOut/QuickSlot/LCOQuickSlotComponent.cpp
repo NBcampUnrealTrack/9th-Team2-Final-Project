@@ -104,66 +104,105 @@ void ULCOQuickSlotComponent::HandleInventoryChanged()
 	RefreshWidgets();
 }
 
+
 bool ULCOQuickSlotComponent::AutoAssignFromInventory()
 {
-	const UInventoryComponent* Inventory = GetInventory();
-	if (!Inventory)
-	{
-		return false;
-	}
+    const UInventoryComponent* Inventory = GetInventory();
+    if (!Inventory)
+    {
+        return false;
+    }
 
-	bool bChanged = false;
+    bool bChanged = false;
 
-	// 다 써서 수량이 0이 된 슬롯, 퀵슬롯에 넣을 수 없는 아이템이 든 슬롯은 비움
-	for (int32 i = 0; i < NumSlots; ++i)
-	{
-		// 고정 칸(카메라)은 인벤토리 수량과 무관
-		if (IsPinnedSlot(i))
-		{
-			continue;
-		}
+    // 1. 수량이 없거나 퀵슬롯에 넣을 수 없는 아이템을 비운다.
+    for (int32 i = 0; i < NumSlots; ++i)
+    {
+        if (IsPinnedSlot(i))
+        {
+            continue;
+        }
 
-		if (!SlotItemIDs[i].IsNone() && (Inventory->GetItemCount(SlotItemIDs[i]) <= 0 || !CanAssignItem(SlotItemIDs[i])))
-		{
-			SlotItemIDs[i] = NAME_None;
-			bChanged = true;
-		}
-	}
+        if (!SlotItemIDs[i].IsNone()
+            && (Inventory->GetItemCount(SlotItemIDs[i]) <= 0
+                || !CanAssignItem(SlotItemIDs[i])))
+        {
+            SlotItemIDs[i] = NAME_None;
+            bChanged = true;
+        }
+    }
 
-	TSet<FName> CurrentItems;
-	for (const FInventorySlot& InvSlot : Inventory->InventorySlots)
-	{
-		if (InvSlot.ItemID.IsNone() || InvSlot.Quantity <= 0)
-		{
-			continue;
-		}
+    // 2. 현재 인벤토리에 존재하는 아이템 목록을 갱신한다.
+    TSet<FName> CurrentItems;
 
-		CurrentItems.Add(InvSlot.ItemID);
+    for (const FInventorySlot& InvSlot : Inventory->InventorySlots)
+    {
+        if (InvSlot.ItemID.IsNone() || InvSlot.Quantity <= 0)
+        {
+            continue;
+        }
 
-		// 이번에 새로 들어온 소비 아이템만 자동 등록 (직접 뺀 아이템은 다시 채우지 않음)
-		if (!bAutoAssignConsumables
-			|| KnownInventoryItems.Contains(InvSlot.ItemID)
-			|| FindSlotOfItem(InvSlot.ItemID) != INDEX_NONE
-			|| !CanAssignItem(InvSlot.ItemID))
-		{
-			continue;
-		}
+        CurrentItems.Add(InvSlot.ItemID);
+    }
 
-		const int32 EmptyIndex = SlotItemIDs.IndexOfByKey(NAME_None);
-		if (EmptyIndex == INDEX_NONE)
-		{
-			continue; // 4칸 모두 사용 중 (인벤토리에서 직접 교체 가능)
-		}
+    // 3. 자동 등록 기능이 켜져 있다면 빈 슬롯을 채운다.
+    if (bAutoAssignConsumables)
+    {
+        for (const FInventorySlot& InvSlot : Inventory->InventorySlots)
+        {
+            if (InvSlot.ItemID.IsNone() || InvSlot.Quantity <= 0)
+            {
+                continue;
+            }
 
-		SlotItemIDs[EmptyIndex] = InvSlot.ItemID;
-		bChanged = true;
+            // 소비 아이템이 아니면 건너뛴다.
+            if (!CanAssignItem(InvSlot.ItemID))
+            {
+                continue;
+            }
 
-		UE_LOG(LogTemp, Log, TEXT("[LCOQuickSlot] 자동 등록: %d번 슬롯 = %s"), EmptyIndex + 1, *InvSlot.ItemID.ToString());
-	}
+            // 이미 다른 퀵슬롯에 등록된 아이템이면 건너뛴다.
+            if (FindSlotOfItem(InvSlot.ItemID) != INDEX_NONE)
+            {
+                continue;
+            }
 
-	KnownInventoryItems = MoveTemp(CurrentItems);
-	return bChanged;
+            // 빈 슬롯을 찾는다.
+            int32 EmptyIndex = INDEX_NONE;
+
+            for (int32 i = 0; i < NumSlots; ++i)
+            {
+                if (!IsPinnedSlot(i) && SlotItemIDs[i].IsNone())
+                {
+                    EmptyIndex = i;
+                    break;
+                }
+            }
+
+            if (EmptyIndex == INDEX_NONE)
+            {
+                break;
+            }
+
+            SlotItemIDs[EmptyIndex] = InvSlot.ItemID;
+            bChanged = true;
+
+            UE_LOG(
+                LogTemp,
+                Log,
+                TEXT("[LCOQuickSlot] 자동 등록: %d번 슬롯 = %s"),
+                EmptyIndex + 1,
+                *InvSlot.ItemID.ToString()
+            );
+        }
+    }
+
+    // 다음 인벤토리 변경을 비교하기 위한 목록을 저장한다.
+    KnownInventoryItems = MoveTemp(CurrentItems);
+
+    return bChanged;
 }
+
 
 void ULCOQuickSlotComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
@@ -662,6 +701,7 @@ void ULCOQuickSlotComponent::HandleWheelStarted()
 	OpenWheel();
 }
 
+
 void ULCOQuickSlotComponent::HandleWheelTriggered()
 {
 	APlayerController* PC = CachedPC.Get();
@@ -676,34 +716,68 @@ void ULCOQuickSlotComponent::HandleWheelTriggered()
 	PC->GetInputMouseDelta(DeltaX, DeltaY);
 
 	WheelCursor += FVector2D(DeltaX, DeltaY);
+
 	if (WheelCursor.Size() > WheelCursorMaxRadius)
 	{
 		WheelCursor = WheelCursor.GetSafeNormal() * WheelCursorMaxRadius;
 	}
 
 	int32 NewIndex = INDEX_NONE;
+
 	if (WheelCursor.Size() >= SelectDeadZone)
 	{
-		// 위쪽 = 0도, 시계방향으로 증가 (오른쪽 90, 아래 180, 왼쪽 270)
-		float AngleDeg = FMath::RadiansToDegrees(FMath::Atan2(WheelCursor.X, WheelCursor.Y));
+		// 위쪽 = 0도, 시계 방향으로 증가
+		// 1번: 위, 2번: 오른쪽, 3번: 아래,
+		// 4번: 왼쪽, 5번: 오른쪽 위
+		float AngleDeg = FMath::RadiansToDegrees(
+			FMath::Atan2(WheelCursor.X, WheelCursor.Y)
+		);
+
 		if (AngleDeg < 0.f)
 		{
 			AngleDeg += 360.f;
 		}
 
-		const float SectorSize = 360.f / NumSlots;
-		NewIndex = FMath::RoundToInt(AngleDeg / SectorSize) % NumSlots;
+		// 각 슬롯의 중심 각도
+		const float SlotAngles[5] =
+		{
+			0.f,    // 1번: 위
+			90.f,   // 2번: 오른쪽
+			180.f,  // 3번: 아래
+			270.f,  // 4번: 왼쪽
+			45.f    // 5번: 오른쪽 위
+		};
+
+		// 마우스 방향과 가장 가까운 슬롯을 선택
+		float BestDifference = TNumericLimits<float>::Max();
+
+		for (int32 i = 0; i < NumSlots; ++i)
+		{
+			float Difference = FMath::Abs(AngleDeg - SlotAngles[i]);
+
+			// 0도와 360도의 경계도 올바르게 계산
+			Difference = FMath::Min(Difference, 360.f - Difference);
+
+			if (Difference < BestDifference)
+			{
+				BestDifference = Difference;
+				NewIndex = i;
+			}
+		}
 	}
 
+	// 선택이 변경되었을 때만 UI 갱신
 	if (NewIndex != SelectedIndex)
 	{
 		SelectedIndex = NewIndex;
+
 		if (WheelWidget)
 		{
 			WheelWidget->SetSelectedIndex(SelectedIndex);
 		}
 	}
 }
+
 
 void ULCOQuickSlotComponent::HandleWheelCompleted()
 {

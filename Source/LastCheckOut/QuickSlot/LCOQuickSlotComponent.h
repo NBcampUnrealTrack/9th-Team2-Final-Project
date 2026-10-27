@@ -44,7 +44,12 @@ class LASTCHECKOUT_API ULCOQuickSlotComponent : public UActorComponent
 public:
 	ULCOQuickSlotComponent();
 
-	static constexpr int32 NumSlots = 4;
+	// 퀵슬롯(1~5) 컴포넌트
+
+	// 슬롯 인덱스: 0~4 (화면 표시 1~5)
+	// 휠 방향: 위=1번, 오른쪽=2번, 아래=3번,
+	//          왼쪽=4번, 오른쪽 위=5번
+	static constexpr int32 NumSlots = 5;
 
 	// ---------- 슬롯 등록 (인벤토리 UI에서 호출) ----------
 

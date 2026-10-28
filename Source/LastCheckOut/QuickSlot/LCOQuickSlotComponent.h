@@ -11,11 +11,13 @@ class ULCOQuickSlotWidget;
 class APlayerController;
 class AController;
 class APawn;
+class AActor;
 struct FItemData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLCOQuickSlotsChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOQuickSlotItemUsed, int32, SlotIndex, FName, ItemID);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOCameraEquipChanged, bool, bEquipped);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOUVLightChanged, bool, bOn);
 
 /**
  * 퀵슬롯(1~4) 컴포넌트
@@ -32,6 +34,11 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOCameraEquipChanged, bool, bEqu
  * - 1번 칸은 카메라 고정 (bPinCameraToFirstSlot): 등록 / 해제 / 교체 / 드래그 불가
  *   휠에서 1번 선택 = 카메라 들기(촬영 모드), 휠 가운데에서 떼기 = 맨손
  *   카메라를 든 상태에서만 CaptureAction(예: 좌클릭)으로 촬영
+ *
+ * [장비 숫자키]
+ * - 1: 카메라 / 2: 손전등 / 3: UV 라이트
+ * - UV 라이트와 손전등은 동시에 켜지지 않음 (하나를 켜면 다른 하나는 꺼짐)
+ * - UV 라이트는 BP_UVFlashlight(UVLightClass)를 처음 켤 때 스폰해서 손전등 위치에 부착
  *
  * 슬롯 인덱스: 0~3 (화면 표시 1~4)
  * 휠 방향:     위=1번, 오른쪽=2번, 아래=3번, 왼쪽=4번 (시계방향)
@@ -111,6 +118,20 @@ public:
 	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot|Camera")
 	bool IsCameraEquipped() const { return bCameraEquipped; }
 
+	// ---------- UV 라이트 (숫자키 3) ----------
+
+	// UV 라이트 켜기 / 끄기 (켜면 일반 손전등은 꺼짐). UV 라이트 아이템이 없으면 켜지지 않음
+	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot|UVLight")
+	void SetUVLightEquipped(bool bOn);
+
+	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot|UVLight")
+	void ToggleUVLight() { SetUVLightEquipped(!bUVLightOn); }
+
+	UFUNCTION(BlueprintPure, Category = "LCO|QuickSlot|UVLight")
+	bool IsUVLightOn() const { return bUVLightOn; }
+	
+	FName GetUVLightItemID() const { return UVLightItemID; }
+
 	// ---------- 달리기 상태 ----------
 
 	// 달리기 상태 변경 (캐릭터 델리게이트로 자동 호출됨, BP에서 직접 호출해 테스트도 가능)
@@ -134,6 +155,10 @@ public:
 	// 카메라 들기 / 내리기 시 (카메라 UI 뷰파인더, 캐릭터 애니메이션 등에서 구독)
 	UPROPERTY(BlueprintAssignable, Category = "LCO|QuickSlot|Camera")
 	FOnLCOCameraEquipChanged OnCameraEquipChanged;
+
+	// UV 라이트 켜기 / 끄기 시 (효과음, UI 등에서 구독)
+	UPROPERTY(BlueprintAssignable, Category = "LCO|QuickSlot|UVLight")
+	FOnLCOUVLightChanged OnUVLightChanged;
 
 protected:
 	virtual void BeginPlay() override;
@@ -163,6 +188,24 @@ protected:
 	// 숫자키 2: 손전등 켜기 / 끄기
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Input")
 	TObjectPtr<UInputAction> FlashlightKeyAction;
+
+	// 숫자키 3: UV 라이트 켜기 / 끄기
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|Input")
+	TObjectPtr<UInputAction> UVLightKeyAction;
+
+	// ---------- UV 라이트 ----------
+
+	// UV 라이트 액터 (BP_UVFlashlight, SetUVLightOn(bool) 함수가 있어야 함)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|UVLight")
+	TSubclassOf<AActor> UVLightClass;
+
+	// UV 라이트 아이템 ID (DT_ItemData 행 이름). 이 아이템이 인벤토리에 있어야 켤 수 있음
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|UVLight")
+	FName UVLightItemID = TEXT("UVLight");
+
+	// UV 라이트 액터에서 호출할 켜기/끄기 함수 이름 (bool 파라미터 1개)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|QuickSlot|UVLight")
+	FName UVLightSwitchFunctionName = TEXT("SetUVLightOn");
 	
 	// ---------- 카메라 고정 칸 ----------
 
@@ -229,6 +272,19 @@ private:
 	// 숫자키 2: 손전등 켜기 / 끄기
 	void HandleFlashlightKeyPressed();
 
+	// 숫자키 3: UV 라이트 켜기 / 끄기
+	void HandleUVLightKeyPressed();
+
+	// 캐릭터 손전등이 켜지면 UV 라이트는 끔 (둘이 동시에 켜지지 않도록)
+	UFUNCTION()
+	void HandleFlashlightToggled(bool bFlashlightOn);
+
+	// UV 라이트 액터 (처음 켤 때 스폰해서 손전등 위치에 부착)
+	AActor* GetOrSpawnUVLight();
+
+	// UV 라이트 액터의 SetUVLightOn(bool) 블루프린트 함수 호출
+	void CallUVLightSwitch(AActor* UVLight, bool bOn) const;
+
 	UFUNCTION()
 	void HandleControllerChanged(APawn* Pawn, AController* OldController, AController* NewController);
 
@@ -274,6 +330,10 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<ULCOQuickSlotWidget> WheelWidget;
 
+	// 스폰한 UV 라이트 액터
+	UPROPERTY(Transient)
+	TObjectPtr<AActor> UVLightActor;
+
 	TWeakObjectPtr<APlayerController> CachedPC;
 
 	// 직전에 인벤토리에 있던 아이템 (새로 획득한 아이템 판별용)
@@ -282,6 +342,7 @@ private:
 	bool bInputBound = false;
 	bool bWheelOpen = false;
 	bool bIsSprinting = false;
+	bool bUVLightOn = false;
 
 	// HUD가 지금 보이는 상태인지 (바뀔 때만 Show / Hide 호출해서 BP 애니메이션이 반복 재생되지 않게)
 	bool bHUDShown = false;

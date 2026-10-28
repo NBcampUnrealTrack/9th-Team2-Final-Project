@@ -9,6 +9,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
+#include "Engine/World.h"
+#include "Components/SpotLightComponent.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -55,6 +57,9 @@ void ULCOQuickSlotComponent::BindOwnerEvents()
 		Character->OnSprintStarted.AddUniqueDynamic(this, &ThisClass::HandleSprintStarted);
 		Character->OnWalkStarted.AddUniqueDynamic(this, &ThisClass::HandleWalkStarted);
 		bIsSprinting = Character->IsSprinting();
+
+		// 손전등이 켜지면 UV 라이트 끄기
+		Character->OnFlashlightToggled.AddUniqueDynamic(this, &ThisClass::HandleFlashlightToggled);
 	}
 	else
 	{
@@ -74,6 +79,7 @@ void ULCOQuickSlotComponent::UnbindOwnerEvents()
 	{
 		Character->OnSprintStarted.RemoveDynamic(this, &ThisClass::HandleSprintStarted);
 		Character->OnWalkStarted.RemoveDynamic(this, &ThisClass::HandleWalkStarted);
+		Character->OnFlashlightToggled.RemoveDynamic(this, &ThisClass::HandleFlashlightToggled);
 	}
 
 	if (UInventoryComponent* Inventory = GetInventory())
@@ -94,6 +100,16 @@ void ULCOQuickSlotComponent::HandleWalkStarted()
 
 void ULCOQuickSlotComponent::HandleInventoryChanged()
 {
+	// UV 라이트 아이템을 잃으면 끄기
+	if (bUVLightOn)
+	{
+		const UInventoryComponent* Inventory = GetInventory();
+		if (!Inventory || !Inventory->HasItem(UVLightItemID))
+		{
+			SetUVLightEquipped(false);
+		}
+	}
+
 	// 슬롯 구성이 바뀌면 NotifySlotsChanged 안에서 위젯도 갱신됨
 	if (AutoAssignFromInventory())
 	{
@@ -212,6 +228,14 @@ void ULCOQuickSlotComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		CloseWheel(false);
 	}
 
+	// UV 라이트 정리
+	if (UVLightActor)
+	{
+		SetUVLightEquipped(false);
+		UVLightActor->Destroy();
+		UVLightActor = nullptr;
+	}
+
 	if (APlayerController* PC = CachedPC.Get())
 	{
 		if (QuickSlotMappingContext)
@@ -301,6 +325,17 @@ void ULCOQuickSlotComponent::TrySetupForController(AController* NewController)
 			ETriggerEvent::Started,
 			this,
 			&ThisClass::HandleFlashlightKeyPressed
+		);
+	}
+
+	// 숫자키 3: UV 라이트 켜기 / 끄기
+	if (EIC && UVLightKeyAction)
+	{
+		EIC->BindAction(
+			UVLightKeyAction,
+			ETriggerEvent::Started,
+			this,
+			&ThisClass::HandleUVLightKeyPressed
 		);
 	}
 
@@ -925,7 +960,154 @@ void ULCOQuickSlotComponent::HandleFlashlightKeyPressed()
 	}
 
 	// 손전등은 소모하지 않고 켜기 / 끄기
+	// (손전등이 켜지면 HandleFlashlightToggled에서 UV 라이트가 자동으로 꺼짐)
 	Inventory->UseEquipment(FlashlightID);
+}
+
+// ======================================================================
+// UV 라이트 (숫자키 3)
+// ======================================================================
+
+void ULCOQuickSlotComponent::HandleUVLightKeyPressed()
+{
+	// Q 휠을 사용하는 동안에는 장비 입력을 무시한다.
+	if (bWheelOpen)
+	{
+		return;
+	}
+
+	SetUVLightEquipped(!bUVLightOn);
+}
+
+void ULCOQuickSlotComponent::SetUVLightEquipped(bool bOn)
+{
+	if (bOn == bUVLightOn)
+	{
+		return;
+	}
+
+	if (bOn)
+	{
+		// UV 라이트 아이템을 획득한 경우에만 켤 수 있음
+		const UInventoryComponent* Inventory = GetInventory();
+		if (!Inventory || !Inventory->HasItem(UVLightItemID))
+		{
+			return;
+		}
+
+		AActor* UVLight = GetOrSpawnUVLight();
+		if (!UVLight)
+		{
+			return;
+		}
+
+		bUVLightOn = true;
+
+		// 일반 손전등은 끔 (손에는 하나만)
+		if (ALCOPlayerCharacter* Character = Cast<ALCOPlayerCharacter>(GetOwner()))
+		{
+			Character->SetFlashlightOn(false);
+		}
+
+		// 모델 보이기 → 빛 켜기
+		UVLight->SetActorHiddenInGame(false);
+		CallUVLightSwitch(UVLight, true);
+	}
+	else
+	{
+		bUVLightOn = false;
+
+		if (UVLightActor)
+		{
+			// 빛 끄기 → 모델까지 숨기기
+			CallUVLightSwitch(UVLightActor, false);
+			UVLightActor->SetActorHiddenInGame(true);
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LCOQuickSlot] UV 라이트 %s"), bUVLightOn ? TEXT("켜짐") : TEXT("꺼짐"));
+	OnUVLightChanged.Broadcast(bUVLightOn);
+}
+
+void ULCOQuickSlotComponent::HandleFlashlightToggled(bool bFlashlightOn)
+{
+	// 일반 손전등이 켜지면 UV 라이트는 끔
+	if (bFlashlightOn && bUVLightOn)
+	{
+		SetUVLightEquipped(false);
+	}
+}
+
+AActor* ULCOQuickSlotComponent::GetOrSpawnUVLight()
+{
+	if (UVLightActor)
+	{
+		return UVLightActor;
+	}
+
+	if (!UVLightClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOQuickSlot] UVLightClass(BP_UVFlashlight)가 비어 있음"));
+		return nullptr;
+	}
+
+	AActor* Owner = GetOwner();
+	UWorld* World = GetWorld();
+	if (!Owner || !World)
+	{
+		return nullptr;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = Owner;
+	SpawnParams.Instigator = Cast<APawn>(Owner);
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	UVLightActor = World->SpawnActor<AActor>(UVLightClass, Owner->GetActorTransform(), SpawnParams);
+	if (!UVLightActor)
+	{
+		return nullptr;
+	}
+
+	UVLightActor->SetActorEnableCollision(false);
+
+	// 캐릭터 손전등(Spot Light)과 같은 위치에 부착. 없으면 캐릭터 루트
+	USceneComponent* AttachTarget = Owner->FindComponentByClass<USpotLightComponent>();
+	if (!AttachTarget)
+	{
+		AttachTarget = Owner->GetRootComponent();
+	}
+	UVLightActor->AttachToComponent(AttachTarget, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
+	// 시작은 꺼진 상태 + 모델 숨김
+	CallUVLightSwitch(UVLightActor, false);
+	UVLightActor->SetActorHiddenInGame(true);
+	return UVLightActor;
+}
+
+void ULCOQuickSlotComponent::CallUVLightSwitch(AActor* UVLight, bool bOn) const
+{
+	if (!UVLight)
+	{
+		return;
+	}
+
+	// BP 함수 SetUVLightOn(bool) 찾아서 호출
+	UFunction* SwitchFunction = UVLight->FindFunction(UVLightSwitchFunctionName);
+	if (!SwitchFunction || SwitchFunction->NumParms != 1)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOQuickSlot] %s에 %s(bool) 함수가 없음"),
+			*UVLight->GetName(), *UVLightSwitchFunctionName.ToString());
+		return;
+	}
+
+	struct FSwitchParams
+	{
+		bool bOn;
+	};
+
+	FSwitchParams Params{ bOn };
+	UVLight->ProcessEvent(SwitchFunction, &Params);
 }
 
 void ULCOQuickSlotComponent::HandleCapturePressed()

@@ -13,7 +13,7 @@ class UTextBlock;
  *   WBP_QuickSlotHUD   : 화면 구석에 1~4 가로 배치 (달릴 때만 표시)
  *   WBP_QuickSlotWheel : 화면 중앙에 위/오른쪽/아래/왼쪽 = 1/2/3/4 배치 (Q 꾹)
  *
- * 디자이너에서 WBP_QuickSlotEntry 4개를 Slot_1 ~ Slot_4 이름으로 배치 (필수)
+ * 디자이너에서 WBP_QuickSlotEntry 4개를 Slot_1 ~ Slot_5 이름으로 배치 (필수)
  * Txt_SelectedName (선택) : 휠에서 현재 선택한 아이템 이름 표시
  *                          선택 없음(가운데)일 때는 NoSelectionTextKey 문구 ("맨손") 표시
  *

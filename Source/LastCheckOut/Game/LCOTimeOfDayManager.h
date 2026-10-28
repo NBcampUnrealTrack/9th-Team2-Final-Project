@@ -10,9 +10,8 @@ class ASkyLight;
 class APostProcessVolume;
 
 // 맵의 시간대 조명 담당 (맵마다 1개 배치)
-// - ArrivalTimeOfDay: 이 맵에 도착하면 되는 시간대 (Main: 정오 이후 / Outdoor: 해질녘 / Annex: 저녁)
-// - 맵이 시작되면 LCOGameMode가 "지금까지의 시간대"와 ArrivalTimeOfDay 중 더 늦은 쪽으로 갱신 후 ApplyTimeOfDay 호출
-//   → 시간대는 앞으로만 진행 (저녁이 된 뒤 Main / Outdoor에 가도 저녁 유지)
+// - 시간대는 챕터가 끝날 때만 진행 (1막: 정오 이후 / 2막: 해질녘 / 3막: 저녁). 맵 이동으로는 바뀌지 않음
+// - 맵이 시작되면 LCOGameMode가 현재 시간대로 ApplyTimeOfDay 호출 (어느 맵이든 같은 시간대)
 // - 디테일 패널에서 Sun(Directional Light) / SkyLight / (선택) PostProcessVolume 지정
 // - 실행 중에 태양을 움직이므로 Directional Light / Sky Light의 Mobility는 Movable
 UCLASS()
@@ -27,18 +26,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|TimeOfDay")
 	void ApplyTimeOfDay(ELCOTimeOfDay TimeOfDay);
 
-	// 이 맵에 도착하면 되는 시간대
-	UFUNCTION(BlueprintPure, Category = "LCO|TimeOfDay")
-	ELCOTimeOfDay GetArrivalTimeOfDay() const { return ArrivalTimeOfDay; }
-
 protected:
 	// 시간대가 적용된 뒤 호출 (BP에서 가로등 켜기, 안개 변경 등 추가 연출용)
 	UFUNCTION(BlueprintImplementableEvent, Category = "LCO|TimeOfDay")
 	void OnTimeOfDayApplied(ELCOTimeOfDay TimeOfDay);
-
-	// 이 맵에 도착하면 되는 시간대 (Main: 정오 이후 / Outdoor: 해질녘 / Annex: 저녁)
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "LCO|TimeOfDay")
-	ELCOTimeOfDay ArrivalTimeOfDay = ELCOTimeOfDay::Noon;
 
 	// 태양 (맵의 Directional Light)
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "LCO|TimeOfDay")

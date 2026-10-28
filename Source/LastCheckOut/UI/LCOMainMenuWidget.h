@@ -59,6 +59,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|MainMenu")
 	FString SaveSlotName = TEXT("LCO_Save_0");
 
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|MainMenu")
+	TSubclassOf<UUserWidget> SettingsWidgetClass;
+
 	// ---------- 바인딩 위젯 (WBP에서 같은 이름으로 생성) ----------
 
 	UPROPERTY(meta = (BindWidget))
@@ -122,6 +125,9 @@ private:
 
 	// 시작 모드 저장 후 게임 레벨로 이동
 	void StartGameWithMode(ELCOGameStartMode InStartMode);
+
+	UPROPERTY()
+	TObjectPtr<UUserWidget> SettingsWidget;
 
 	// 레벨 이동 중 중복 클릭 방지
 	bool bIsTransitioning = false;

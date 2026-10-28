@@ -448,9 +448,15 @@ void ALCOGameMode::HandleReportResolved(ELCOStoryFlag PresentedKeyword, ELCORepo
 	switch (Result)
 	{
 	case ELCOReportResult::Chapter1Clear:
+		// 1막 끝 → 2막 시간대(해질녘)로 진행. 맵 이동 전에 바꿔야 도착 자동 저장에 같이 저장됨
+		if (const ULCOStorySubsystem* StorySubsystem = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>())
+		{
+			AdvanceTimeOfDay(GetTimeOfDayForChapter(StorySubsystem->GetCurrentChapterID()));
+		}
+
 		if (!Chapter2StartLevel.IsNull())
 		{
-			// 2막 시작 맵(별관 407호 앞)으로 이동 → 도착 후 자동 저장
+			// 2막 시작 맵으로 이동 → 도착 후 자동 저장
 			UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] Chapter1 clear -> Travel to Chapter2 start"));
 			TravelToLevel(Chapter2StartLevel, Chapter2StartTag, true);
 		}
@@ -574,35 +580,80 @@ void ALCOGameMode::TryAutoSaveOnArrival()
 
 void ALCOGameMode::RefreshTimeOfDay()
 {
-	ALCOTimeOfDayManager* Manager = FindTimeOfDayManager();
-	if (!Manager)
-	{
-		// 시간대 매니저가 없는 맵 (메인 메뉴 등): 맵 조명 그대로
-		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] RefreshTimeOfDay: No LCOTimeOfDayManager in this map"));
-		return;
-	}
-
 	ULCOGameInstance* LCOGameInstance = GetGameInstance<ULCOGameInstance>();
 	if (!LCOGameInstance)
 	{
 		return;
 	}
 
-	// 지금까지의 시간대와 이 맵의 도착 시간대 중 더 늦은 쪽 (시간대는 앞으로만 진행)
+	// 저장된 시간대가 현재 챕터 시간대보다 이르면 챕터 시간대로 맞춤 (이전 세이브, 테스트로 챕터만 바뀐 경우 등)
 	const ELCOTimeOfDay PrevTimeOfDay = LCOGameInstance->GetCurrentTimeOfDay();
-	const ELCOTimeOfDay NewTimeOfDay = FMath::Max(PrevTimeOfDay, Manager->GetArrivalTimeOfDay());
+	ELCOTimeOfDay NewTimeOfDay = PrevTimeOfDay;
+	if (const ULCOStorySubsystem* StorySubsystem = LCOGameInstance->GetSubsystem<ULCOStorySubsystem>())
+	{
+		NewTimeOfDay = FMath::Max(PrevTimeOfDay, GetTimeOfDayForChapter(StorySubsystem->GetCurrentChapterID()));
+	}
 
 	if (NewTimeOfDay != PrevTimeOfDay)
 	{
 		LCOGameInstance->SetCurrentTimeOfDay(NewTimeOfDay);
 	}
 
+	ALCOTimeOfDayManager* Manager = FindTimeOfDayManager();
+	if (!Manager)
+	{
+		// 시간대 매니저가 없는 맵 (메인 메뉴, 택시 등): 맵 조명 그대로
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] RefreshTimeOfDay: No LCOTimeOfDayManager in this map"));
+		return;
+	}
+
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] RefreshTimeOfDay: %s -> %s (Map = %s)"),
-		*UEnum::GetValueAsString(PrevTimeOfDay), *UEnum::GetValueAsString(NewTimeOfDay),
-		*UEnum::GetValueAsString(Manager->GetArrivalTimeOfDay()));
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] RefreshTimeOfDay: %s (Map = %s)"),
+		*UEnum::GetValueAsString(NewTimeOfDay), *GetWorld()->GetMapName());
 
 	Manager->ApplyTimeOfDay(NewTimeOfDay);
+}
+
+void ALCOGameMode::AdvanceTimeOfDay(ELCOTimeOfDay NewTimeOfDay)
+{
+	ULCOGameInstance* LCOGameInstance = GetGameInstance<ULCOGameInstance>();
+	if (!LCOGameInstance)
+	{
+		return;
+	}
+
+	// 시간대는 앞으로만 진행
+	const ELCOTimeOfDay PrevTimeOfDay = LCOGameInstance->GetCurrentTimeOfDay();
+	if (NewTimeOfDay <= PrevTimeOfDay)
+	{
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] AdvanceTimeOfDay ignored: %s -> %s"),
+			*UEnum::GetValueAsString(PrevTimeOfDay), *UEnum::GetValueAsString(NewTimeOfDay));
+		return;
+	}
+
+	LCOGameInstance->SetCurrentTimeOfDay(NewTimeOfDay);
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] AdvanceTimeOfDay: %s -> %s"),
+		*UEnum::GetValueAsString(PrevTimeOfDay), *UEnum::GetValueAsString(NewTimeOfDay));
+
+	if (ALCOTimeOfDayManager* Manager = FindTimeOfDayManager())
+	{
+		Manager->ApplyTimeOfDay(NewTimeOfDay);
+	}
+}
+
+ELCOTimeOfDay ALCOGameMode::GetTimeOfDayForChapter(FName ChapterID)
+{
+	if (ChapterID == FName(TEXT("Chapter2")))
+	{
+		return ELCOTimeOfDay::Sunset;
+	}
+	if (ChapterID == FName(TEXT("Chapter3")))
+	{
+		return ELCOTimeOfDay::Evening;
+	}
+	return ELCOTimeOfDay::Noon;
 }
 
 void ALCOGameMode::ApplyTimeOfDayForTest(ELCOTimeOfDay TimeOfDay)

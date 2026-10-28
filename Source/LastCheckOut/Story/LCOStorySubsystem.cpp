@@ -134,7 +134,7 @@ void ULCOStorySubsystem::BuildUnlockRules()
 	using F = ELCOStoryFlag;
 	UnlockRules.Empty();
 
-	// 증언 (대화로 해금)
+	// 1막 증언 (대화로 해금)
 	AddUnlockRule(F::T01, {}, {});                         // 기본 대화
 	AddUnlockRule(F::T02, {}, { F::K01 });
 	AddUnlockRule(F::T03, {}, {});                         // 기본 대화
@@ -147,20 +147,33 @@ void ULCOStorySubsystem::BuildUnlockRules()
 	AddUnlockRule(F::T10, { TEXT("E03") }, {});
 	AddUnlockRule(F::T11, {}, { F::T09 });
 
-	// 조합 키워드 (수첩 추리로 해금)
-	// [407호 라인]
+	// 1막 조합 키워드 (수첩 추리로 해금)
+	// [407호]
 	AddUnlockRule(F::K01, { TEXT("E04"), TEXT("E08") }, {});
 	AddUnlockRule(F::K02, { TEXT("E04"), TEXT("E05"), TEXT("E06") }, {});
 	AddUnlockRule(F::K05, {}, { F::T09, F::T02, F::T11 });                 // → 지배인에게 제시하면 1막 클리어
 
-	// [실족사 라인]
+	// [실족사]
 	AddUnlockRule(F::K08, { TEXT("E01"), TEXT("E02") }, {});
 	AddUnlockRule(F::K04, {}, { F::K08, F::T04, F::T06 });
 	AddUnlockRule(F::K06, { TEXT("E09") }, { F::T05 });
 	AddUnlockRule(F::K07, { TEXT("E10") }, { F::K04, F::K06 });          // → 지배인에게 보고하면 END 3
 
-	// [심리 라인]
+	// [심리]
 	AddUnlockRule(F::K03, { TEXT("E03"), TEXT("E07") }, {});               // 있으면 END 3 보고 시 주인공이 멈춤
+
+	// 2막 증언 (대화로 해금)
+	AddUnlockRule(F::T12, { TEXT("E16") }, {});                            // 청소 카트 보유 → 청소부
+	AddUnlockRule(F::T13, {}, {});                                         // 관리인 기본 대화
+	AddUnlockRule(F::T14, {}, {});                                         // 선임 청소부 기본 대화
+	AddUnlockRule(F::T15, {}, { F::K09, F::K10, F::T09 });                 // 선임 청소부 심문 성공
+
+	// 2막 조합 키워드
+	AddUnlockRule(F::K09, { TEXT("E11"), TEXT("E13") }, {});
+	AddUnlockRule(F::K12, { TEXT("E12") }, { F::T14 });
+	AddUnlockRule(F::K13, { TEXT("E15"), TEXT("E16") }, {});
+	AddUnlockRule(F::K10, {}, { F::K12, F::K13 });                         // → 선임 청소부 심문에 필요
+	AddUnlockRule(F::K11, { TEXT("E17") }, { F::T15 });                    // → 구관 조사 (3막)
 }
 
 void ULCOStorySubsystem::AddUnlockRule(ELCOStoryFlag Flag, const TArray<FName>& RequiredEvidence, const TArray<ELCOStoryFlag>& RequiredFlags)

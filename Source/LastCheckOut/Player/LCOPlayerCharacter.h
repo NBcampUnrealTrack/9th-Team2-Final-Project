@@ -24,6 +24,7 @@ class ALCOHidingSpot;
 class ULCOFootstepComponent;
 class USpotLightComponent;
 class USoundBase;
+class UAnimationAsset;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLCOMoveStateChanged);
@@ -324,6 +325,8 @@ protected:
 	void ApplyCameraHeight();
 	// 시점에 맞는 메시의 손에 손 카메라 부착 (1인칭: 1인칭 메시 / 3인칭: 3인칭 메시)
 	void AttachHeldCamera();
+	// 시점 / 손전등 상태에 맞게 손전등 팔, 모델 표시 갱신
+	void UpdateFlashlightVisuals();
 
 	// 달리기 조건(Shift, 이동 중, 지면, 스태미나)을 확인해서 상태 갱신
 	void UpdateSprint();
@@ -553,6 +556,13 @@ protected:
 	// 손에 든 손전등 모델 (켜져 있을 때만 보임)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Flashlight")
 	TObjectPtr<UStaticMeshComponent> FlashlightMesh;
+	// 1인칭 손전등 팔 (카메라에 부착, 팔 전용 메시 + 손전등 애니메이션, 내 화면에서만 보임)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Flashlight")
+	TObjectPtr<USkeletalMeshComponent> FlashlightArmsMesh;
+
+	// 1인칭 손전등 팔이 들고 있는 손전등 모델
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Flashlight")
+	TObjectPtr<UStaticMeshComponent> FirstPersonFlashlightMesh;
 	
 	// ---------- 손전등 ----------
 	// 눈 위치 기준 손전등 위치 (X: 앞, Y: 오른쪽, Z: 위). 3인칭에서 내 몸에 가리지 않게 살짝 앞으로
@@ -566,7 +576,13 @@ protected:
 	// 손전등 모델을 붙일 손 소켓 (카메라는 오른손 hand_r)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Flashlight")
 	FName FlashlightSocket = TEXT("hand_l");
-	
+	// 1인칭 손전등 팔이 재생할 애니메이션 (팩 원본 MM_Idle_Flashlight)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Flashlight")
+	TObjectPtr<UAnimationAsset> FlashlightArmsAnim;
+
+	// 1인칭 손전등 팔이 보일 때 1인칭 전신 메시에서 숨길 팔 뼈 (겹쳐 보이지 않게)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Flashlight")
+	FName FlashlightArmBone = TEXT("upperarm_r");
 	// ---------- 버프 화면 효과 ----------
 	// 버프 시작 / 종료 시 효과가 완전히 켜지거나 꺼지는 데 걸리는 시간(초)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|BuffEffect", meta = (ClampMin = "0.01"))

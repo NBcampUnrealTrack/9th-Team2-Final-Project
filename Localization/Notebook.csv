@@ -1539,6 +1539,344 @@ Mas só pelo resultado do exame não dá para afirmar que ela realmente teve ton
 Näyttää siltä, että uhrilla oli jo ennen onnettomuutta taipumusta huimaukseen.
 
 Pelkkien tarkastustulosten perusteella ei kuitenkaan voi varmuudella sanoa, että hänellä todella oli huimausta onnettomuuden hetkellä."
+
+Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
+E11_TITLE,의료용 가위,Medical Scissors,医療用ハサミ,医用剪刀,醫用剪刀,Tijeras médicas,Ciseaux médicaux,Medizinische Schere,Tesoura médica,Lääkintäsakset
+E11_DESC,"별관 407호의 서랍에서 의료용 가위를 발견했다.
+
+일반 객실에 둘 만한 물건은 아니다. 투숙객을 받지 않는 객실이라면 더더욱 이런 물건이 있을 이유가 없다.
+
+누가, 무엇에 쓰려고 이곳에 두었는지 확인해 봐야겠다.","I found a pair of medical scissors in a drawer in Annex Room 407.
+
+It's not the sort of thing you'd keep in an ordinary guest room. Even less so in a room that isn't taking guests.
+
+I should find out who left them here, and what for.","別館407号室の引き出しで、医療用のハサミを見つけた。
+
+普通の客室に置いておくような物ではない。客を受け入れていない部屋なら、なおさらこんな物がある理由はない。
+
+誰が、何のためにここに置いたのか、確かめる必要がある。","我在别馆407号房的抽屉里发现了一把医用剪刀。
+
+这不是普通客房里会放的东西。更何况是一间不接待住客的客房，就更没有理由放这种东西了。
+
+得查清楚是谁、为了什么把它放在这里。","我在別館407號房的抽屜裡發現了一把醫用剪刀。
+
+這不是一般客房會放的東西。更何況是不接待房客的客房，更沒有理由出現這種東西。
+
+得查清楚是誰、為了什麼把它放在這裡。","Encontré unas tijeras médicas en un cajón de la habitación 407 del anexo.
+
+No es algo que se guarde en una habitación normal. Y menos aún en una habitación que no admite huéspedes.
+
+Tendré que averiguar quién las dejó aquí y para qué.","J’ai trouvé des ciseaux médicaux dans un tiroir de la chambre 407 de l’annexe.
+
+Ce n’est pas le genre d’objet qu’on range dans une chambre ordinaire. Encore moins dans une chambre qui n’accueille aucun client.
+
+Il faut que je découvre qui les a laissés ici, et dans quel but.","In einer Schublade in Zimmer 407 im Nebengebäude habe ich eine medizinische Schere gefunden.
+
+So etwas bewahrt man in einem gewöhnlichen Gästezimmer nicht auf. Erst recht nicht in einem Zimmer, das gar nicht an Gäste vergeben wird.
+
+Ich sollte herausfinden, wer sie hier hinterlassen hat und wozu.","Encontrei uma tesoura médica em uma gaveta do quarto 407 do anexo.
+
+Não é o tipo de coisa que se guarda num quarto comum. Menos ainda num quarto que não recebe hóspedes.
+
+Preciso descobrir quem a deixou aqui, e para quê.","Löysin sivurakennuksen huoneen 407 laatikosta lääkintäsakset.
+
+Tavallisessa hotellihuoneessa ei ole tapana säilyttää tällaisia. Saati huoneessa, johon ei oteta vieraita.
+
+Minun on selvitettävä, kuka ne on jättänyt tänne ja mihin tarkoitukseen."
+E12_TITLE,객실 관리 명부,Room Management Log,客室管理名簿,客房管理名册,客房管理名冊,Registro de gestión de habitaciones,Registre de gestion des chambres,Zimmerverwaltungsliste,Registro de gestão de quartos,Huoneiden hallintaluettelo
+E12_DESC,"호텔의 객실 관리 명부를 확인했다.
+
+'407호 담당: 선임 청소부 (전담)'
+
+다른 객실은 여러 청소부가 돌아가며 맡고 있지만, 407호만은 선임 청소부 한 사람이 전담하고 있다.
+
+투숙객도 받지 않는 객실을 굳이 한 사람이 따로 관리할 이유가 있을까.","I checked the hotel's room management log.
+
+'Room 407: Senior Housekeeper (exclusive)'
+
+The other rooms are handled in rotation by several housekeepers, but Room 407 alone is handled exclusively by the senior housekeeper.
+
+Why would a room that doesn't even take guests need one person assigned to it?","ホテルの客室管理名簿を確認した。
+
+「407号室担当：主任清掃員（専任）」
+
+他の客室は複数の清掃員が交代で担当しているが、407号室だけは主任清掃員が一人で専任している。
+
+客も泊めていない部屋を、わざわざ一人に任せて管理する理由があるのだろうか。","我查看了酒店的客房管理名册。
+
+“407号房负责人：资深清洁工（专门负责）”
+
+其他客房都由几名清洁工轮流负责，唯独407号房由资深清洁工一人专门负责。
+
+一间连住客都不接待的客房，有必要特意安排一个人单独管理吗？","我查看了飯店的客房管理名冊。
+
+「407號房負責人：資深清潔工（專責）」
+
+其他客房都由幾名清潔工輪流負責，只有407號房由資深清潔工一人專責。
+
+一間連房客都不接待的客房，有必要特地交給一個人單獨管理嗎？","Revisé el registro de gestión de habitaciones del hotel.
+
+'Habitación 407: limpiador sénior (dedicación exclusiva)'
+
+Las demás habitaciones las atienden varios limpiadores por turnos, pero la 407 está a cargo exclusivo del limpiador sénior.
+
+¿Por qué asignar a una sola persona una habitación que ni siquiera admite huéspedes?","J’ai consulté le registre de gestion des chambres de l’hôtel.
+
+'Chambre 407 : agent d’entretien principal (exclusivement)'
+
+Les autres chambres sont confiées à plusieurs agents d’entretien à tour de rôle, mais la chambre 407 est entièrement réservée à l’agent d’entretien principal.
+
+Pourquoi confier à une seule personne une chambre qui n’accueille même pas de clients ?","Ich habe die Zimmerverwaltungsliste des Hotels eingesehen.
+
+'Zimmer 407: leitende Reinigungskraft (ausschließlich)'
+
+Die übrigen Zimmer werden von mehreren Reinigungskräften im Wechsel betreut, nur Zimmer 407 betreut die leitende Reinigungskraft allein.
+
+Warum sollte man ein Zimmer, das nicht einmal an Gäste vergeben wird, einer einzigen Person zuteilen?","Consultei o registro de gestão de quartos do hotel.
+
+'Quarto 407: faxineiro sênior (exclusivo)'
+
+Os outros quartos ficam a cargo de vários faxineiros em rodízio, mas só o quarto 407 fica exclusivamente com o faxineiro sênior.
+
+Por que deixar com uma única pessoa um quarto que nem recebe hóspedes?","Tarkastin hotellin huoneiden hallintaluettelon.
+
+'Huone 407: vanhempi siivooja (yksinomaan)'
+
+Muita huoneita hoitaa vuorotellen useampi siivooja, mutta huone 407 on yksinomaan vanhemman siivoojan vastuulla.
+
+Miksi huone, johon ei edes oteta vieraita, on annettu yhden ihmisen hoidettavaksi?"
+E13_TITLE,407호의 이질적인 조명,The Odd Lighting in Room 407,407号室の異質な照明,407号房的异样照明,407號房的異樣照明,La extraña iluminación de la habitación 407,L’éclairage étrange de la chambre 407,Die seltsame Beleuchtung in Zimmer 407,A iluminação estranha do quarto 407,Huoneen 407 oudot valot
+E13_DESC,"별관 407호의 조명을 살펴봤다.
+
+다른 객실의 은은한 조명과 달리, 이 방의 조명은 그림자 하나 없이 실내 전체를 균일하게 비추고 있다.
+
+객실보다는 작업 공간에 어울리는 조명이다. 이 방이 원래 어떤 용도로 쓰였는지 의문이 든다.","I took a look at the lighting in Annex Room 407.
+
+Unlike the soft lighting in the other rooms, the lights here illuminate the whole room evenly, without a single shadow.
+
+It's lighting better suited to a workspace than a guest room. It makes me wonder what this room was really used for.","別館407号室の照明を調べた。
+
+他の客室の柔らかな照明とは違い、この部屋の照明は影ひとつなく、室内全体を均一に照らしている。
+
+客室というより、作業場にふさわしい照明だ。この部屋が本来どんな用途に使われていたのか、疑問が湧く。","我仔细看了看别馆407号房的照明。
+
+和其他客房柔和的灯光不同，这个房间的照明毫无阴影地均匀照亮了整个室内。
+
+与其说是客房，不如说更适合作业空间。我不禁怀疑这个房间原本是做什么用的。","我仔細看了別館407號房的照明。
+
+和其他客房柔和的燈光不同，這個房間的照明毫無陰影地均勻照亮整個室內。
+
+與其說是客房，更像是適合作業空間的照明。我不禁懷疑這個房間原本是做什麼用的。","Examiné la iluminación de la habitación 407 del anexo.
+
+A diferencia de la luz tenue de las demás habitaciones, aquí la iluminación alumbra toda la estancia de manera uniforme, sin una sola sombra.
+
+Es una iluminación más propia de un espacio de trabajo que de una habitación de hotel. Me pregunto para qué se usaba realmente este cuarto.","J’ai examiné l’éclairage de la chambre 407 de l’annexe.
+
+Contrairement à la lumière tamisée des autres chambres, l’éclairage de celle-ci illumine toute la pièce de façon uniforme, sans la moindre ombre.
+
+C’est un éclairage qui conviendrait mieux à un espace de travail qu’à une chambre. Je me demande à quoi servait vraiment cette pièce.","Ich habe mir die Beleuchtung in Zimmer 407 im Nebengebäude angesehen.
+
+Anders als das gedämpfte Licht in den übrigen Zimmern leuchtet sie den ganzen Raum gleichmäßig aus, ohne einen einzigen Schatten.
+
+Diese Beleuchtung passt eher zu einem Arbeitsraum als zu einem Gästezimmer. Ich frage mich, wofür dieser Raum ursprünglich genutzt wurde.","Examinei a iluminação do quarto 407 do anexo.
+
+Ao contrário da luz suave dos outros quartos, a iluminação daqui ilumina todo o ambiente de forma uniforme, sem uma única sombra.
+
+É uma iluminação mais adequada a um espaço de trabalho do que a um quarto de hotel. Fico me perguntando para que este quarto era usado de verdade.","Tarkastelin sivurakennuksen huoneen 407 valaistusta.
+
+Toisin kuin muiden huoneiden himmeä valaistus, tämän huoneen valot valaisevat koko huoneen tasaisesti ilman ainuttakaan varjoa.
+
+Valaistus sopisi paremmin työtilaan kuin hotellihuoneeseen. Mietin, mihin tätä huonetta oikeastaan on käytetty."
+E14_TITLE,선임 청소부의 개인 수첩,Senior Housekeeper's Notebook,主任清掃員の手帳,资深清洁工的私人笔记本,資深清潔工的私人筆記本,Libreta personal del limpiador sénior,Carnet personnel de l’agent d’entretien principal,Persönliches Notizbuch der leitenden Reinigungskraft,Caderno pessoal do faxineiro sênior,Vanhemman siivoojan henkilökohtainen muistikirja
+E14_DESC,"선임 청소부의 개인 수첩을 확인했다.
+
+수첩에는 선임 청소부의 관리 일정과 이동 경로가 날짜별로 꼼꼼하게 기록되어 있다.
+
+언제, 어디를 오갔는지가 이렇게 자세히 남아 있다면, 다른 기록과 대조해 선임 청소부의 동선을 파악할 수 있을 것 같다.","I looked through the senior housekeeper's personal notebook.
+
+It carefully records the senior housekeeper's work schedule and movement routes, day by day.
+
+With this much detail on when and where they went, I should be able to piece together the senior housekeeper's movements by comparing it with other records.","主任清掃員の個人的な手帳を確認した。
+
+手帳には、主任清掃員の業務スケジュールと移動経路が日付ごとに細かく記録されている。
+
+いつ、どこを行き来したのかがここまで詳しく残っているなら、他の記録と照らし合わせて主任清掃員の動きを把握できそうだ。","我查看了资深清洁工的私人笔记本。
+
+笔记本上按日期详细记录了资深清洁工的工作日程和移动路线。
+
+既然什么时候去过哪里都记得这么清楚，和其他记录比对一下，应该就能掌握资深清洁工的行动路线。","我查看了資深清潔工的私人筆記本。
+
+筆記本上按日期詳細記錄了資深清潔工的工作日程與移動路線。
+
+既然什麼時候去過哪裡都記得這麼詳細，和其他紀錄比對一下，應該就能掌握資深清潔工的動線。","Revisé la libreta personal del limpiador sénior.
+
+En ella anota con detalle, día por día, su horario de trabajo y los recorridos que hace.
+
+Con un registro tan minucioso de cuándo y por dónde se movía, debería poder reconstruir sus movimientos contrastándolo con otros registros.","J’ai parcouru le carnet personnel de l’agent d’entretien principal.
+
+Son emploi du temps et ses itinéraires y sont consignés avec soin, jour après jour.
+
+Avec autant de détails sur ses allées et venues, je devrais pouvoir reconstituer ses déplacements en le comparant à d’autres documents.","Ich habe das persönliche Notizbuch der leitenden Reinigungskraft durchgesehen.
+
+Darin sind Arbeitsplan und Laufwege Tag für Tag sorgfältig festgehalten.
+
+Bei so genauen Angaben darüber, wann sie wo war, sollte sich ihr Bewegungsablauf im Abgleich mit anderen Unterlagen rekonstruieren lassen.","Consultei o caderno pessoal do faxineiro sênior.
+
+Nele estão anotados com cuidado, dia a dia, a agenda de trabalho e os trajetos dele.
+
+Com tantos detalhes sobre quando e por onde ele andou, deve dar para reconstituir os passos dele comparando com outros registros.","Kävin läpi vanhemman siivoojan henkilökohtaisen muistikirjan.
+
+Siihen on kirjattu huolellisesti päivä päivältä hänen työaikataulunsa ja kulkureittinsä.
+
+Kun hänen liikkeistään on näin tarkat merkinnät, voin luultavasti selvittää hänen kulkunsa vertaamalla niitä muihin asiakirjoihin."
+E15_TITLE,특수 세정제,Special Cleaning Agent,特殊洗浄剤,特殊清洁剂,特殊清潔劑,Limpiador especial,Nettoyant spécial,Spezialreiniger,Produto de limpeza especial,Erikoispuhdistusaine
+E15_DESC,"특수 세정제를 발견했다.
+
+'용도: 혈액 및 단백질성 오염물 제거'
+
+라벨에는 혈액과 단백질성 오염물 제거에 특화된 제품이라고 적혀 있다. 일반적인 객실 청소에 이런 세정제가 필요할 일은 많지 않다.
+
+어디에서, 무엇을 지우는 데 쓰였는지 확인할 필요가 있다.","I found a special cleaning agent.
+
+'Use: Removal of blood and protein-based stains'
+
+The label says it's specialized for removing blood and protein-based stains. Ordinary room cleaning rarely calls for something like this.
+
+I need to find out where it was used, and what it was used to clean up.","特殊な洗浄剤を見つけた。
+
+「用途：血液およびタンパク質系汚れの除去」
+
+ラベルには、血液やタンパク質系の汚れの除去に特化した製品だと書かれている。普通の客室清掃で、こんな洗浄剤が必要になることはそう多くない。
+
+どこで、何を消すために使われたのか確かめる必要がある。","我发现了一瓶特殊清洁剂。
+
+“用途：清除血液及蛋白质类污渍”
+
+标签上写着这是专门用于清除血液和蛋白质类污渍的产品。一般的客房清洁很少会用到这种清洁剂。
+
+有必要查清它是在哪里、被用来清除什么的。","我發現了一瓶特殊清潔劑。
+
+「用途：清除血液及蛋白質類汙漬」
+
+標籤上寫著這是專門用來清除血液與蛋白質類汙漬的產品。一般的客房清潔很少會需要這種清潔劑。
+
+有必要查清它是在哪裡、被用來清除什麼的。","Encontré un limpiador especial.
+
+'Uso: eliminación de sangre y manchas proteicas'
+
+La etiqueta dice que está especializado en eliminar sangre y manchas proteicas. La limpieza normal de una habitación rara vez requiere algo así.
+
+Tengo que averiguar dónde se usó y qué se limpió con él.","J’ai trouvé un nettoyant spécial.
+
+'Usage : élimination du sang et des taches protéiques'
+
+L’étiquette indique qu’il est spécialement conçu pour éliminer le sang et les taches protéiques. Le ménage ordinaire d’une chambre nécessite rarement ce genre de produit.
+
+Il faut que je découvre où il a été utilisé, et pour effacer quoi.","Ich habe einen Spezialreiniger gefunden.
+
+'Verwendung: Entfernung von Blut und eiweißhaltigen Verschmutzungen'
+
+Laut Etikett ist er speziell zur Entfernung von Blut und eiweißhaltigen Verschmutzungen gedacht. Für die normale Zimmerreinigung braucht man so etwas kaum.
+
+Ich muss herausfinden, wo er verwendet wurde und was damit beseitigt werden sollte.","Encontrei um produto de limpeza especial.
+
+'Uso: remoção de sangue e manchas de proteína'
+
+O rótulo diz que é um produto especializado na remoção de sangue e manchas de proteína. A limpeza comum de um quarto raramente exige algo assim.
+
+Preciso descobrir onde ele foi usado e para limpar o quê.","Löysin erikoispuhdistusaineen.
+
+'Käyttötarkoitus: veren ja proteiinipohjaisten tahrojen poisto'
+
+Etiketin mukaan aine on erikoistunut veren ja proteiinipohjaisten tahrojen poistoon. Tavallisessa huonesiivouksessa tällaista tarvitaan harvoin.
+
+Minun on selvitettävä, missä sitä on käytetty ja mitä sillä on siivottu pois."
+E16_TITLE,407호 전용 청소 카트,Room 407 Cleaning Cart,407号室専用清掃カート,407号房专用清洁推车,407號房專用清潔推車,Carrito de limpieza exclusivo de la habitación 407,Chariot de ménage réservé à la chambre 407,Reinigungswagen nur für Zimmer 407,Carrinho de limpeza exclusivo do quarto 407,Huoneen 407 oma siivouskärry
+E16_DESC,"407호 전용으로 쓰이는 청소 카트를 확인했다.
+
+일반 청소 카트와 달리 밀폐형 수거함이 설치되어 있다. 안에 담은 것이 새어 나오거나 밖에서 보이지 않도록 만든 구조다.
+
+투숙객도 받지 않는 객실 하나를 위해 이런 카트를 따로 마련해 둔 이유가 궁금하다.","I examined the cleaning cart used exclusively for Room 407.
+
+Unlike a regular cleaning cart, it's fitted with a sealed collection bin, built so that nothing inside can leak out or be seen from outside.
+
+I'd like to know why a cart like this was set aside for a single room that doesn't even take guests.","407号室専用に使われている清掃カートを確認した。
+
+普通の清掃カートとは違い、密閉式の回収箱が取り付けられている。中に入れた物が漏れたり、外から見えたりしないような作りだ。
+
+客も泊めていない一室のために、わざわざこんなカートを用意している理由が気になる。","我查看了407号房专用的清洁推车。
+
+和普通清洁推车不同，上面装有密封式收集箱。这种结构能让里面装的东西既不会漏出来，也不会被外面看到。
+
+为了一间连住客都不接待的客房，特意准备这样一辆推车，原因让人在意。","我查看了407號房專用的清潔推車。
+
+和一般清潔推車不同，上面裝有密封式收集箱。這種結構讓裡面裝的東西既不會漏出來，也不會被外面看見。
+
+為了一間連房客都不接待的客房，特地準備這樣的推車，原因令人在意。","Examiné el carrito de limpieza que se usa exclusivamente para la habitación 407.
+
+A diferencia de un carrito normal, lleva un contenedor hermético, pensado para que lo que hay dentro no se derrame ni se vea desde fuera.
+
+Me pregunto por qué se ha reservado un carrito así para una sola habitación que ni siquiera admite huéspedes.","J’ai examiné le chariot de ménage réservé à la chambre 407.
+
+Contrairement à un chariot ordinaire, il est équipé d’un bac de collecte hermétique, conçu pour que rien ne puisse s’en échapper ni être vu de l’extérieur.
+
+Je me demande pourquoi on a prévu un tel chariot pour une seule chambre qui n’accueille même pas de clients.","Ich habe den Reinigungswagen untersucht, der ausschließlich für Zimmer 407 verwendet wird.
+
+Anders als ein gewöhnlicher Reinigungswagen hat er einen verschlossenen Sammelbehälter, der so gebaut ist, dass nichts austreten kann und von außen nichts zu sehen ist.
+
+Ich frage mich, warum man für ein einziges Zimmer, das nicht einmal an Gäste vergeben wird, eigens einen solchen Wagen bereithält.","Examinei o carrinho de limpeza usado exclusivamente para o quarto 407.
+
+Diferente de um carrinho comum, ele tem um coletor hermético, feito para que nada do que vai dentro vaze ou seja visto de fora.
+
+Fico me perguntando por que separaram um carrinho assim para um único quarto que nem recebe hóspedes.","Tutkin siivouskärryä, jota käytetään vain huoneessa 407.
+
+Toisin kuin tavallisessa siivouskärryssä, tähän on asennettu suljettu keräysastia, joka on tehty niin, ettei sisältö pääse vuotamaan eikä näy ulospäin.
+
+Haluaisin tietää, miksi yhtä huonetta varten, johon ei edes oteta vieraita, on varattu tällainen kärry."
+E17_TITLE,호텔 시설 관리 기록,Hotel Facility Maintenance Records,ホテル施設管理記録,酒店设施管理记录,飯店設施管理紀錄,Registros de mantenimiento del hotel,Registres d’entretien de l’hôtel,Wartungsprotokolle des Hotels,Registros de manutenção do hotel,Hotellin kiinteistönhoidon kirjaukset
+E17_DESC,"호텔 시설 관리 기록을 확인했다.
+
+호텔 각 시설의 점검 및 보수 내역이 날짜별로 정리되어 있다.
+
+다른 기록들과 대조해 보면 호텔 시설이 그동안 어떻게 관리되어 왔는지 좀 더 알 수 있을 것 같다.","I checked the hotel's facility maintenance records.
+
+The inspection and repair history for each of the hotel's facilities is organized by date.
+
+If I compare them with the other records, I might learn more about how the hotel's facilities have been managed all this time.","ホテルの施設管理記録を確認した。
+
+ホテル各施設の点検および補修の履歴が、日付ごとに整理されている。
+
+他の記録と照らし合わせれば、ホテルの施設がこれまでどのように管理されてきたのか、もう少しわかりそうだ。","我查看了酒店的设施管理记录。
+
+酒店各项设施的检查及维修情况都按日期整理好了。
+
+和其他记录比对一下，或许能进一步了解酒店设施一直以来是如何管理的。","我查看了飯店的設施管理紀錄。
+
+飯店各項設施的檢查與維修紀錄都按日期整理好了。
+
+若與其他紀錄比對，或許能進一步了解飯店設施一直以來是如何管理的。","Revisé los registros de mantenimiento de las instalaciones del hotel.
+
+El historial de inspecciones y reparaciones de cada instalación está ordenado por fecha.
+
+Si lo contrasto con los demás registros, quizá pueda saber algo más sobre cómo se han gestionado las instalaciones del hotel todo este tiempo.","J’ai consulté les registres d’entretien des installations de l’hôtel.
+
+L’historique des inspections et des réparations de chaque installation y est classé par date.
+
+En les comparant aux autres documents, je pourrais en apprendre davantage sur la manière dont les installations de l’hôtel ont été gérées jusqu’ici.","Ich habe die Wartungsprotokolle der Hoteleinrichtungen eingesehen.
+
+Die Prüf- und Reparaturhistorie jeder Einrichtung ist nach Datum geordnet.
+
+Wenn ich sie mit den anderen Unterlagen abgleiche, kann ich vielleicht mehr darüber erfahren, wie die Einrichtungen des Hotels bisher instand gehalten wurden.","Consultei os registros de manutenção das instalações do hotel.
+
+O histórico de inspeções e reparos de cada instalação está organizado por data.
+
+Se eu comparar com os outros registros, talvez descubra mais sobre como as instalações do hotel foram mantidas esse tempo todo.","Tarkastin hotellin tilojen ylläpitokirjaukset.
+
+Kunkin tilan tarkastus- ja korjaushistoria on järjestetty päivämäärittäin.
+
+Vertaamalla niitä muihin asiakirjoihin voisin ehkä saada selville enemmän siitä, miten hotellin tiloja on tähän asti ylläpidetty."
+
+
 T01_TITLE,대학교수 - 수십 년 단골 (지질 조사),Professor - Regular for Decades (Geological Survey),大学教授 - 数十年来の常連（地質調査）,大学教授 - 数十年的常客（地质调查）,大學教授 - 數十年的常客（地質調查）,Profesor - Cliente habitual desde hace décadas (estudios geológicos),Professeur - Client fidèle depuis des décennies (études géologiques),Professor - Stammgast seit Jahrzehnten (geologische Forschung),Professor - Cliente fiel há décadas (pesquisa geológica),Professori - Kantavieras vuosikymmenten ajalta (geologiset tutkimukset)
 T01_DESC,"호텔에서 만난 대학교수와 이야기를 나눴다.
 
@@ -2681,6 +3019,497 @@ Vastaanottovirkailijan mukaan sivurakennuksen huonetta 407 ei tällä hetkellä 
 Syynä voi olla pelkkä tekninen vika, mutta sitä, miksi huone on ollut tyhjillään näin pitkään, ei ole selvitetty.
 
 Pitää selvittää, miksi hotelli ei käytä kyseistä huonetta."
+
+Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
+T12_TITLE,청소부 - 407호는 선임 청소부 전담,Housekeeper - Only the Senior Housekeeper Handles Room 407,清掃員 - 407号室は主任清掃員の専任,清洁工 - 407号房由资深清洁工专门负责,清潔工 - 407號房由資深清潔工專責,Limpiadora - Solo el limpiador sénior se encarga de la 407,Femme de ménage - La 407 est réservée à l’agent principal,Reinigungskraft - Zimmer 407 betreut nur die leitende Kraft,Faxineira - Só o faxineiro sênior cuida do 407,Siivooja - Huonetta 407 hoitaa vain vanhempi siivooja
+T12_DESC,"별관 청소 창고에서 발견한 407호 전용 청소 카트에 관해 청소부에게 물어봤다.
+
+'407호요? 그 객실은 저희가 청소하지 않아요. 선임님이 전담하시거든요.'
+
+'그 방은 따로 관리하라는 지시가 있어서 일반 청소부들은 들어가지 않습니다.'
+
+청소부에 따르면 407호는 일반 직원들이 청소하지 않으며, 선임 청소부가 전담하고 있다고 한다.
+
+특정 객실에 전담 직원을 배정하는 것은 이상한 일이 아닐 수도 있다. 다만 일반 청소부들의 출입까지 제한하고 있다는 점은 조금 의아하다.
+
+407호를 직접 관리하는 선임 청소부에게 물어보는 편이 좋겠다.","I asked the Housekeeper about the Room 407 cleaning cart I'd found in the Annex cleaning storeroom.
+
+'Room 407? We don't clean that room. The senior housekeeper handles it alone.'
+
+'There are orders to manage that room separately, so regular housekeepers don't go in.'
+
+According to the Housekeeper, Room 407 isn't cleaned by the regular staff; the senior housekeeper is solely in charge of it.
+
+Assigning a dedicated staff member to a particular room may not be unusual in itself. But barring even the regular housekeepers from going in is a little puzzling.
+
+I'd better ask the senior housekeeper, who manages Room 407 directly.","別館の清掃用具倉庫で見つけた407号室専用の清掃カートについて、清掃員に尋ねた。
+
+「407号室ですか？あの部屋は私たちは掃除しないんです。主任さんが専任で担当されているので。」
+
+「あの部屋は別に管理するよう指示があるので、一般の清掃員は入らないんです。」
+
+清掃員によれば、407号室は一般の従業員は掃除せず、主任清掃員が専任で担当しているという。
+
+特定の客室に専任の従業員をつけること自体は、おかしなことではないのかもしれない。ただ、一般の清掃員の立ち入りまで制限している点は少し腑に落ちない。
+
+407号室を直接管理している主任清掃員に聞いてみたほうがよさそうだ。","我向清洁工询问了在别馆清洁仓库里发现的407号房专用清洁推车。
+
+“407号房吗？那间客房不归我们打扫。是资深前辈专门负责的。”
+
+“上面有指示说那个房间要单独管理，所以普通清洁工是不进去的。”
+
+据清洁工说，407号房不由普通员工打扫，而是由资深清洁工专门负责。
+
+给特定客房安排专门的员工，也许并不奇怪。但连普通清洁工都不让进去，这一点有些令人疑惑。
+
+还是直接去问负责管理407号房的资深清洁工比较好。","我向清潔工詢問了在別館清潔倉庫發現的407號房專用清潔推車。
+
+「407號房嗎？那間客房不是我們打掃的。是資深前輩專責的。」
+
+「上面有指示那個房間要另外管理，所以一般清潔工不會進去。」
+
+據清潔工說，407號房不由一般員工打掃，而是由資深清潔工專責。
+
+為特定客房安排專責員工，或許並不奇怪。但連一般清潔工都限制進入，這點讓人有些疑惑。
+
+最好直接去問負責管理407號房的資深清潔工。","Le pregunté a la limpiadora por el carrito de limpieza exclusivo de la habitación 407 que encontré en el almacén de limpieza del anexo.
+
+'¿La 407? Esa habitación no la limpiamos nosotros. De ella se encarga solo el limpiador sénior.'
+
+'Hay órdenes de gestionar esa habitación aparte, así que el personal de limpieza normal no entra.'
+
+Según la limpiadora, el personal habitual no limpia la habitación 407; de ella se encarga en exclusiva el limpiador sénior.
+
+Asignar a un empleado concreto a una habitación determinada quizá no sea nada raro. Pero que se impida la entrada incluso al resto del personal de limpieza resulta un poco extraño.
+
+Será mejor preguntarle al limpiador sénior, que es quien gestiona directamente la habitación 407.","J’ai interrogé la femme de ménage au sujet du chariot de ménage réservé à la chambre 407, trouvé dans le local de ménage de l’annexe.
+
+'La 407 ? Ce n’est pas nous qui faisons cette chambre. C’est l’agent principal qui s’en occupe, seul.'
+
+'On a reçu l’ordre de gérer cette chambre à part, alors le personnel de ménage ordinaire n’y entre pas.'
+
+D’après la femme de ménage, la chambre 407 n’est pas nettoyée par le personnel ordinaire : c’est l’agent d’entretien principal qui en a la charge exclusive.
+
+Attribuer un employé dédié à une chambre précise n’a peut-être rien d’anormal. Mais interdire l’accès même au personnel de ménage ordinaire est un peu étrange.
+
+Mieux vaudrait interroger l’agent d’entretien principal, qui gère directement la chambre 407.","Ich habe die Reinigungskraft nach dem Reinigungswagen für Zimmer 407 gefragt, den ich in der Putzkammer des Nebengebäudes gefunden habe.
+
+'Zimmer 407? Das putzen wir nicht. Das macht ausschließlich die leitende Reinigungskraft.'
+
+'Es gibt die Anweisung, das Zimmer gesondert zu betreuen, deshalb gehen die normalen Reinigungskräfte da nicht rein.'
+
+Laut der Reinigungskraft wird Zimmer 407 nicht vom regulären Personal gereinigt; zuständig ist allein die leitende Reinigungskraft.
+
+Einem bestimmten Zimmer eine feste Kraft zuzuteilen, ist vielleicht nichts Ungewöhnliches. Dass aber selbst den normalen Reinigungskräften der Zutritt verwehrt wird, ist etwas merkwürdig.
+
+Ich sollte besser die leitende Reinigungskraft fragen, die Zimmer 407 selbst betreut.","Perguntei à faxineira sobre o carrinho de limpeza exclusivo do quarto 407 que encontrei no depósito de limpeza do anexo.
+
+'O 407? Esse quarto a gente não limpa. Quem cuida dele é só o faxineiro sênior.'
+
+'Tem ordem para cuidar desse quarto à parte, então os faxineiros comuns não entram lá.'
+
+Segundo a faxineira, o quarto 407 não é limpo pelos funcionários comuns; fica exclusivamente a cargo do faxineiro sênior.
+
+Designar um funcionário exclusivo para um quarto específico talvez não seja nada estranho. Mas proibir até a entrada dos faxineiros comuns é um pouco curioso.
+
+É melhor perguntar ao faxineiro sênior, que cuida diretamente do quarto 407.","Kysyin siivoojalta sivurakennuksen siivousvarastosta löytämästäni huoneen 407 omasta siivouskärrystä.
+
+'Huone 407? Emme me siivoa sitä huonetta. Vanhempi siivooja hoitaa sen yksin.'
+
+'Sitä huonetta on käsketty hoitaa erikseen, joten tavalliset siivoojat eivät mene sinne.'
+
+Siivoojan mukaan tavallinen henkilökunta ei siivoa huonetta 407, vaan se on yksinomaan vanhemman siivoojan vastuulla.
+
+Ei ehkä ole mitenkään outoa, että tietylle huoneelle on nimetty oma työntekijä. Mutta se, että tavallisten siivoojien pääsyäkin rajoitetaan, on hieman kummallista.
+
+Minun on parasta kysyä vanhemmalta siivoojalta, joka hoitaa huonetta 407 itse."
+T13_TITLE,관리인 - 별관 이용 수칙,Caretaker - Annex House Rules,管理人 - 別館の利用規則,管理员 - 别馆使用守则,管理員 - 別館使用守則,Conserje - Normas del anexo,Gardien - Le règlement de l’annexe,Hausmeister - Hausregeln im Nebengebäude,Zelador - Regras do anexo,Talonmies - Sivurakennuksen säännöt
+T13_DESC,"별관에 들어와 관리인에게 시설 이용에 관한 안내를 받았다.
+
+'직원 전용 구역에는 허가 없이 들어가지 마십시오. 관계자 외에는 출입이 금지되어 있습니다.'
+
+'청소 중인 객실에도 함부로 들어가지 마십시오. 직원들의 업무에 방해가 됩니다.'
+
+'그리고 별관에는 다른 투숙객분들도 계십니다. 다른 손님들의 사생활 보호를 위해 사진 촬영은 삼가 주십시오.'
+
+관리인은 직원 전용 구역의 출입과 청소 중인 객실에 들어가는 행위, 사진 촬영을 금지한다고 설명했다.
+
+다른 투숙객의 사생활과 직원들의 업무를 보호하기 위한 일반적인 규칙으로 보인다.
+
+다만 조사를 진행하려면 객실 내부를 확인하거나 사진을 촬영해야 할 수도 있다. 관리인의 눈에 띄지 않도록 주의할 필요가 있겠다.","When I entered the Annex, the Caretaker briefed me on the rules for using the facilities.
+
+'Please don't enter staff-only areas without permission. Access is restricted to authorized personnel.'
+
+'Please don't walk into rooms that are being cleaned, either. It gets in the way of the staff's work.'
+
+'And there are other guests staying in the Annex. Out of respect for their privacy, please refrain from taking photographs.'
+
+The Caretaker explained that entering staff-only areas, going into rooms being cleaned, and taking photographs are all prohibited.
+
+They seem like ordinary rules to protect other guests' privacy and the staff's work.
+
+But to move my investigation forward, I may need to check inside rooms or take photos. I'll have to be careful not to be noticed by the Caretaker.","別館に入ると、管理人から施設の利用について案内を受けた。
+
+「従業員専用区域には、許可なく立ち入らないでください。関係者以外は立入禁止です。」
+
+「清掃中の客室にも、むやみに入らないでください。従業員の業務の妨げになります。」
+
+「それと、別館には他のお客様もいらっしゃいます。他のお客様のプライバシー保護のため、写真撮影はご遠慮ください。」
+
+管理人は、従業員専用区域への立ち入り、清掃中の客室に入ること、写真撮影を禁止していると説明した。
+
+他の宿泊客のプライバシーと従業員の業務を守るための、一般的な規則のようだ。
+
+ただ、調査を進めるには客室の中を確かめたり、写真を撮ったりする必要があるかもしれない。管理人の目につかないよう気をつけたほうがよさそうだ。","进入别馆后，管理员向我介绍了设施的使用须知。
+
+“未经许可请勿进入员工专用区域。非相关人员禁止入内。”
+
+“也请不要随意进入正在打扫的客房。这会妨碍员工工作。”
+
+“另外，别馆里还住着其他客人。为保护其他客人的隐私，请勿拍照。”
+
+管理员说明，禁止进入员工专用区域、禁止进入正在打扫的客房，也禁止拍照。
+
+看来是为了保护其他住客的隐私和员工工作的一般规定。
+
+不过，要推进调查，我可能需要查看客房内部或拍照。得小心别被管理员发现。","進入別館後，管理員向我說明了設施的使用須知。
+
+「未經許可請勿進入員工專用區域。非相關人員禁止進入。」
+
+「也請不要隨意進入正在打掃的客房。這會妨礙員工工作。」
+
+「另外，別館還有其他房客入住。為保護其他客人的隱私，請勿拍照。」
+
+管理員說明，禁止進入員工專用區域、禁止進入打掃中的客房，也禁止拍照。
+
+看來是為了保護其他房客的隱私與員工工作的一般規定。
+
+不過，要繼續調查，我可能需要確認客房內部或拍照。得小心別被管理員發現。","Al entrar en el anexo, el conserje me explicó las normas de uso de las instalaciones.
+
+'No entre sin permiso en las zonas reservadas al personal. El acceso está prohibido a toda persona ajena.'
+
+'Tampoco entre en las habitaciones que se estén limpiando. Entorpece el trabajo del personal.'
+
+'Y en el anexo se alojan otros huéspedes. Para proteger su privacidad, le rogamos que se abstenga de hacer fotos.'
+
+El conserje explicó que está prohibido entrar en las zonas reservadas al personal, entrar en habitaciones que se estén limpiando y hacer fotos.
+
+Parecen normas habituales para proteger la privacidad de los demás huéspedes y el trabajo del personal.
+
+Pero para avanzar en la investigación quizá tenga que revisar el interior de alguna habitación o hacer fotos. Tendré que tener cuidado de que el conserje no me vea.","En entrant dans l’annexe, le gardien m’a expliqué les règles d’utilisation des installations.
+
+'N’entrez pas dans les zones réservées au personnel sans autorisation. L’accès est interdit à toute personne étrangère au service.'
+
+'N’entrez pas non plus dans les chambres en cours de ménage. Cela gêne le travail du personnel.'
+
+'Et d’autres clients séjournent dans l’annexe. Par respect pour leur vie privée, veuillez vous abstenir de prendre des photos.'
+
+Le gardien a expliqué qu’il est interdit d’entrer dans les zones réservées au personnel et dans les chambres en cours de ménage, ainsi que de prendre des photos.
+
+Ce sont apparemment des règles ordinaires, destinées à protéger la vie privée des autres clients et le travail du personnel.
+
+Mais pour avancer dans mon enquête, je devrai peut-être inspecter l’intérieur des chambres ou prendre des photos. Il faudra veiller à ne pas me faire remarquer par le gardien.","Als ich das Nebengebäude betrat, erklärte mir der Hausmeister die Regeln für die Nutzung der Einrichtungen.
+
+'Bitte betreten Sie die Personalbereiche nicht ohne Erlaubnis. Unbefugten ist der Zutritt verboten.'
+
+'Bitte gehen Sie auch nicht einfach in Zimmer, die gerade gereinigt werden. Das behindert das Personal bei der Arbeit.'
+
+'Außerdem wohnen noch andere Gäste im Nebengebäude. Zum Schutz ihrer Privatsphäre bitten wir Sie, auf Fotos zu verzichten.'
+
+Der Hausmeister erklärte, dass das Betreten der Personalbereiche und von Zimmern, die gerade gereinigt werden, sowie das Fotografieren verboten sind.
+
+Das scheinen übliche Regeln zum Schutz der Privatsphäre anderer Gäste und der Arbeit des Personals zu sein.
+
+Für meine Ermittlungen muss ich aber womöglich Zimmer von innen ansehen oder Fotos machen. Ich sollte aufpassen, dass mich der Hausmeister dabei nicht bemerkt.","Ao entrar no anexo, o zelador me explicou as regras de uso das instalações.
+
+'Não entre nas áreas exclusivas para funcionários sem autorização. A entrada é proibida a pessoas não autorizadas.'
+
+'Também não entre nos quartos que estão sendo limpos. Isso atrapalha o trabalho dos funcionários.'
+
+'E há outros hóspedes no anexo. Para proteger a privacidade deles, pedimos que evite tirar fotos.'
+
+O zelador explicou que é proibido entrar nas áreas de funcionários, entrar em quartos em limpeza e tirar fotos.
+
+Parecem regras comuns para proteger a privacidade dos outros hóspedes e o trabalho dos funcionários.
+
+Mas, para avançar na investigação, talvez eu precise verificar o interior de algum quarto ou tirar fotos. Vou ter que tomar cuidado para o zelador não me ver.","Kun tulin sivurakennukseen, talonmies kertoi minulle tilojen käyttöä koskevat ohjeet.
+
+'Älkää menkö henkilökunnan tiloihin ilman lupaa. Asiattomilta pääsy on kielletty.'
+
+'Älkää myöskään menkö huoneisiin, joita siivotaan. Se haittaa henkilökunnan työtä.'
+
+'Lisäksi sivurakennuksessa majoittuu muitakin vieraita. Heidän yksityisyytensä vuoksi pyydämme, ettette ota valokuvia.'
+
+Talonmies kertoi, että henkilökunnan tiloihin ja siivottaviin huoneisiin meneminen sekä valokuvaaminen on kielletty.
+
+Ne vaikuttavat tavallisilta säännöiltä, joilla suojellaan muiden vieraiden yksityisyyttä ja henkilökunnan työtä.
+
+Tutkinnan edistämiseksi minun on kuitenkin ehkä tarkistettava huoneita sisältä tai otettava valokuvia. Täytyy varoa, ettei talonmies huomaa."
+T14_TITLE,선임 청소부 - 지배인 지시로 407호 전담,Senior Housekeeper - Handles Room 407 on the Manager's Orders,主任清掃員 - 支配人の指示で407号室を専任,资深清洁工 - 奉经理之命专门负责407号房,資深清潔工 - 奉經理指示專責407號房,Limpiador sénior - Se encarga de la 407 por orden del gerente,Agent d’entretien principal - Chargé de la 407 sur ordre du directeur,Leitende Reinigungskraft - Betreut Zimmer 407 auf Anweisung,Faxineiro sênior - Cuida do 407 por ordem do gerente,Vanhempi siivooja - Hoitaa huonetta 407 johtajan määräyksestä
+T14_DESC,"별관 407호의 관리 방식에 관해 선임 청소부에게 물어봤다.
+
+'407호는 제가 전담해서 관리하고 있습니다. 지배인 지시입니다.'
+
+'오래된 객실이라 특별히 관리하고 있습니다. 그 이상은 저도 모릅니다.'
+
+선임 청소부에 따르면 407호는 지배인의 지시에 따라 별도로 관리되고 있다고 한다.
+
+오래된 객실이라 특별한 관리가 필요하다는 설명이지만, 구체적으로 어떤 문제가 있는지는 밝히지 않았다.
+
+407호의 관리 방법에 관한 문서와 대조해 보면 사실 여부를 판단할 수 있겠다.","I asked the senior housekeeper how Annex Room 407 is managed.
+
+'I'm solely responsible for Room 407. Those are the Manager's orders.'
+
+'It's an old room, so it gets special care. Beyond that, I don't know anything either.'
+
+According to the senior housekeeper, Room 407 is managed separately on the Manager's orders.
+
+The explanation is that it's an old room that needs special care, but no specifics were given about what the problem is.
+
+If I compare this with documents on how Room 407 is managed, I should be able to judge whether it's true.","別館407号室の管理方法について、主任清掃員に尋ねた。
+
+「407号室は私が専任で管理しています。支配人の指示です。」
+
+「古い客室なので、特別に管理しているんです。それ以上のことは私も知りません。」
+
+主任清掃員によれば、407号室は支配人の指示で別に管理されているという。
+
+古い客室なので特別な管理が必要だという説明だが、具体的にどんな問題があるのかは明かさなかった。
+
+407号室の管理方法に関する文書と照らし合わせれば、事実かどうか判断できそうだ。","我向资深清洁工询问了别馆407号房的管理方式。
+
+“407号房由我专门负责管理。这是经理的指示。”
+
+“那是间老客房，所以要特别管理。其他的我也不知道。”
+
+据资深清洁工说，407号房是按照经理的指示单独管理的。
+
+虽说是因为客房老旧需要特别管理，但具体有什么问题，对方并没有说明。
+
+和有关407号房管理方法的文件比对一下，应该就能判断真假。","我向資深清潔工詢問了別館407號房的管理方式。
+
+「407號房由我專責管理。這是經理的指示。」
+
+「那是間老客房，所以要特別管理。其他的我也不清楚。」
+
+據資深清潔工說，407號房是依照經理的指示另外管理的。
+
+雖然說明是因為客房老舊需要特別管理，但具體有什麼問題並沒有透露。
+
+若與407號房管理方法的相關文件比對，應該就能判斷是否屬實。","Le pregunté al limpiador sénior cómo se gestiona la habitación 407 del anexo.
+
+'De la 407 me encargo yo en exclusiva. Son órdenes del gerente.'
+
+'Es una habitación antigua, así que recibe un cuidado especial. Más allá de eso, yo tampoco sé nada.'
+
+Según el limpiador sénior, la habitación 407 se gestiona aparte por orden del gerente.
+
+La explicación es que, al ser una habitación antigua, necesita un cuidado especial, pero no aclaró qué problema tiene en concreto.
+
+Si lo contrasto con los documentos sobre la gestión de la habitación 407, podré saber si es cierto.","J’ai interrogé l’agent d’entretien principal sur la façon dont la chambre 407 de l’annexe est gérée.
+
+'C’est moi qui m’occupe exclusivement de la 407. Ce sont les ordres du directeur.'
+
+'C’est une vieille chambre, alors elle fait l’objet d’un entretien particulier. Je n’en sais pas plus.'
+
+D’après l’agent d’entretien principal, la chambre 407 est gérée à part, sur ordre du directeur.
+
+On m’explique qu’il s’agit d’une vieille chambre nécessitant un entretien particulier, sans préciser de quel problème il s’agit.
+
+En comparant avec des documents sur la gestion de la chambre 407, je pourrai juger si c’est vrai.","Ich habe die leitende Reinigungskraft gefragt, wie Zimmer 407 im Nebengebäude betreut wird.
+
+'Zimmer 407 betreue ich ausschließlich selbst. Das ist eine Anweisung des Hoteldirektors.'
+
+'Es ist ein altes Zimmer, deshalb wird es besonders gepflegt. Mehr weiß ich auch nicht.'
+
+Laut der leitenden Reinigungskraft wird Zimmer 407 auf Anweisung des Hoteldirektors gesondert betreut.
+
+Als Begründung hieß es, das alte Zimmer brauche besondere Pflege, doch welches Problem genau vorliegt, blieb offen.
+
+Ein Abgleich mit Unterlagen zur Betreuung von Zimmer 407 sollte zeigen, ob das stimmt.","Perguntei ao faxineiro sênior como o quarto 407 do anexo é cuidado.
+
+'Quem cuida do 407 sou eu, com exclusividade. São ordens do gerente.'
+
+'É um quarto antigo, por isso recebe cuidados especiais. Além disso, também não sei de nada.'
+
+Segundo o faxineiro sênior, o quarto 407 é cuidado à parte por ordem do gerente.
+
+A explicação é que, por ser um quarto antigo, precisa de cuidados especiais, mas não disse que problema exatamente ele tem.
+
+Comparando com documentos sobre a manutenção do quarto 407, vou poder avaliar se é verdade.","Kysyin vanhemmalta siivoojalta, miten sivurakennuksen huonetta 407 hoidetaan.
+
+'Hoidan huonetta 407 yksin. Se on johtajan määräys.'
+
+'Se on vanha huone, joten sitä hoidetaan erityisellä huolella. Enempää en minäkään tiedä.'
+
+Vanhemman siivoojan mukaan huonetta 407 hoidetaan erikseen johtajan määräyksestä.
+
+Selityksenä oli, että vanha huone vaatii erityistä hoitoa, mutta sitä, mikä ongelma siinä tarkalleen on, ei kerrottu.
+
+Vertaamalla tätä huoneen 407 hoitoa koskeviin asiakirjoihin voin arvioida, pitääkö se paikkansa."
+T15_TITLE,선임 청소부 - 구관은 본관 아래에 남아 있다,Senior Housekeeper - The Old Building Lies Beneath the Main Building,主任清掃員 - 旧館は本館の下に残っている,资深清洁工 - 旧馆仍留在主楼下方,資深清潔工 - 舊館仍留在主樓底下,Limpiador sénior - El edificio antiguo sigue bajo el principal,Agent d’entretien principal - L’ancien bâtiment est sous le bâtiment principal,Leitende Reinigungskraft - Der Altbau liegt unter dem Hauptgebäude,Faxineiro sênior - O prédio antigo continua sob o prédio principal,Vanhempi siivooja - Vanha rakennus on yhä päärakennuksen alla
+T15_DESC,"407호의 관리 방식과 폐기물 처리에 관해 선임 청소부를 추궁했다.
+
+선임 청소부는 처음에는 자신이 지시받은 대로 청소할 뿐이라며 답변을 피했다. 하지만 폐기물의 처리 장소를 묻자 뜻밖의 말을 꺼냈다.
+
+'아니요, 그건 구관 아래쪽으로……!'
+
+지배인은 구관을 전부 철거했다고 말했었다. 지배인의 설명을 들이밀자 선임 청소부는 결국 구관의 일부가 남아 있다는 사실을 인정했다.
+
+'전부 철거된 건 아닙니다. 화재 이후 구관의 1층과 2층은 남겨두고, 주변을 콘크리트로 메웠어요. 그리고 그 위에 지금의 본관을 지은 겁니다.'
+
+'현재는 본관의 지하 시설로 사용하고 있습니다.'
+
+선임 청소부의 설명이 사실이라면, 완전히 철거되었다고 알려진 구관은 지금도 본관 아래에 남아 있다는 뜻이다.
+
+다만 지하 시설이 구체적으로 어떤 용도로 사용되는지에 대해서는 보안상의 이유를 들며 답변을 거부했다.
+
+호텔의 지하 시설에 관한 기록과 대조해 보면 증언의 신빙성을 판단할 수 있겠다.","I pressed the senior housekeeper about how Room 407 is managed and how its waste is disposed of.
+
+At first, the senior housekeeper dodged the questions, saying they only clean as instructed. But when I asked where the waste is disposed of, something unexpected slipped out.
+
+'No, that goes down under the Old Building……!'
+
+The Manager had told me the Old Building was completely demolished. When I put the Manager's explanation to them, the senior housekeeper finally admitted that part of the Old Building still remains.
+
+'It wasn't all torn down. After the fire, they kept the first and second floors of the Old Building, filled in around them with concrete, and built the current Main Building on top.'
+
+'Now it's used as the Main Building's underground facilities.'
+
+If the senior housekeeper is telling the truth, the Old Building, supposedly demolished entirely, still lies beneath the Main Building today.
+
+However, citing security reasons, the senior housekeeper refused to say what exactly the underground facilities are used for.
+
+If I compare this with records on the hotel's underground facilities, I should be able to judge how credible the testimony is.","407号室の管理方法と廃棄物の処理について、主任清掃員を問い詰めた。
+
+主任清掃員は初め、指示された通りに掃除しているだけだと答えをはぐらかした。だが、廃棄物の処理場所を尋ねると、思いがけない言葉が漏れた。
+
+「いえ、それは旧館の下のほうに……！」
+
+支配人は、旧館はすべて取り壊したと言っていた。支配人の説明を突きつけると、主任清掃員はついに旧館の一部が残っていることを認めた。
+
+「全部取り壊されたわけじゃありません。火災の後、旧館の1階と2階は残して、周りをコンクリートで埋めたんです。そしてその上に、今の本館を建てたんです。」
+
+「今は本館の地下施設として使われています。」
+
+主任清掃員の話が本当なら、完全に取り壊されたとされている旧館は、今も本館の下に残っているということになる。
+
+ただし、地下施設が具体的にどんな用途に使われているのかについては、保安上の理由を挙げて答えを拒んだ。
+
+ホテルの地下施設に関する記録と照らし合わせれば、証言の信憑性を判断できそうだ。","我就407号房的管理方式和废弃物处理追问了资深清洁工。
+
+资深清洁工起初回避回答，说自己只是按指示打扫。可当我问到废弃物的处理地点时，对方却说出了出人意料的话。
+
+“不，那是送到旧馆下面……！”
+
+经理说过旧馆已经全部拆除了。当我拿经理的说法反问时，资深清洁工终于承认旧馆还有一部分留了下来。
+
+“并没有全部拆掉。火灾之后，旧馆的一楼和二楼被保留下来，周围用混凝土填平了。然后在那上面盖了现在的主楼。”
+
+“现在是作为主楼的地下设施在使用。”
+
+如果资深清洁工的说法属实，那么据说已被完全拆除的旧馆，至今仍留在主楼下方。
+
+不过，对于地下设施具体用作什么，对方以安保为由拒绝回答。
+
+和酒店地下设施的相关记录比对一下，应该就能判断这份证词的可信度。","我就407號房的管理方式與廢棄物處理追問資深清潔工。
+
+資深清潔工起初只說自己是照指示打掃，迴避回答。但當我問到廢棄物的處理地點時，對方卻脫口說出意外的話。
+
+「不，那是送到舊館下面……！」
+
+經理說過舊館已經全部拆除。當我拿經理的說法反問時，資深清潔工終於承認舊館還有一部分留存下來。
+
+「並沒有全部拆掉。火災之後，舊館的一樓和二樓保留了下來，周圍用混凝土填平。然後在上面蓋了現在的主樓。」
+
+「現在是當作主樓的地下設施在使用。」
+
+如果資深清潔工的說法屬實，那麼據說已完全拆除的舊館，至今仍留在主樓底下。
+
+不過，對於地下設施具體作何用途，對方以保安為由拒絕回答。
+
+若與飯店地下設施的相關紀錄比對，應該就能判斷這份證詞的可信度。","Presioné al limpiador sénior sobre la gestión de la habitación 407 y el tratamiento de sus residuos.
+
+Al principio, el limpiador sénior esquivó las preguntas diciendo que solo limpiaba según las instrucciones. Pero, cuando le pregunté dónde se eliminaban los residuos, se le escapó algo inesperado.
+
+'¡No, eso va debajo del edificio antiguo……!'
+
+El gerente me había dicho que el edificio antiguo se demolió por completo. Cuando le planteé la explicación del gerente, el limpiador sénior terminó admitiendo que una parte del edificio antiguo sigue en pie.
+
+'No se derribó todo. Después del incendio, dejaron la planta baja y la primera planta del edificio antiguo, rellenaron los alrededores con hormigón y encima levantaron el edificio principal actual.'
+
+'Ahora se usa como instalaciones subterráneas del edificio principal.'
+
+Si lo que dice el limpiador sénior es cierto, el edificio antiguo, que supuestamente se demolió por completo, sigue hoy bajo el edificio principal.
+
+Sin embargo, alegando motivos de seguridad, se negó a decir para qué se usan exactamente esas instalaciones subterráneas.
+
+Si lo contrasto con los registros sobre las instalaciones subterráneas del hotel, podré juzgar la credibilidad de este testimonio.","J’ai pressé de questions l’agent d’entretien principal sur la gestion de la chambre 407 et l’élimination de ses déchets.
+
+Au début, l’agent d’entretien principal a éludé les questions en affirmant se contenter de faire le ménage selon les instructions. Mais quand je lui ai demandé où étaient évacués les déchets, une phrase inattendue lui a échappé.
+
+'Non, ça va en dessous de l’ancien bâtiment……!'
+
+Le directeur m’avait affirmé que l’ancien bâtiment avait été entièrement démoli. Mis face à cette version, l’agent d’entretien principal a fini par admettre qu’une partie de l’ancien bâtiment subsistait.
+
+'Il n’a pas été entièrement démoli. Après l’incendie, on a gardé le rez-de-chaussée et le premier étage de l’ancien bâtiment, on a comblé les alentours avec du béton, puis on a construit l’actuel bâtiment principal par-dessus.'
+
+'Aujourd’hui, il sert d’installations souterraines au bâtiment principal.'
+
+Si ce témoignage est exact, l’ancien bâtiment, censé avoir été entièrement démoli, se trouve encore aujourd’hui sous le bâtiment principal.
+
+Invoquant toutefois des raisons de sécurité, l’agent d’entretien principal a refusé de dire à quoi servent précisément ces installations souterraines.
+
+En le comparant aux documents sur les installations souterraines de l’hôtel, je pourrai juger de la crédibilité de ce témoignage.","Ich habe die leitende Reinigungskraft zur Betreuung von Zimmer 407 und zur Entsorgung der Abfälle in die Mangel genommen.
+
+Zunächst wich sie aus und sagte, sie putze nur nach Anweisung. Doch als ich fragte, wo die Abfälle entsorgt werden, rutschte ihr etwas Unerwartetes heraus.
+
+'Nein, das kommt nach unten, unter den Altbau……!'
+
+Der Hoteldirektor hatte mir gesagt, der Altbau sei vollständig abgerissen worden. Als ich ihr seine Erklärung vorhielt, gab die leitende Reinigungskraft schließlich zu, dass ein Teil des Altbaus noch existiert.
+
+'Er wurde nicht ganz abgerissen. Nach dem Brand hat man Erdgeschoss und ersten Stock des Altbaus stehen lassen, das Umfeld mit Beton verfüllt und darauf das heutige Hauptgebäude gebaut.'
+
+'Heute wird er als Untergeschoss des Hauptgebäudes genutzt.'
+
+Wenn das stimmt, liegt der angeblich vollständig abgerissene Altbau bis heute unter dem Hauptgebäude.
+
+Wofür die unterirdischen Anlagen genau genutzt werden, wollte sie jedoch aus Sicherheitsgründen nicht sagen.
+
+Ein Abgleich mit Unterlagen zu den unterirdischen Anlagen des Hotels sollte zeigen, wie glaubwürdig diese Aussage ist.","Pressionei o faxineiro sênior sobre a manutenção do quarto 407 e o descarte dos resíduos.
+
+No começo, o faxineiro sênior se esquivou, dizendo que só limpava conforme as instruções. Mas, quando perguntei onde os resíduos eram descartados, deixou escapar algo inesperado.
+
+'Não, isso vai lá para baixo do prédio antigo……!'
+
+O gerente tinha me dito que o prédio antigo foi totalmente demolido. Quando confrontei o faxineiro sênior com a explicação do gerente, ele acabou admitindo que parte do prédio antigo ainda existe.
+
+'Não foi tudo demolido. Depois do incêndio, deixaram o térreo e o primeiro andar do prédio antigo, preencheram o entorno com concreto e construíram o atual prédio principal em cima.'
+
+'Hoje ele é usado como as instalações subterrâneas do prédio principal.'
+
+Se o que o faxineiro sênior disse for verdade, o prédio antigo, que supostamente foi demolido por completo, continua até hoje sob o prédio principal.
+
+Mas, alegando razões de segurança, ele se recusou a dizer para que exatamente as instalações subterrâneas são usadas.
+
+Comparando com os registros sobre as instalações subterrâneas do hotel, vou poder avaliar a credibilidade desse depoimento.","Painostin vanhempaa siivoojaa kertomaan huoneen 407 hoidosta ja jätteiden hävittämisestä.
+
+Aluksi vanhempi siivooja väisteli kysymyksiä ja sanoi vain siivoavansa ohjeiden mukaan. Mutta kun kysyin, minne jätteet viedään, häneltä lipsahti odottamaton vastaus.
+
+'Ei, ne viedään vanhan rakennuksen alle……!'
+
+Johtaja oli kertonut, että vanha rakennus purettiin kokonaan. Kun esitin johtajan selityksen, vanhempi siivooja myönsi lopulta, että osa vanhasta rakennuksesta on yhä jäljellä.
+
+'Sitä ei purettu kokonaan. Palon jälkeen vanhan rakennuksen 1. ja 2. kerros jätettiin paikalleen, ympäristö täytettiin betonilla ja nykyinen päärakennus rakennettiin sen päälle.'
+
+'Nykyään se on päärakennuksen maanalaisena tilana.'
+
+Jos vanhemman siivoojan kertoma pitää paikkansa, kokonaan puretuksi väitetty vanha rakennus on yhä päärakennuksen alla.
+
+Hän kuitenkin kieltäytyi turvallisuussyihin vedoten kertomasta, mihin maanalaisia tiloja tarkalleen käytetään.
+
+Vertaamalla tätä hotellin maanalaisia tiloja koskeviin asiakirjoihin voin arvioida todistuksen uskottavuutta."
+
 K01_TITLE,1981년 화재의 의문점,Questions About the 1981 Fire,1981年火災の疑問点,1981年火灾的疑点,1981年火災的疑點,Las incógnitas del incendio de 1981,Les zones d’ombre de l’incendie de 1981,Ungereimtheiten beim Brand von 1981,As dúvidas sobre o incêndio de 1981,Vuoden 1981 tulipalon kysymysmerkit
 K01_DESC,"1981년 화재원인 조사보고서와 당시 직원용 피난 매뉴얼을 대조했다.
 
@@ -3727,3 +4556,355 @@ Tähän mennessä tarkastamassani aineistossa ei ole erityistä ristiriitaa joht
 Pelkkien asiakirjojen ja valokuvien perusteella on kuitenkin vaikea varmistaa, missä tilanteessa uhri meni kävelypolulle ja pitääkö kuvaus ruumiin löytymiseen johtaneista tapahtumista paikkansa.
 
 Jos kuulen uhrin viimeisenä ennen onnettomuutta nähneen henkilön ja ensimmäisen ilmoituksen vastaanottaneen työntekijän kertomukset, voin luultavasti arvioida tapaturmaisen putoamiskuoleman todennäköisyyttä selkeämmin."
+
+Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
+K09_TITLE,407호의 기묘한 점,The Strange Thing About Room 407,407号室の奇妙な点,407号房的奇怪之处,407號房的奇怪之處,Lo extraño de la habitación 407,L’étrangeté de la chambre 407,Das Seltsame an Zimmer 407,O que há de estranho no quarto 407,Huoneen 407 kummallisuus
+K09_DESC,"407호에서 발견한 의료용 가위와 객실 조명을 대조했다.
+
+의료용 가위와 일반 객실보다 밝고 균일한 조명. 두 가지 모두 의료 행위나 정밀한 작업에 적합하다는 공통점이 있다.
+
+우연일 수도 있지만, 407호가 단순한 숙박 공간 이외의 용도로 사용되고 있을 가능성이 있다.
+
+객실의 관리 방식에 관해 알고 있는 사람에게 물어봐야겠다.","I compared the medical scissors found in Room 407 with the room's lighting.
+
+Medical scissors, and lighting brighter and more even than in an ordinary guest room. Both have one thing in common: they're suited to medical procedures or precision work.
+
+It could be a coincidence, but Room 407 may be used for something other than simply putting up guests.
+
+I should ask someone who knows how this room is managed.","407号室で見つけた医療用ハサミと、客室の照明を照らし合わせた。
+
+医療用ハサミと、普通の客室より明るく均一な照明。どちらも医療行為や精密な作業に適しているという共通点がある。
+
+偶然かもしれないが、407号室が単なる宿泊のための空間以外の用途に使われている可能性がある。
+
+この客室の管理方法を知っている人に聞いてみる必要がある。","我比对了在407号房发现的医用剪刀和客房的照明。
+
+医用剪刀，以及比普通客房更明亮、更均匀的照明。两者有一个共同点：都适合医疗行为或精细作业。
+
+也许只是巧合，但407号房有可能被用于单纯住宿以外的用途。
+
+得去问问了解这间客房管理方式的人。","我比對了在407號房發現的醫用剪刀與客房的照明。
+
+醫用剪刀，以及比一般客房更明亮均勻的照明。兩者有個共通點：都適合醫療行為或精密作業。
+
+或許只是巧合，但407號房有可能被用於單純住宿以外的用途。
+
+得去問問了解這間客房管理方式的人。","Contrasté las tijeras médicas encontradas en la habitación 407 con la iluminación de la habitación.
+
+Unas tijeras médicas y una iluminación más brillante y uniforme que la de una habitación normal. Ambas tienen algo en común: son adecuadas para procedimientos médicos o trabajos de precisión.
+
+Puede que sea una coincidencia, pero es posible que la habitación 407 se use para algo más que alojar huéspedes.
+
+Tendré que preguntar a alguien que sepa cómo se gestiona esta habitación.","J’ai comparé les ciseaux médicaux trouvés dans la chambre 407 avec l’éclairage de la pièce.
+
+Des ciseaux médicaux, et un éclairage plus vif et plus uniforme que dans une chambre ordinaire. Les deux ont un point commun : ils conviennent à des actes médicaux ou à un travail de précision.
+
+Ce n’est peut-être qu’une coïncidence, mais la chambre 407 pourrait servir à autre chose qu’à héberger des clients.
+
+Il faut que j’interroge quelqu’un qui sait comment cette chambre est gérée.","Ich habe die in Zimmer 407 gefundene medizinische Schere mit der Beleuchtung des Zimmers abgeglichen.
+
+Eine medizinische Schere und eine Beleuchtung, die heller und gleichmäßiger ist als in einem gewöhnlichen Gästezimmer. Beides hat etwas gemeinsam: Es eignet sich für medizinische Eingriffe oder Präzisionsarbeit.
+
+Das kann Zufall sein, aber womöglich wird Zimmer 407 für etwas anderes genutzt als nur zur Unterbringung von Gästen.
+
+Ich sollte jemanden fragen, der weiß, wie dieses Zimmer betreut wird.","Comparei a tesoura médica encontrada no quarto 407 com a iluminação do quarto.
+
+Uma tesoura médica e uma iluminação mais clara e uniforme do que a de um quarto comum. As duas têm algo em comum: são adequadas a procedimentos médicos ou a trabalhos de precisão.
+
+Pode ser coincidência, mas é possível que o quarto 407 seja usado para algo além de hospedagem.
+
+Preciso perguntar a alguém que saiba como esse quarto é cuidado.","Vertasin huoneesta 407 löytyneitä lääkintäsaksia huoneen valaistukseen.
+
+Lääkintäsakset ja valaistus, joka on tavallista hotellihuonetta kirkkaampi ja tasaisempi. Molemmilla on yhteinen piirre: ne sopivat lääketieteellisiin toimenpiteisiin tai tarkkuustyöhön.
+
+Se voi olla sattumaa, mutta huonetta 407 saatetaan käyttää muuhunkin kuin pelkkään majoitukseen.
+
+Minun on kysyttävä joltakulta, joka tietää, miten huonetta hoidetaan."
+K10_TITLE,비정상적인 객실 관리,Abnormal Room Management,異常な客室管理,异常的客房管理,異常的客房管理,Una gestión anómala de la habitación,Une gestion anormale de la chambre,Ungewöhnliche Zimmerbetreuung,Uma manutenção anormal do quarto,Poikkeuksellinen huoneen hoito
+K10_DESC,"407호의 특별 관리 방식과 청소 장비에 관한 추리를 종합했다.
+
+407호는 지배인의 지시에 따라 별도로 관리되며, 특수한 오염물 처리에 적합한 청소 장비까지 사용되고 있다.
+
+단순히 오래된 객실이기 때문이라는 설명만으로는 이러한 관리 방식을 납득하기 어렵다.
+
+선임 청소부에게 청소 과정과 폐기물 처리에 관해 자세히 물어봐야겠다.","I pieced together my deductions about Room 407's special management and its cleaning equipment.
+
+Room 407 is managed separately on the Manager's orders, and it even uses cleaning equipment suited to handling unusual contaminants.
+
+The explanation that it's simply an old room hardly accounts for this kind of management.
+
+I should ask the senior housekeeper in detail about the cleaning process and how the waste is disposed of.","407号室の特別な管理方法と清掃用具に関する推理をまとめた。
+
+407号室は支配人の指示で別に管理されており、特殊な汚れの処理に適した清掃用具まで使われている。
+
+単に古い客室だからという説明だけでは、こうした管理方法には納得しがたい。
+
+主任清掃員に、清掃の手順と廃棄物の処理について詳しく聞く必要がある。","我综合了关于407号房特别管理方式和清洁设备的推理。
+
+407号房按照经理的指示单独管理，甚至还使用适合处理特殊污物的清洁设备。
+
+仅凭“客房老旧”这一说法，很难解释这样的管理方式。
+
+得详细问问资深清洁工打扫的过程和废弃物的处理。","我綜合了關於407號房特別管理方式與清潔設備的推理。
+
+407號房依照經理的指示另外管理，甚至還使用了適合處理特殊汙物的清潔設備。
+
+光憑「客房老舊」的說法，很難讓人接受這樣的管理方式。
+
+得詳細詢問資深清潔工打掃的過程與廢棄物的處理。","Reuní mis deducciones sobre la gestión especial de la habitación 407 y su equipo de limpieza.
+
+La habitación 407 se gestiona aparte por orden del gerente, e incluso se usa un equipo de limpieza adecuado para tratar contaminantes especiales.
+
+La explicación de que solo es una habitación antigua no basta para justificar una gestión así.
+
+Tendré que preguntar al limpiador sénior con detalle sobre el proceso de limpieza y el tratamiento de los residuos.","J’ai rassemblé mes déductions sur la gestion particulière de la chambre 407 et sur son matériel de ménage.
+
+La chambre 407 est gérée à part sur ordre du directeur, et on y utilise même un matériel adapté au traitement de souillures particulières.
+
+Le seul fait qu’il s’agisse d’une vieille chambre ne suffit pas à expliquer une telle gestion.
+
+Il faut que j’interroge en détail l’agent d’entretien principal sur le déroulement du ménage et l’élimination des déchets.","Ich habe meine Schlussfolgerungen zur besonderen Betreuung von Zimmer 407 und zur Reinigungsausrüstung zusammengeführt.
+
+Zimmer 407 wird auf Anweisung des Hoteldirektors gesondert betreut, und dafür wird sogar eine Reinigungsausrüstung verwendet, die sich für die Beseitigung besonderer Verschmutzungen eignet.
+
+Die Erklärung, es handle sich einfach um ein altes Zimmer, kann eine solche Betreuung kaum begründen.
+
+Ich sollte die leitende Reinigungskraft genauer nach dem Reinigungsablauf und der Entsorgung der Abfälle fragen.","Juntei minhas deduções sobre a manutenção especial do quarto 407 e o equipamento de limpeza.
+
+O quarto 407 é cuidado à parte por ordem do gerente, e até usa um equipamento de limpeza adequado ao tratamento de resíduos especiais.
+
+Só a explicação de que é um quarto antigo não justifica esse tipo de manutenção.
+
+Preciso perguntar em detalhes ao faxineiro sênior sobre o processo de limpeza e o descarte dos resíduos.","Kokosin yhteen päätelmäni huoneen 407 erityisestä hoidosta ja sen siivousvälineistä.
+
+Huonetta 407 hoidetaan erikseen johtajan määräyksestä, ja siihen käytetään jopa erityisten tahrojen käsittelyyn soveltuvia siivousvälineitä.
+
+Pelkkä selitys siitä, että kyse on vanhasta huoneesta, ei riitä perustelemaan tällaista hoitoa.
+
+Minun on kysyttävä vanhemmalta siivoojalta tarkemmin siivouksen kulusta ja jätteiden hävittämisestä."
+K11_TITLE,구관의 존재,The Old Building Still Exists,旧館の存在,旧馆的存在,舊館的存在,La existencia del edificio antiguo,L’existence de l’ancien bâtiment,Der Altbau existiert noch,A existência do prédio antigo,Vanhan rakennuksen olemassaolo
+K11_DESC,"호텔의 지하 시설에 관한 기록과 선임 청소부의 증언을 대조했다.
+
+기록에 남아 있는 본관 지하 시설은 선임 청소부가 언급한 구관의 잔존 부분일 가능성이 높다.
+
+그렇다면 1981년 화재 이후 구관이 완전히 철거되었다는 호텔 측의 설명은 사실과 다르다.
+
+구관의 일부가 지금도 본관 아래에 남아 있으며, 어떤 목적으로 사용되고 있을 가능성이 있다.
+
+실제로 구관이 남아 있는지, 그곳에서 무엇이 이루어지고 있는지 본관으로 가서 직접 확인할 필요가 있겠다.
+
+이제 별관에서 볼 일은 끝난 것 같다.","I compared the records on the hotel's underground facilities with the senior housekeeper's testimony.
+
+The Main Building's underground facilities in the records are most likely the remaining part of the Old Building that the senior housekeeper mentioned.
+
+If so, the hotel's claim that the Old Building was completely demolished after the 1981 fire isn't true.
+
+Part of the Old Building still remains beneath the Main Building, and it may be in use for some purpose.
+
+I need to go to the Main Building and see for myself whether the Old Building really remains, and what's happening there.
+
+I think I'm done with the Annex now.","ホテルの地下施設に関する記録と、主任清掃員の証言を照らし合わせた。
+
+記録に残る本館の地下施設は、主任清掃員が口にした旧館の残存部分である可能性が高い。
+
+だとすれば、1981年の火災の後に旧館は完全に取り壊されたというホテル側の説明は、事実と異なる。
+
+旧館の一部は今も本館の下に残っており、何らかの目的で使われている可能性がある。
+
+本当に旧館が残っているのか、そこで何が行われているのか、本館へ行って自分の目で確かめる必要がある。
+
+もう別館での用は済んだようだ。","我比对了酒店地下设施的相关记录和资深清洁工的证词。
+
+记录中留存的主楼地下设施，很可能就是资深清洁工提到的旧馆残存部分。
+
+这样的话，酒店方所说的1981年火灾后旧馆已被完全拆除，就与事实不符了。
+
+旧馆的一部分至今仍留在主楼下方，而且可能正被用于某种目的。
+
+我需要前往主楼，亲自确认旧馆是否真的还在，以及那里正在进行什么。
+
+看来在别馆要办的事已经办完了。","我比對了飯店地下設施的相關紀錄與資深清潔工的證詞。
+
+紀錄中的主樓地下設施，很可能就是資深清潔工提到的舊館殘存部分。
+
+這麼一來，飯店方面所說1981年火災後舊館已完全拆除的說法，就與事實不符了。
+
+舊館的一部分至今仍留在主樓底下，而且可能正被用於某種目的。
+
+我得前往主樓，親自確認舊館是否真的還在，以及那裡正在進行什麼。
+
+看來在別館要辦的事已經結束了。","Contrasté los registros sobre las instalaciones subterráneas del hotel con el testimonio del limpiador sénior.
+
+Es muy probable que las instalaciones subterráneas del edificio principal que figuran en los registros sean la parte que queda del edificio antiguo, la que mencionó el limpiador sénior.
+
+En ese caso, la versión del hotel de que el edificio antiguo se demolió por completo tras el incendio de 1981 no es cierta.
+
+Una parte del edificio antiguo sigue hoy bajo el edificio principal, y es posible que se esté usando con algún propósito.
+
+Tengo que ir al edificio principal y comprobar en persona si el edificio antiguo sigue ahí y qué se hace en él.
+
+Creo que ya no me queda nada que hacer en el anexo.","J’ai comparé les documents sur les installations souterraines de l’hôtel avec le témoignage de l’agent d’entretien principal.
+
+Les installations souterraines du bâtiment principal mentionnées dans les documents sont très probablement la partie subsistante de l’ancien bâtiment dont a parlé l’agent d’entretien principal.
+
+Dans ce cas, l’explication de l’hôtel, selon laquelle l’ancien bâtiment a été entièrement démoli après l’incendie de 1981, ne correspond pas à la réalité.
+
+Une partie de l’ancien bâtiment se trouve encore aujourd’hui sous le bâtiment principal, et elle sert peut-être à quelque chose.
+
+Je dois aller dans le bâtiment principal pour vérifier par moi-même si l’ancien bâtiment existe encore, et ce qui s’y passe.
+
+Je crois que je n’ai plus rien à faire dans l’annexe.","Ich habe die Unterlagen zu den unterirdischen Anlagen des Hotels mit der Aussage der leitenden Reinigungskraft abgeglichen.
+
+Bei den in den Unterlagen verzeichneten unterirdischen Anlagen des Hauptgebäudes handelt es sich sehr wahrscheinlich um den verbliebenen Teil des Altbaus, von dem die leitende Reinigungskraft sprach.
+
+Dann entspricht die Erklärung des Hotels, der Altbau sei nach dem Brand von 1981 vollständig abgerissen worden, nicht der Wahrheit.
+
+Ein Teil des Altbaus liegt bis heute unter dem Hauptgebäude und wird möglicherweise zu einem bestimmten Zweck genutzt.
+
+Ich muss ins Hauptgebäude gehen und mit eigenen Augen prüfen, ob der Altbau wirklich noch existiert und was dort vor sich geht.
+
+Im Nebengebäude habe ich wohl nichts mehr zu tun.","Comparei os registros sobre as instalações subterrâneas do hotel com o depoimento do faxineiro sênior.
+
+É bem provável que as instalações subterrâneas do prédio principal que constam nos registros sejam a parte remanescente do prédio antigo mencionada pelo faxineiro sênior.
+
+Se for assim, a explicação do hotel de que o prédio antigo foi totalmente demolido depois do incêndio de 1981 não corresponde à verdade.
+
+Parte do prédio antigo continua até hoje sob o prédio principal, e pode estar sendo usada para algum fim.
+
+Preciso ir ao prédio principal e verificar pessoalmente se o prédio antigo realmente ainda existe e o que está acontecendo lá.
+
+Acho que não tenho mais nada a fazer no anexo.","Vertasin hotellin maanalaisia tiloja koskevia asiakirjoja vanhemman siivoojan todistukseen.
+
+Asiakirjoissa mainitut päärakennuksen maanalaiset tilat ovat todennäköisesti juuri se vanhan rakennuksen jäljelle jäänyt osa, josta vanhempi siivooja puhui.
+
+Siinä tapauksessa hotellin selitys siitä, että vanha rakennus purettiin kokonaan vuoden 1981 tulipalon jälkeen, ei pidä paikkaansa.
+
+Osa vanhasta rakennuksesta on yhä päärakennuksen alla, ja sitä saatetaan käyttää johonkin tarkoitukseen.
+
+Minun on mentävä päärakennukseen tarkistamaan omin silmin, onko vanha rakennus todella yhä olemassa ja mitä siellä tapahtuu.
+
+Sivurakennuksessa taitaa olla nyt kaikki tehty."
+K12_TITLE,407호의 특별 관리,Room 407's Special Management,407号室の特別管理,407号房的特别管理,407號房的特別管理,La gestión especial de la habitación 407,La gestion particulière de la chambre 407,Die Sonderbetreuung von Zimmer 407,A manutenção especial do quarto 407,Huoneen 407 erityishoito
+K12_DESC,"객실 관리 명부와 선임 청소부의 증언을 대조했다.
+
+두 자료 모두 407호가 지배인의 지시에 따라 선임 청소부에게 별도로 관리되고 있다는 사실을 뒷받침한다.
+
+특별 관리가 이루어지고 있다는 점은 분명하지만, 그 이유는 여전히 불명확하다.
+
+407호의 청소 방식과 관련된 다른 정보도 확인할 필요가 있겠다.","I compared the room management log with the senior housekeeper's testimony.
+
+Both support the fact that Room 407 is managed separately by the senior housekeeper on the Manager's orders.
+
+It's clear that the room receives special management, but the reason remains unclear.
+
+I need to check other information related to how Room 407 is cleaned.","客室管理名簿と主任清掃員の証言を照らし合わせた。
+
+どちらも、407号室が支配人の指示によって主任清掃員に別に管理されているという事実を裏付けている。
+
+特別な管理が行われていることは明らかだが、その理由は依然としてはっきりしない。
+
+407号室の清掃方法に関する他の情報も確かめる必要がある。","我比对了客房管理名册和资深清洁工的证词。
+
+两者都证实，407号房是按照经理的指示由资深清洁工单独管理的。
+
+特别管理的事实很明确，但原因依然不清楚。
+
+有必要再确认与407号房打扫方式有关的其他信息。","我比對了客房管理名冊與資深清潔工的證詞。
+
+兩者都證實407號房是依照經理的指示，由資深清潔工另外管理。
+
+有特別管理這點很明確，但原因仍然不清楚。
+
+有必要確認與407號房打掃方式相關的其他資訊。","Contrasté el registro de gestión de habitaciones con el testimonio del limpiador sénior.
+
+Ambos respaldan que la habitación 407 la gestiona aparte el limpiador sénior por orden del gerente.
+
+Está claro que recibe una gestión especial, pero el motivo sigue sin estar claro.
+
+Tendré que comprobar más información relacionada con la forma en que se limpia la habitación 407.","J’ai comparé le registre de gestion des chambres avec le témoignage de l’agent d’entretien principal.
+
+Les deux confirment que la chambre 407 est gérée à part par l’agent d’entretien principal, sur ordre du directeur.
+
+Il est clair que la chambre fait l’objet d’une gestion particulière, mais la raison reste obscure.
+
+Il faudra vérifier d’autres informations sur la façon dont la chambre 407 est nettoyée.","Ich habe die Zimmerverwaltungsliste mit der Aussage der leitenden Reinigungskraft abgeglichen.
+
+Beides belegt, dass Zimmer 407 auf Anweisung des Hoteldirektors gesondert von der leitenden Reinigungskraft betreut wird.
+
+Dass das Zimmer besonders betreut wird, steht fest, doch der Grund dafür bleibt unklar.
+
+Ich muss weitere Informationen dazu prüfen, wie Zimmer 407 gereinigt wird.","Comparei o registro de gestão de quartos com o depoimento do faxineiro sênior.
+
+Os dois confirmam que o quarto 407 é cuidado à parte pelo faxineiro sênior por ordem do gerente.
+
+É evidente que há uma manutenção especial, mas o motivo continua obscuro.
+
+Preciso verificar outras informações sobre a forma como o quarto 407 é limpo.","Vertasin huoneiden hallintaluetteloa vanhemman siivoojan todistukseen.
+
+Molemmat tukevat sitä, että vanhempi siivooja hoitaa huonetta 407 erikseen johtajan määräyksestä.
+
+On selvää, että huone on erityishoidossa, mutta syy on yhä epäselvä.
+
+Minun on tarkistettava muitakin huoneen 407 siivoukseen liittyviä tietoja."
+K13_TITLE,수상한 청소 장비,Suspicious Cleaning Equipment,不審な清掃用具,可疑的清洁设备,可疑的清潔設備,Un equipo de limpieza sospechoso,Un matériel de ménage suspect,Verdächtige Reinigungsausrüstung,Equipamento de limpeza suspeito,Epäilyttävät siivousvälineet
+K13_DESC,"청소 창고에서 발견한 특수 세정제와 407호 전용 청소 카트를 대조했다.
+
+혈액 등 단백질성 오염물을 제거하는 세정제와 밀폐형 수거함은 일반적인 객실 청소보다는 특수한 오염물 처리에 적합하다.
+
+407호에서 일반적인 청소와는 다른 작업이 이루어지고 있을 가능성이 있다.
+
+객실의 직접적인 관리 방식에 관한 다른 정보가 있다면 대조해 봐야겠다.","I compared the special cleaning agent found in the cleaning storeroom with the Room 407 cleaning cart.
+
+A cleaner that removes protein-based contaminants such as blood, and a sealed collection bin: both are suited to handling unusual contaminants rather than ordinary room cleaning.
+
+Something other than ordinary cleaning may be going on in Room 407.
+
+If there's other information on how the room is directly managed, I should compare it against this.","清掃用具倉庫で見つけた特殊洗浄剤と、407号室専用の清掃カートを照らし合わせた。
+
+血液などのタンパク質系の汚れを除去する洗浄剤と、密閉式の回収箱。どちらも普通の客室清掃よりは、特殊な汚れの処理に適している。
+
+407号室では、普通の清掃とは違う作業が行われている可能性がある。
+
+この客室の直接的な管理方法に関する情報が他にあれば、照らし合わせてみよう。","我比对了在清洁仓库里发现的特殊清洁剂和407号房专用清洁推车。
+
+能清除血液等蛋白质类污物的清洁剂，加上密封式收集箱，比起普通的客房清洁，更适合处理特殊污物。
+
+407号房里可能正在进行与普通打扫不同的作业。
+
+如果还有关于这间客房直接管理方式的其他信息，得比对一下。","我比對了在清潔倉庫發現的特殊清潔劑與407號房專用清潔推車。
+
+能清除血液等蛋白質類汙物的清潔劑，加上密封式收集箱，比起一般的客房清潔，更適合處理特殊汙物。
+
+407號房裡可能正在進行與一般打掃不同的作業。
+
+若還有關於這間客房直接管理方式的其他資訊，得比對看看。","Contrasté el limpiador especial encontrado en el almacén de limpieza con el carrito de limpieza exclusivo de la habitación 407.
+
+Un limpiador que elimina contaminantes proteicos como la sangre y un contenedor hermético: ambos son más adecuados para tratar contaminantes especiales que para la limpieza normal de una habitación.
+
+Es posible que en la habitación 407 se esté haciendo algo distinto de la limpieza habitual.
+
+Si hay más información sobre cómo se gestiona directamente esta habitación, debería contrastarla.","J’ai comparé le nettoyant spécial trouvé dans le local de ménage avec le chariot réservé à la chambre 407.
+
+Un nettoyant qui élimine les souillures protéiques comme le sang, et un bac de collecte hermétique : les deux conviennent davantage au traitement de souillures particulières qu’au ménage ordinaire d’une chambre.
+
+Il se pourrait que la chambre 407 fasse l’objet d’un travail bien différent d’un ménage ordinaire.
+
+S’il existe d’autres informations sur la façon dont cette chambre est gérée directement, il faudra les comparer.","Ich habe den in der Putzkammer gefundenen Spezialreiniger mit dem Reinigungswagen für Zimmer 407 abgeglichen.
+
+Ein Reiniger, der eiweißhaltige Verschmutzungen wie Blut entfernt, und ein verschlossener Sammelbehälter – beides eignet sich eher für die Beseitigung besonderer Verschmutzungen als für die normale Zimmerreinigung.
+
+Möglicherweise geschieht in Zimmer 407 etwas anderes als eine gewöhnliche Reinigung.
+
+Falls es weitere Informationen dazu gibt, wie das Zimmer direkt betreut wird, sollte ich sie damit abgleichen.","Comparei o produto de limpeza especial encontrado no depósito de limpeza com o carrinho de limpeza exclusivo do quarto 407.
+
+Um produto que remove resíduos de proteína, como sangue, e um coletor hermético: os dois são mais adequados ao tratamento de resíduos especiais do que à limpeza comum de um quarto.
+
+É possível que no quarto 407 esteja sendo feito algo diferente de uma limpeza comum.
+
+Se houver outras informações sobre como o quarto é cuidado diretamente, preciso compará-las.","Vertasin siivousvarastosta löytämääni erikoispuhdistusainetta huoneen 407 omaan siivouskärryyn.
+
+Veren kaltaisia proteiinipohjaisia tahroja poistava aine ja suljettu keräysastia sopivat molemmat paremmin erityisten tahrojen käsittelyyn kuin tavalliseen huonesiivoukseen.
+
+Huoneessa 407 saatetaan tehdä jotain muuta kuin tavallista siivousta.
+
+Jos huoneen suorasta hoidosta on muuta tietoa, minun pitäisi verrata sitä tähän."

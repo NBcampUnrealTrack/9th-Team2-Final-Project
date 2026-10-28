@@ -199,7 +199,7 @@ FReply ULCODialogueWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, 
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
-bool ULCODialogueWidget::OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, bool bPlayFirstConversation)
+bool ULCODialogueWidget::OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, bool bPlayFirstConversation, const FString& NodePrefix)
 {
 	if (!IsValid(InNPC))
 	{
@@ -212,7 +212,8 @@ bool ULCODialogueWidget::OpenDialogue(ALCONPCBase* InNPC, AActor* InInteractor, 
 		return false;
 	}
 
-	const FName InitialNodeID = bPlayFirstConversation ? FirstNodeID : DefaultNodeID;
+	const FName BaseNodeID = bPlayFirstConversation ? FirstNodeID : DefaultNodeID;
+	const FName InitialNodeID = NodePrefix.IsEmpty() ? BaseNodeID : FName(*(NodePrefix + BaseNodeID.ToString()));
 	return OpenDialogueInternal(InNPC, InInteractor, InNPC->GetNPCId(), InitialNodeID, bPlayFirstConversation);
 }
 
@@ -1176,7 +1177,8 @@ bool ULCODialogueWidget::UsesActOneNotebookConditions() const
 	static const TSet<FName> DialogueIDs =
 	{
 		TEXT("Bellboy"), TEXT("Caretaker"), TEXT("Cleaner"),
-		TEXT("FrontDesk"), TEXT("Manager"), TEXT("OldProfessor")
+		TEXT("FrontDesk"), TEXT("Manager"), TEXT("OldProfessor"),
+		TEXT("SeniorCleaner")
 	};
 	// Preserve the existing SigolYouth and WorkSenior condition policies.
 	return DialogueIDs.Contains(ActiveDialogueID);

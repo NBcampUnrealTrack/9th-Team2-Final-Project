@@ -31,6 +31,14 @@ public:
 	// 테스트용: 진행된 시간대와 상관없이 이 맵의 조명만 바꿈 (저장 안 됨, 맵 이동 시 원래 시간대로)
 	UFUNCTION(BlueprintCallable, Category = "LCO|TimeOfDay|Test")
 	void ApplyTimeOfDayForTest(ELCOTimeOfDay TimeOfDay);
+
+	// 시간대를 다음 단계로 진행 (앞으로만, 저장되는 값). 지금 맵 조명에도 바로 적용
+	// 챕터가 끝날 때 호출 (1막 클리어 → 해질녘)
+	UFUNCTION(BlueprintCallable, Category = "LCO|TimeOfDay")
+	void AdvanceTimeOfDay(ELCOTimeOfDay NewTimeOfDay);
+
+	// 챕터별 시간대 (Chapter1: 정오 이후 / Chapter2: 해질녘 / Chapter3: 저녁)
+	static ELCOTimeOfDay GetTimeOfDayForChapter(FName ChapterID);
 	
 protected:
 	// 맵 액터들의 BeginPlay보다 먼저 호출됨 → 여기서 진행 데이터 준비 (새 게임 초기화 / 이어하기 적용)
@@ -65,36 +73,32 @@ private:
 	void InitializeCurrentMap();
 	
 	void StartGame();
-
-	// 새 게임 진행 데이터 초기화: 수첩 → 이동 보관함 → 맵 상태 → 퍼즐 → 스토리 순서
+	
 	void StartNewGameProgress(ULCOGameInstance* LCOGameInstance);
-
-	// 맵 이동 직전: 캐릭터의 인벤토리 / 퀵슬롯 / 시점을 GameInstance에 보관
+	
 	void StorePlayerCarryData();
-
-	// 새 맵 시작 후: 보관한 데이터를 새 캐릭터에 복원
+	
 	void RestorePlayerCarryData();
 
 	// 지배인 보고 결과 처리 (1막 클리어 → 2막 시작 맵으로 이동 + 도착 후 자동 저장)
 	UFUNCTION()
 	void HandleReportResolved(ELCOStoryFlag PresentedKeyword, ELCOReportResult Result);
 
-	// 맵 주소에 AutoSave 옵션이 붙어 왔으면 자동 저장 (HandleMatchHasStarted에서 호출)
+	// 맵 주소에 AutoSave 옵션이 붙어 왔으면 자동 저장
 	void TryAutoSaveOnArrival();
 
 	// 메인 메뉴로 이동 (END 3 후). 저장하지 않음 → 이어하기는 마지막 저장 시점부터
 	void ReturnToMainMenu();
 
-	// 맵 시작 시: 지금까지의 시간대와 이 맵의 도착 시간대 중 더 늦은 쪽으로 갱신 → 조명 적용
+	// 저장된 시간대(챕터 시간대보다 이르면 챕터 시간대)로 조명 적용
 	void RefreshTimeOfDay();
 
-	// 맵에 배치된 LCOTimeOfDayManager (없으면 nullptr)
+	// LCOTimeOfDayManager
 	ALCOTimeOfDayManager* FindTimeOfDayManager() const;
 
 	FTimerHandle ReturnToMainMenuTimer;
 
 	// 로딩 화면이 끝나면 대기 중인 버프 적용 (로딩 중이면 0.1초마다 다시 확인)
-	// 로딩 가림막(LCOLoadingSubsystem)이 떠 있는 동안에도 월드는 돌아가므로, 끝난 뒤 적용해야 남은 시간이 줄지 않음
 	void ApplyPendingBuffsWhenLoaded();
 
 	FTimerHandle PendingBuffTimer;

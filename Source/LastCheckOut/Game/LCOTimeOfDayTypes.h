@@ -8,9 +8,9 @@
 UENUM(BlueprintType)
 enum class ELCOTimeOfDay : uint8
 {
-	Noon		UMETA(DisplayName = "정오 이후"),	// 1막: Main
-	Sunset		UMETA(DisplayName = "해질녘"),		// 2막: Outdoor 도착부터
-	Evening		UMETA(DisplayName = "저녁")			// 3막: Annex 도착부터
+	Noon		UMETA(DisplayName = "정오 이후"),	// 1막
+	Sunset		UMETA(DisplayName = "해질녘"),		// 2막 (1막 클리어부터)
+	Evening		UMETA(DisplayName = "저녁")			// 3막 (2막 클리어부터)
 };
 
 // 시간대 1개의 조명 값

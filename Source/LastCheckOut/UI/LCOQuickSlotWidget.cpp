@@ -31,6 +31,7 @@ ULCOQuickSlotEntryWidget* ULCOQuickSlotWidget::GetEntry(int32 Index) const
 	case 1: return Slot_2;
 	case 2: return Slot_3;
 	case 3: return Slot_4;
+	case 4: return Slot_5;
 	default: return nullptr;
 	}
 }

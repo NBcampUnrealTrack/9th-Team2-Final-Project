@@ -46,13 +46,23 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "LCO|Anim")
 	bool bIsHiding = false;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "LCO|Anim")
+	bool bFlashlightOn = false;
+
+	// 손전등 팔 자세 블렌드 0 ~ 1 (켜고 끌 때 부드럽게 바뀜, Layered Blend의 Blend Weight에 연결)
+	UPROPERTY(BlueprintReadOnly, Category = "LCO|Anim")
+	float FlashlightArmAlpha = 0.f;
 
 	// ---------- 설정 ----------
 
 	// 이 속도 이상이어야 이동 중으로 판정 (미세한 미끄러짐 무시)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Anim")
 	float MoveThreshold = 3.f;
-
+	
+	// 팔 자세가 바뀌는 속도
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LCO|Anim")
+	float ArmBlendSpeed = 8.f;
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<ALCOPlayerCharacter> Character;

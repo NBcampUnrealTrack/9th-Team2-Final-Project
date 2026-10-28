@@ -91,6 +91,11 @@ NOTEBOOK_GROUP_Office,사무실,Office,事務室,办公室,辦公室,Oficina,Bur
 NOTEBOOK_GROUP_RecordRoom,기록실,Records Room,記録室,档案室,檔案室,Sala de archivos,Salle des archives,Archivraum,Sala de arquivos,Arkistohuone
 NOTEBOOK_GROUP_MaintenanceRoom,관리실,Maintenance Room,管理室,管理室,管理室,Sala de mantenimiento,Local technique,Hausmeisterraum,Sala de manutenção,Huoltohuone
 NOTEBOOK_GROUP_Room205,205호,Room 205,205号室,205号房,205號房,Habitación 205,Chambre 205,Zimmer 205,Quarto 205,Huone 205
+"NOTEBOOK_GROUP_Annex, Room 407",별관 407호,"Annex, Room 407",別館407号室,别馆407号房,別館407號房,"Anexo, habitación 407","Annexe, chambre 407","Nebengebäude, Zimmer 407","Anexo, quarto 407","Sivurakennus, huone 407"
+NOTEBOOK_GROUP_Annex Caretaker's Office,별관 관리인실,Annex Caretaker's Office,別館管理人室,别馆管理员室,別館管理員室,Oficina del conserje del anexo,Loge du gardien de l'annexe,Hausmeisterbüro im Nebengebäude,Sala do zelador do anexo,Sivurakennuksen talonmiehen toimisto
+"NOTEBOOK_GROUP_Annex, 4th Floor Hallway",별관 4층 복도,"Annex, 4F Hallway",別館4階廊下,别馆4楼走廊,別館4樓走廊,"Anexo, pasillo de la planta 4","Annexe, couloir de l'étage 4","Nebengebäude, Flur Etage 4","Anexo, corredor do andar 4","Sivurakennus, 4. kerroksen käytävä"
+NOTEBOOK_GROUP_Annex Janitor's Closet,별관 청소 창고,Annex Cleaning Storeroom,別館清掃用具倉庫,别馆清洁仓库,別館清潔倉庫,Almacén de limpieza del anexo,Local de ménage de l'annexe,Putzkammer im Nebengebäude,Depósito de limpeza do anexo,Sivurakennuksen siivousvarasto
+NOTEBOOK_GROUP_ArchiveRoom,기록실,Records Room,記録室,档案室,檔案室,Sala de archivos,Salle des archives,Archivraum,Sala de arquivos,Arkistohuone
 SETTINGS_WINDOW_MODE,화면 모드,Display Mode,画面モード,显示模式,顯示模式,Modo de pantalla,Mode d'affichage,Anzeigemodus,Modo de exibição,Näyttötila
 SETTINGS_WINDOW_FULLSCREEN,전체 화면,Fullscreen,フルスクリーン,全屏,全螢幕,Pantalla completa,Plein écran,Vollbild,Tela cheia,Koko näyttö
 SETTINGS_WINDOW_BORDERLESS,테두리 없는 창,Borderless Window,ボーダーレスウィンドウ,无边框窗口,無邊框視窗,Ventana sin bordes,Fenêtre sans bordure,Rahmenloses Fenster,Janela sem bordas,Reunaton ikkuna

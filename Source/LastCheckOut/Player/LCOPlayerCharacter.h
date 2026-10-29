@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "CameraCapture/LCOCameraCaptureComponent.h"
 #include "LCOPlayerCharacter.generated.h"
 
 class USpringArmComponent;
@@ -316,6 +317,17 @@ protected:
 	UFUNCTION()
 	void HandleCameraEquipChanged(bool bEquipped);
 	
+	
+	// 촬영 성공 / 실패 시 (좌클릭) 찍는 몽타주 재생
+	UFUNCTION()
+	void HandlePhotoCaptured(FName CaptureID, UTexture2D* PhotoImage, FText PhotoTitle, FText PhotoDescription);
+
+	UFUNCTION()
+	void HandleCaptureFailed(ELCOCameraCaptureResult Result);
+
+	// 카메라 찍는 몽타주 재생 (카메라를 들고 있을 때만, 재생 중이면 무시)
+	void PlayCameraShootMontage();
+	
 	// 웅크리기 입력
 	void CrouchPressed();
 	void CrouchReleased();
@@ -475,6 +487,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Held")
 	TObjectPtr<UAnimMontage> CameraUnequipMontage;
+	
+	// 좌클릭으로 촬영할 때 몽타주 (상체만, UpperBody 슬롯)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Held")
+	TObjectPtr<UAnimMontage> CameraShootMontage;
 	
 	// 마우스 감도 배율
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Look", meta = (ClampMin = "0.1", ClampMax = "5.0"))

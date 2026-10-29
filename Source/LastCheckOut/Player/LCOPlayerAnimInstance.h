@@ -53,6 +53,10 @@ protected:
 	// 손전등 팔 자세 블렌드 0 ~ 1 (켜고 끌 때 부드럽게 바뀜, Layered Blend의 Blend Weight에 연결)
 	UPROPERTY(BlueprintReadOnly, Category = "LCO|Anim")
 	float FlashlightArmAlpha = 0.f;
+	
+	// 카메라 팔 자세 블렌드 0 ~ 1 (카메라 들고 내릴 때 부드럽게 바뀜)
+	UPROPERTY(BlueprintReadOnly, Category = "LCO|Anim")
+	float CameraArmAlpha = 0.f;
 
 	// ---------- 설정 ----------
 

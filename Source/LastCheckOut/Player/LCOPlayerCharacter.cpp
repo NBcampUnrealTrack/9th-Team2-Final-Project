@@ -125,6 +125,9 @@ void ALCOPlayerCharacter::BeginPlay()
 	FirstPersonMesh->HideBoneByName(TEXT("neck_01"), EPhysBodyOp::PBO_None);
 
 	QuickSlotComponent->OnCameraEquipChanged.AddDynamic(this, &ALCOPlayerCharacter::HandleCameraEquipChanged);
+	// 좌클릭 촬영 결과 → 찍는 몽타주 (퀵슬롯이 Capture를 호출하면 결과 델리게이트로 받음)
+	CameraCaptureComponent->OnPhotoCaptured.AddDynamic(this, &ALCOPlayerCharacter::HandlePhotoCaptured);
+	CameraCaptureComponent->OnCaptureFailed.AddDynamic(this, &ALCOPlayerCharacter::HandleCaptureFailed);
 	SetViewMode(DefaultViewMode);
 	
 	CurrentSenseCharges = MaxSenseCharges;
@@ -599,6 +602,37 @@ void ALCOPlayerCharacter::HandleCameraEquipChanged(bool bEquipped)
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Camera %s"), bEquipped ? TEXT("Equipped") : TEXT("Unequipped"));
+}
+
+void ALCOPlayerCharacter::HandlePhotoCaptured(FName CaptureID, UTexture2D* PhotoImage, FText PhotoTitle, FText PhotoDescription)
+{
+	PlayCameraShootMontage();
+}
+
+void ALCOPlayerCharacter::HandleCaptureFailed(ELCOCameraCaptureResult Result)
+{
+	// 셔터는 눌렀는데 대상이 없거나 이미 찍은 경우도 찍는 동작은 보여줌 (대기 시간 / 오류는 제외)
+	if (Result == ELCOCameraCaptureResult::NoTarget || Result == ELCOCameraCaptureResult::AlreadyCaptured)
+	{
+		PlayCameraShootMontage();
+	}
+}
+
+void ALCOPlayerCharacter::PlayCameraShootMontage()
+{
+	if (!bCameraEquipped || !CameraShootMontage)
+	{
+		return;
+	}
+
+	// 연타해도 처음부터 다시 재생되지 않게
+	const UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && AnimInstance->Montage_IsPlaying(CameraShootMontage))
+	{
+		return;
+	}
+
+	PlayAnimMontage(CameraShootMontage);
 }
 
 // ---------- 웅크리기 ----------

@@ -99,6 +99,19 @@ void ULCOQuickSlotWidget::RefreshSlots(ULCOQuickSlotComponent* QuickSlot)
 				}
 			}
 
+			// HUD 3번 칸은 보유 중인 UV 라이트를 표시한다.
+			else if (i == 2)
+			{
+				const FName UVLightID = QuickSlot->GetUVLightItemID();
+
+				if (Inventory->HasItem(UVLightID))
+				{
+					ItemID = UVLightID;
+					Data = Inventory->GetItemData(ItemID);
+					Count = 1;
+				}
+			}
+			
 		}
 
 		// 아이템 데이터에서 아이콘과 이름을 가져온다.

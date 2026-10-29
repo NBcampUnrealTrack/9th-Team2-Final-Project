@@ -49,6 +49,11 @@ void ULCOMainMenuWidget::NativeDestruct()
 {
 	UnbindLocalizationEvents();
 
+	if (SettingsWidget && SettingsWidget->IsInViewport())
+	{
+		SettingsWidget->RemoveFromParent();
+	}
+
 	Super::NativeDestruct();
 }
 
@@ -64,6 +69,29 @@ bool ULCOMainMenuWidget::CanContinue() const
 
 void ULCOMainMenuWidget::OpenSettings()
 {
+	if (SettingsWidgetClass)
+	{
+		if (SettingsWidget && SettingsWidget->IsInViewport())
+		{
+			return;
+		}
+
+		SettingsWidget = CreateWidget<UUserWidget>(GetOwningPlayer(), SettingsWidgetClass);
+		if (SettingsWidget)
+		{
+			SettingsWidget->AddToViewport(10);
+		}
+
+		BP_OnSettingsOpened();
+		return;
+	}
+
+	if (!SettingsPanel)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOMainMenu] OpenSettings: SettingsWidgetClass is not set"));
+		return;
+	}
+
 	if (MenuPanel)     MenuPanel->SetVisibility(ESlateVisibility::Collapsed);
 	if (SettingsPanel) SettingsPanel->SetVisibility(ESlateVisibility::Visible);
 

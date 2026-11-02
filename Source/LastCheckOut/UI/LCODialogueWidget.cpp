@@ -162,9 +162,22 @@ void ULCODialogueWidget::NativeDestruct()
 	Super::NativeDestruct();
 }
 
+FReply ULCODialogueWidget::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	// Only dialogue/options keys and mouse input may reach focused children or game input.
+	const FKey Key = InKeyEvent.GetKey();
+	const bool bAllowedInput = Key == EKeys::Escape || Key == EKeys::O || Key == EKeys::F || Key.IsMouseButton();
+	if (IsInViewport() && IsDialogueActive() && !bAllowedInput)
+	{
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent);
+}
+
 FReply ULCODialogueWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
-	if (IsInViewport() && (InKeyEvent.GetKey() == EKeys::F || InKeyEvent.GetKey() == EKeys::Enter || InKeyEvent.GetKey() == EKeys::SpaceBar))
+	if (IsInViewport() && InKeyEvent.GetKey() == EKeys::F)
 	{
 		if (bAutoAdvanceActive) return FReply::Handled();
 		if (bIsTypewriting)

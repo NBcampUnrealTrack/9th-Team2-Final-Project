@@ -13,6 +13,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOStoryFlagUnlocked, ELCOStoryFl
 // 지배인 보고 결과 (GameMode: 2막 이동·자동 저장 / 대화: 독백 / UI: 엔딩 화면 / 레벨: 407호 문 열기 등)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOReportResolved, ELCOStoryFlag, PresentedKeyword, ELCOReportResult, Result);
 
+// 챕터 클리어로 다음 챕터 시작 (GameMode: 시간대 진행 · 시작 맵 이동 · 자동 저장)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOChapterAdvanced, FName, CompletedChapterID, FName, NewChapterID);
+
 /**
  * 스토리 진행 (챕터, 목표, 증언·키워드 플래그)
  *
@@ -121,6 +124,20 @@ public:
 	// 보고 결과 알림
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Story|Ending")
 	FOnLCOReportResolved OnReportResolved;
+
+	// 2막 결말 (별관 출구)
+
+	// 2막 진행 중이고 K11(구관의 존재)을 가지고 있는지 (출구 선택지 표시용)
+	UFUNCTION(BlueprintPure, Category = "LCO|Story|Chapter")
+	bool CanCompleteChapter2() const;
+
+	// 2막 클리어 → 3막 시작 후 OnChapterAdvanced 알림. 조건 미달이면 false
+	UFUNCTION(BlueprintCallable, Category = "LCO|Story|Chapter")
+	bool TryCompleteChapter2();
+
+	// 챕터 클리어 알림 (지배인 보고로 넘어가는 1막 클리어는 OnReportResolved로 알림)
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Story|Chapter")
+	FOnLCOChapterAdvanced OnChapterAdvanced;
 
 	// Save
 

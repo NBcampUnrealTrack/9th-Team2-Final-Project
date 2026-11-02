@@ -40,6 +40,11 @@ protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "LCO|Travel")
 	FName TargetPlayerStartTag;
 
+	// 이동할 때 완료할 목표 (현재 목표와 같을 때만 완료됨). 비우면 무시
+	// 예: 별관 이동 트리거에 C2_FollowCaretaker → 관리인 따라가기 끝
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "LCO|Travel")
+	FName ObjectiveToComplete;
+
 	// 꺼져 있으면 닿아도 이동하지 않음
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LCO|Travel")
 	bool bTriggerEnabled = true;

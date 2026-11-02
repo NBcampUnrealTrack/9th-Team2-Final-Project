@@ -1173,6 +1173,12 @@ bool ULCODialogueWidget::IsConditionMet(FName Condition) const
 		return true;
 	}
 
+	// 현재 목표 ID (예: C2_FollowCaretaker)
+	if (const ULCOStorySubsystem* Story = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>())
+	{
+		if (Story->IsCurrentObjective(Condition)) return true;
+	}
+
 	if (UsesActOneNotebookConditions())
 	{
 		// T/K entries come from the persistent notebook used by deduction and save/restore.

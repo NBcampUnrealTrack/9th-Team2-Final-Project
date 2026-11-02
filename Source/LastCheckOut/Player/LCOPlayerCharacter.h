@@ -339,6 +339,8 @@ protected:
 	void AttachHeldCamera();
 	// 시점 / 손전등 상태에 맞게 손전등 팔, 모델 표시 갱신
 	void UpdateFlashlightVisuals();
+	// 카메라를 들고 1인칭이면(뷰파인더) 내 화면에서 팔 / 손 카메라 숨김
+	void UpdateViewfinderVisuals();
 
 	// 달리기 조건(Shift, 이동 중, 지면, 스태미나)을 확인해서 상태 갱신
 	void UpdateSprint();
@@ -520,6 +522,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FOV")
 	float SenseZoomFOV = 25.f;
 	
+	// 카메라를 들었을 때(뷰파인더) 줄어드는 시야각 (줌인)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Viewfinder")
+	float ViewfinderZoomFOV = 20.f;
+
+	// 뷰파인더 줌인 / 줌아웃 속도 (작을수록 천천히 빨려 들어감)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Viewfinder")
+	float ViewfinderZoomSpeed = 6.f;
+
+	// 카메라를 들 때 검은 화면에서 밝아지는 시간 (0이면 끔)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Viewfinder", meta = (ClampMin = "0.0"))
+	float ViewfinderFadeTime = 0.2f;
+	
 	// 1인칭 팔을 그릴 때 쓰는 시야각 (카메라 FOV와 별개라 줌인해도 팔은 그대로)
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FirstPerson")
     float FirstPersonArmsFOV = 70.f;
@@ -673,6 +687,12 @@ private:
 	float CurrentBobAmplitude = 0.f;
 	
 	bool bCameraEquipped = false;
+	
+	// 뷰파인더 줌 진행도 0 ~ 1
+	float ViewfinderAlpha = 0.f;
+
+	// 카메라를 들기 전 시점 (내리면 이 시점으로 복귀)
+	ELCOViewMode ViewModeBeforeCamera = ELCOViewMode::FirstPerson;
 	
 	// 현재 카메라 높이 (부드럽게 바뀌는 중간값)
 	float CurrentCameraHeight = 0.f;

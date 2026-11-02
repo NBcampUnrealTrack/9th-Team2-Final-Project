@@ -1,6 +1,7 @@
 #include "LCOLevelTransitionTrigger.h"
 #include "LastCheckOut.h"
 #include "Game/LCOGameMode.h"
+#include "Story/LCOStorySubsystem.h"
 #include "Player/LCOPlayerCharacter.h"
 #include "Components/BoxComponent.h"
 #include "Engine/World.h"
@@ -66,6 +67,18 @@ void ALCOLevelTransitionTrigger::HandleBeginOverlap(UPrimitiveComponent* Overlap
 	// Log Test
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOLevelTransitionTrigger] %s: Travel to %s (Entry = %s)"),
 		*GetName(), *TargetLevel.ToString(), *TargetPlayerStartTag.ToString());
+
+	// 맵 이동 전에 완료해야 도착 자동 저장 / 다음 맵에 반영됨
+	if (!ObjectiveToComplete.IsNone())
+	{
+		if (ULCOStorySubsystem* StorySubsystem = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>())
+		{
+			if (StorySubsystem->IsCurrentObjective(ObjectiveToComplete))
+			{
+				StorySubsystem->CompleteObjective(ObjectiveToComplete);
+			}
+		}
+	}
 
 	// 인벤토리, 퀵슬롯, 시점 보관 + 맵 이동은 GameMode가 처리
 	LCOGameMode->TravelToLevel(TargetLevel, TargetPlayerStartTag);

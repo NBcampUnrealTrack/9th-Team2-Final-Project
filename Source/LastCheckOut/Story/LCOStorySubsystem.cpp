@@ -14,6 +14,10 @@ namespace
 	// 1막 / 2막 챕터 ID
 	const FName Chapter1ID(TEXT("Chapter1"));
 	const FName Chapter2ID(TEXT("Chapter2"));
+	const FName Chapter3ID(TEXT("Chapter3"));
+
+	// 2막 시작 ~ 별관 도착까지 관리인을 따라가는 중
+	const FName FollowCaretakerObjectiveID(TEXT("C2_FollowCaretaker"));
 }
 
 void ULCOStorySubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -359,6 +363,7 @@ ELCOReportResult ULCOStorySubsystem::ReportToManager(ELCOStoryFlag PresentedKeyw
 			// 407호 조사 허가 → 1막 클리어, 바로 2막 시작 (이동·저장은 GameMode가 처리)
 			CompleteChapter(Chapter1ID);
 			StartChapter(Chapter2ID);
+			StartObjective(FollowCaretakerObjectiveID);
 			Result = ELCOReportResult::Chapter1Clear;
 		}
 		else
@@ -375,6 +380,29 @@ ELCOReportResult ULCOStorySubsystem::ReportToManager(ELCOStoryFlag PresentedKeyw
 
 	OnReportResolved.Broadcast(PresentedKeyword, Result);
 	return Result;
+}
+
+bool ULCOStorySubsystem::CanCompleteChapter2() const
+{
+	return CurrentChapterID == Chapter2ID && HasFlag(ELCOStoryFlag::K11);
+}
+
+bool ULCOStorySubsystem::TryCompleteChapter2()
+{
+	if (!CanCompleteChapter2())
+	{
+		// Log Test
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] TryCompleteChapter2 ignored: Chapter = %s, K11 = %d"),
+			*CurrentChapterID.ToString(), HasFlag(ELCOStoryFlag::K11));
+		return false;
+	}
+
+	// 2막 클리어 → 3막 시작 (이동·저장은 GameMode가 처리)
+	CompleteChapter(Chapter2ID);
+	StartChapter(Chapter3ID);
+
+	OnChapterAdvanced.Broadcast(Chapter2ID, Chapter3ID);
+	return true;
 }
 
 void ULCOStorySubsystem::RecordFlagToNotebook(ELCOStoryFlag Flag) const

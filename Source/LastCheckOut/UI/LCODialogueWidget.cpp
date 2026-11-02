@@ -28,6 +28,7 @@ namespace
 	const FName RowTypeLine = TEXT("Line");
 	const FName RowTypeChoice = TEXT("Choice");
 	const FName SystemSpeakerID = TEXT("System");
+	const FName NarratorSpeakerID = TEXT("Narrator");
 	const FName WorkSeniorDialogueID = TEXT("WorkSenior");
 	const FName ProtagonistSpeakerID = TEXT("Protagonist");
 	const FName FirstNodeID = TEXT("FIRST_01");
@@ -637,7 +638,7 @@ bool ULCODialogueWidget::LoadFlowForDialogueID(FName DialogueID)
 
 bool ULCODialogueWidget::ValidateSpeakerNameKey(FName SpeakerID, const FString& Context) const
 {
-	if (SpeakerID == SystemSpeakerID) return true;
+	if (SpeakerID == SystemSpeakerID || SpeakerID == NarratorSpeakerID) return true;
 
 	if (SpeakerID.IsNone())
 	{
@@ -1095,7 +1096,7 @@ void ULCODialogueWidget::RefreshVisibleText()
 
 void ULCODialogueWidget::RefreshSpeakerPresentation(FName SpeakerID)
 {
-	if (SpeakerID == SystemSpeakerID)
+	if (SpeakerID == SystemSpeakerID || SpeakerID == NarratorSpeakerID)
 	{
 		if (Text_SpeakerName) Text_SpeakerName->SetText(FText::GetEmpty());
 		if (Img_SpeakerPortrait)
@@ -1257,6 +1258,12 @@ bool ULCODialogueWidget::ShouldPlayDialogueCharacterSound(const FString& Reveale
 
 const FLCODialogueVoiceSettings* ULCODialogueWidget::GetActiveVoiceSettings() const
 {
+	// Narration stays silent regardless of speaker or dialogue voice overrides.
+	if (const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID))
+	{
+		if (Node->SpeakerID == NarratorSpeakerID) return nullptr;
+	}
+
 	if (ActiveDialogueID == WorkSeniorDialogueID)
 	{
 		const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID);
@@ -1449,6 +1456,8 @@ FString ULCODialogueWidget::ResolveDialogueKeyBinding(FName BindingName) const
 
 FText ULCODialogueWidget::ResolveSpeakerName(FName SpeakerID) const
 {
+	if (SpeakerID == NarratorSpeakerID) return FText::GetEmpty();
+
 	const FName LocalSpeakerNameKey = SpeakerID.IsNone() ? NAME_None : FName(*(SpeakerID.ToString() + TEXT("_NAME")));
 	if (const ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
 	{

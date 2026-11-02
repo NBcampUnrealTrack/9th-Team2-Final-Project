@@ -1,12 +1,12 @@
 Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
-Cleaner_NAME,청소부,,,,,,,,,
-CLEANER_FIRST_01,첫 대화입니다.,,,,,,,,,
-CLEANER_DEFAULT_01,두 번째 대화입니다.,,,,,,,,,
-CLEANER_CHOICE_BYE,대화 종료,,,,,,,,,
-CLEANER_BYE_01,대화를 마칩니다.,,,,,,,,,
-CLEANER_CHOICE_T07,T07 관련 대화,,,,,,,,,
-CLEANER_T07_01,T07 관련 대화입니다.,,,,,,,,,
-CLEANER_C2_FIRST_01,2막 첫 대화입니다.,,,,,,,,,
-CLEANER_C2_DEFAULT_01,2막 두 번째 대화입니다.,,,,,,,,,
-CLEANER_CHOICE_T12,T12 관련 대화,,,,,,,,,
-CLEANER_T12_01,T12 관련 대화입니다.,,,,,,,,,
+Cleaner_NAME,청소부,Cleaner,清掃員,清洁工,清潔工,Personal de limpieza,Agent d'entretien,Reinigungskraft,Auxiliar de limpeza,Siivooja
+CLEANER_FIRST_01,첫 대화입니다.,This is the first conversation.,最初の会話です。,这是第一次对话。,這是第一次對話。,Esta es la primera conversación.,Ceci est la première conversation.,Dies ist das erste Gespräch.,Esta é a primeira conversa.,Tämä on ensimmäinen keskustelu.
+CLEANER_DEFAULT_01,두 번째 대화입니다.,This is the second conversation.,二回目の会話です。,这是第二次对话。,這是第二次對話。,Esta es la segunda conversación.,Ceci est la deuxième conversation.,Dies ist das zweite Gespräch.,Esta é a segunda conversa.,Tämä on toinen keskustelu.
+CLEANER_CHOICE_BYE,대화 종료,End conversation,会話を終える,结束对话,結束對話,Terminar conversación,Terminer la conversation,Gespräch beenden,Encerrar conversa,Lopeta keskustelu
+CLEANER_BYE_01,대화를 마칩니다.,The conversation ends.,会話を終えます。,结束对话。,結束對話。,Fin de la conversación.,Fin de la conversation.,Das Gespräch wird beendet.,Fim da conversa.,Keskustelu päättyy.
+CLEANER_CHOICE_T07,T07 관련 대화,Talk about T07,T07について話す,关于T07的对话,關於T07的對話,Hablar sobre T07,Parler de T07,Über T07 sprechen,Falar sobre T07,Keskustele aiheesta T07
+CLEANER_T07_01,T07 관련 대화입니다.,This is the conversation about T07.,T07に関する会話です。,这是关于T07的对话。,這是關於T07的對話。,Esta es la conversación sobre T07.,Ceci est la conversation sur T07.,Dies ist das Gespräch über T07.,Esta é a conversa sobre T07.,Tämä on keskustelu aiheesta T07.
+CLEANER_C2_FIRST_01,2막 첫 대화입니다.,This is the first conversation in Act 2.,第2幕の最初の会話です。,这是第二幕的第一次对话。,這是第二幕的第一次對話。,Esta es la primera conversación del acto 2.,Ceci est la première conversation de l'acte 2.,Dies ist das erste Gespräch in Akt 2.,Esta é a primeira conversa do ato 2.,Tämä on 2. näytöksen ensimmäinen keskustelu.
+CLEANER_C2_DEFAULT_01,2막 두 번째 대화입니다.,This is the second conversation in Act 2.,第2幕の二回目の会話です。,这是第二幕的第二次对话。,這是第二幕的第二次對話。,Esta es la segunda conversación del acto 2.,Ceci est la deuxième conversation de l'acte 2.,Dies ist das zweite Gespräch in Akt 2.,Esta é a segunda conversa do ato 2.,Tämä on 2. näytöksen toinen keskustelu.
+CLEANER_CHOICE_T12,T12 관련 대화,Talk about T12,T12について話す,关于T12的对话,關於T12的對話,Hablar sobre T12,Parler de T12,Über T12 sprechen,Falar sobre T12,Keskustele aiheesta T12
+CLEANER_T12_01,T12 관련 대화입니다.,This is the conversation about T12.,T12に関する会話です。,这是关于T12的对话。,這是關於T12的對話。,Esta es la conversación sobre T12.,Ceci est la conversation sur T12.,Dies ist das Gespräch über T12.,Esta é a conversa sobre T12.,Tämä on keskustelu aiheesta T12.

@@ -1,19 +1,19 @@
 Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
-SeniorCleaner_NAME,선임 청소부,,,,,,,,,
-SENIORCLEANER_FIRST_01,첫 대화입니다.,,,,,,,,,
-SENIORCLEANER_DEFAULT_01,두 번째 대화입니다.,,,,,,,,,
-SENIORCLEANER_CHOICE_T14,T14 관련 대화,,,,,,,,,
-SENIORCLEANER_T14_01,T14 관련 대화입니다.,,,,,,,,,
-SENIORCLEANER_CHOICE_INTERROGATE,심문한다,,,,,,,,,
-SENIORCLEANER_INTERROGATE_01,심문을 시작합니다.,,,,,,,,,
-SENIORCLEANER_CHOICE_PRESENT_K09,K09 제시,,,,,,,,,
-SENIORCLEANER_PRESENT_K09_01,K09 관련 대화입니다.,,,,,,,,,
-SENIORCLEANER_CHOICE_PRESENT_K10,K10 제시,,,,,,,,,
-SENIORCLEANER_PRESENT_K10_01,K10 관련 대화입니다.,,,,,,,,,
-SENIORCLEANER_CHOICE_PRESENT_T09,T09 제시,,,,,,,,,
-SENIORCLEANER_T15_01,T15 관련 대화입니다.,,,,,,,,,
-SENIORCLEANER_CHOICE_GIVEUP,그만둔다,,,,,,,,,
-SENIORCLEANER_INTERROGATE_FAIL_01,심문에 실패했습니다.,,,,,,,,,
-SENIORCLEANER_INTERROGATE_DONE_01,더 할 말 없습니다.,,,,,,,,,
-SENIORCLEANER_CHOICE_BYE,대화 종료,,,,,,,,,
-SENIORCLEANER_BYE_01,대화를 마칩니다.,,,,,,,,,
+SeniorCleaner_NAME,선임 청소부,Senior Cleaner,清掃主任,资深清洁工,資深清潔工,Responsable de limpieza,Responsable de l'entretien,Leitende Reinigungskraft,Auxiliar de limpeza sênior,Vanhempi siivooja
+SENIORCLEANER_FIRST_01,첫 대화입니다.,This is the first conversation.,最初の会話です。,这是第一次对话。,這是第一次對話。,Esta es la primera conversación.,Ceci est la première conversation.,Dies ist das erste Gespräch.,Esta é a primeira conversa.,Tämä on ensimmäinen keskustelu.
+SENIORCLEANER_DEFAULT_01,두 번째 대화입니다.,This is the second conversation.,二回目の会話です。,这是第二次对话。,這是第二次對話。,Esta es la segunda conversación.,Ceci est la deuxième conversation.,Dies ist das zweite Gespräch.,Esta é a segunda conversa.,Tämä on toinen keskustelu.
+SENIORCLEANER_CHOICE_T14,T14 관련 대화,Talk about T14,T14について話す,关于T14的对话,關於T14的對話,Hablar sobre T14,Parler de T14,Über T14 sprechen,Falar sobre T14,Keskustele aiheesta T14
+SENIORCLEANER_T14_01,T14 관련 대화입니다.,This is the conversation about T14.,T14に関する会話です。,这是关于T14的对话。,這是關於T14的對話。,Esta es la conversación sobre T14.,Ceci est la conversation sur T14.,Dies ist das Gespräch über T14.,Esta é a conversa sobre T14.,Tämä on keskustelu aiheesta T14.
+SENIORCLEANER_CHOICE_INTERROGATE,심문한다,Interrogate,尋問する,审问,審問,Interrogar,Interroger,Verhören,Interrogar,Kuulustele
+SENIORCLEANER_INTERROGATE_01,심문을 시작합니다.,The interrogation begins.,尋問を始めます。,开始审问。,開始審問。,Comienza el interrogatorio.,L'interrogatoire commence.,Das Verhör beginnt.,O interrogatório começa.,Kuulustelu alkaa.
+SENIORCLEANER_CHOICE_PRESENT_K09,K09 제시,Present K09,K09を提示する,出示K09,出示K09,Presentar K09,Présenter K09,K09 vorlegen,Apresentar K09,Esitä K09
+SENIORCLEANER_PRESENT_K09_01,K09 관련 대화입니다.,This is the conversation about K09.,K09に関する会話です。,这是关于K09的对话。,這是關於K09的對話。,Esta es la conversación sobre K09.,Ceci est la conversation sur K09.,Dies ist das Gespräch über K09.,Esta é a conversa sobre K09.,Tämä on keskustelu aiheesta K09.
+SENIORCLEANER_CHOICE_PRESENT_K10,K10 제시,Present K10,K10を提示する,出示K10,出示K10,Presentar K10,Présenter K10,K10 vorlegen,Apresentar K10,Esitä K10
+SENIORCLEANER_PRESENT_K10_01,K10 관련 대화입니다.,This is the conversation about K10.,K10に関する会話です。,这是关于K10的对话。,這是關於K10的對話。,Esta es la conversación sobre K10.,Ceci est la conversation sur K10.,Dies ist das Gespräch über K10.,Esta é a conversa sobre K10.,Tämä on keskustelu aiheesta K10.
+SENIORCLEANER_CHOICE_PRESENT_T09,T09 제시,Present T09,T09を提示する,出示T09,出示T09,Presentar T09,Présenter T09,T09 vorlegen,Apresentar T09,Esitä T09
+SENIORCLEANER_T15_01,T15 관련 대화입니다.,This is the conversation about T15.,T15に関する会話です。,这是关于T15的对话。,這是關於T15的對話。,Esta es la conversación sobre T15.,Ceci est la conversation sur T15.,Dies ist das Gespräch über T15.,Esta é a conversa sobre T15.,Tämä on keskustelu aiheesta T15.
+SENIORCLEANER_CHOICE_GIVEUP,그만둔다,Give up,やめる,放弃,放棄,Rendirse,Abandonner,Aufgeben,Desistir,Luovuta
+SENIORCLEANER_INTERROGATE_FAIL_01,심문에 실패했습니다.,The interrogation failed.,尋問に失敗しました。,审问失败了。,審問失敗了。,El interrogatorio ha fracasado.,L'interrogatoire a échoué.,Das Verhör ist gescheitert.,O interrogatório falhou.,Kuulustelu epäonnistui.
+SENIORCLEANER_INTERROGATE_DONE_01,더 할 말 없습니다.,I have nothing more to say.,これ以上話すことはありません。,我没有什么要说的了。,我沒有什麼要說的了。,No tengo nada más que decir.,Je n'ai rien de plus à dire.,Ich habe nichts mehr zu sagen.,Não tenho mais nada a dizer.,Minulla ei ole enempää sanottavaa.
+SENIORCLEANER_CHOICE_BYE,대화 종료,End conversation,会話を終える,结束对话,結束對話,Terminar conversación,Terminer la conversation,Gespräch beenden,Encerrar conversa,Lopeta keskustelu
+SENIORCLEANER_BYE_01,대화를 마칩니다.,The conversation ends.,会話を終えます。,结束对话。,結束對話。,Fin de la conversación.,Fin de la conversation.,Das Gespräch wird beendet.,Fim da conversa.,Keskustelu päättyy.

@@ -1,10 +1,10 @@
 Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
-Bellboy_NAME,벨보이,,,,,,,,,
-BELLBOY_FIRST_01,첫 대화입니다.,,,,,,,,,
-BELLBOY_DEFAULT_01,두 번째 대화입니다.,,,,,,,,,
-BELLBOY_CHOICE_BYE,대화 종료,,,,,,,,,
-BELLBOY_BYE_01,대화를 마칩니다.,,,,,,,,,
-BELLBOY_CHOICE_T04,T04 관련 대화,,,,,,,,,
-BELLBOY_T04_01,T04 관련 대화입니다.,,,,,,,,,
-BELLBOY_C2_FIRST_01,2막 첫번째 대화입니다.,,,,,,,,,
-BELLBOY_C2_DEFAULT_01,2막 두 번째 대화입니다.,,,,,,,,,
+Bellboy_NAME,벨보이,Bellboy,ベルボーイ,行李员,行李員,Botones,Groom,Page,Mensageiro,Hotellipoika
+BELLBOY_FIRST_01,첫 대화입니다.,This is the first conversation.,最初の会話です。,这是第一次对话。,這是第一次對話。,Esta es la primera conversación.,Ceci est la première conversation.,Dies ist das erste Gespräch.,Esta é a primeira conversa.,Tämä on ensimmäinen keskustelu.
+BELLBOY_DEFAULT_01,두 번째 대화입니다.,This is the second conversation.,二回目の会話です。,这是第二次对话。,這是第二次對話。,Esta es la segunda conversación.,Ceci est la deuxième conversation.,Dies ist das zweite Gespräch.,Esta é a segunda conversa.,Tämä on toinen keskustelu.
+BELLBOY_CHOICE_BYE,대화 종료,End conversation,会話を終える,结束对话,結束對話,Terminar conversación,Terminer la conversation,Gespräch beenden,Encerrar conversa,Lopeta keskustelu
+BELLBOY_BYE_01,대화를 마칩니다.,The conversation ends.,会話を終えます。,结束对话。,結束對話。,Fin de la conversación.,Fin de la conversation.,Das Gespräch wird beendet.,Fim da conversa.,Keskustelu päättyy.
+BELLBOY_CHOICE_T04,T04 관련 대화,Talk about T04,T04について話す,关于T04的对话,關於T04的對話,Hablar sobre T04,Parler de T04,Über T04 sprechen,Falar sobre T04,Keskustele aiheesta T04
+BELLBOY_T04_01,T04 관련 대화입니다.,This is the conversation about T04.,T04に関する会話です。,这是关于T04的对话。,這是關於T04的對話。,Esta es la conversación sobre T04.,Ceci est la conversation sur T04.,Dies ist das Gespräch über T04.,Esta é a conversa sobre T04.,Tämä on keskustelu aiheesta T04.
+BELLBOY_C2_FIRST_01,2막 첫번째 대화입니다.,This is the first conversation in Act 2.,第2幕の最初の会話です。,这是第二幕的第一次对话。,這是第二幕的第一次對話。,Esta es la primera conversación del acto 2.,Ceci est la première conversation de l'acte 2.,Dies ist das erste Gespräch in Akt 2.,Esta é a primeira conversa do ato 2.,Tämä on 2. näytöksen ensimmäinen keskustelu.
+BELLBOY_C2_DEFAULT_01,2막 두 번째 대화입니다.,This is the second conversation in Act 2.,第2幕の二回目の会話です。,这是第二幕的第二次对话。,這是第二幕的第二次對話。,Esta es la segunda conversación del acto 2.,Ceci est la deuxième conversation de l'acte 2.,Dies ist das zweite Gespräch in Akt 2.,Esta é a segunda conversa do ato 2.,Tämä on 2. näytöksen toinen keskustelu.

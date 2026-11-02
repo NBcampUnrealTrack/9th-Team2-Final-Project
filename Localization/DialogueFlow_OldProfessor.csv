@@ -1,4 +1,4 @@
-﻿NodeID,RowType,SpeakerID,TextKey,NextNodeID,ChoiceID,ChoiceTextKey,ChoiceTargetNodeID,Condition,EndConversation,UnlockFlag,ReportKeyword
+NodeID,RowType,SpeakerID,TextKey,NextNodeID,ChoiceID,ChoiceTextKey,ChoiceTargetNodeID,Condition,EndConversation,UnlockFlag,ReportKeyword
 FIRST_01,Line,Narrator,OLDPROFESSOR_FIRST_01,FIRST_02,,,,,false,,
 FIRST_02,Line,Narrator,OLDPROFESSOR_FIRST_02,FIRST_03,,,,,false,,
 FIRST_03,Line,Protagonist,OLDPROFESSOR_FIRST_03,FIRST_04,,,,,false,,

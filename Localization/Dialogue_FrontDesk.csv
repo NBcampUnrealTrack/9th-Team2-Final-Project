@@ -1,12 +1,12 @@
 Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
-FrontDesk_NAME,프론트 직원,,,,,,,,,
-FRONTDESK_FIRST_01,첫 대화입니다.,,,,,,,,,
-FRONTDESK_DEFAULT_01,두 번째 대화입니다.,,,,,,,,,
-FRONTDESK_CHOICE_BYE,대화 종료,,,,,,,,,
-FRONTDESK_BYE_01,대화를 마칩니다.,,,,,,,,,
-FRONTDESK_CHOICE_T06,T06 관련 대화,,,,,,,,,
-FRONTDESK_T06_01,T06 관련 대화입니다.,,,,,,,,,
-FRONTDESK_CHOICE_T10,T10 관련 대화,,,,,,,,,
-FRONTDESK_T10_01,T10 관련 대화입니다.,,,,,,,,,
-FRONTDESK_CHOICE_T11,T11 관련 대화,,,,,,,,,
-FRONTDESK_T11_01,T11 관련 대화입니다.,,,,,,,,,
+FrontDesk_NAME,프론트 직원,Front Desk Clerk,フロント係,前台员工,櫃檯人員,Recepcionista,Réceptionniste,Rezeptionist,Recepcionista,Vastaanottovirkailija
+FRONTDESK_FIRST_01,첫 대화입니다.,This is the first conversation.,最初の会話です。,这是第一次对话。,這是第一次對話。,Esta es la primera conversación.,Ceci est la première conversation.,Dies ist das erste Gespräch.,Esta é a primeira conversa.,Tämä on ensimmäinen keskustelu.
+FRONTDESK_DEFAULT_01,두 번째 대화입니다.,This is the second conversation.,二回目の会話です。,这是第二次对话。,這是第二次對話。,Esta es la segunda conversación.,Ceci est la deuxième conversation.,Dies ist das zweite Gespräch.,Esta é a segunda conversa.,Tämä on toinen keskustelu.
+FRONTDESK_CHOICE_BYE,대화 종료,End conversation,会話を終える,结束对话,結束對話,Terminar conversación,Terminer la conversation,Gespräch beenden,Encerrar conversa,Lopeta keskustelu
+FRONTDESK_BYE_01,대화를 마칩니다.,The conversation ends.,会話を終えます。,结束对话。,結束對話。,Fin de la conversación.,Fin de la conversation.,Das Gespräch wird beendet.,Fim da conversa.,Keskustelu päättyy.
+FRONTDESK_CHOICE_T06,T06 관련 대화,Talk about T06,T06について話す,关于T06的对话,關於T06的對話,Hablar sobre T06,Parler de T06,Über T06 sprechen,Falar sobre T06,Keskustele aiheesta T06
+FRONTDESK_T06_01,T06 관련 대화입니다.,This is the conversation about T06.,T06に関する会話です。,这是关于T06的对话。,這是關於T06的對話。,Esta es la conversación sobre T06.,Ceci est la conversation sur T06.,Dies ist das Gespräch über T06.,Esta é a conversa sobre T06.,Tämä on keskustelu aiheesta T06.
+FRONTDESK_CHOICE_T10,T10 관련 대화,Talk about T10,T10について話す,关于T10的对话,關於T10的對話,Hablar sobre T10,Parler de T10,Über T10 sprechen,Falar sobre T10,Keskustele aiheesta T10
+FRONTDESK_T10_01,T10 관련 대화입니다.,This is the conversation about T10.,T10に関する会話です。,这是关于T10的对话。,這是關於T10的對話。,Esta es la conversación sobre T10.,Ceci est la conversation sur T10.,Dies ist das Gespräch über T10.,Esta é a conversa sobre T10.,Tämä on keskustelu aiheesta T10.
+FRONTDESK_CHOICE_T11,T11 관련 대화,Talk about T11,T11について話す,关于T11的对话,關於T11的對話,Hablar sobre T11,Parler de T11,Über T11 sprechen,Falar sobre T11,Keskustele aiheesta T11
+FRONTDESK_T11_01,T11 관련 대화입니다.,This is the conversation about T11.,T11に関する会話です。,这是关于T11的对话。,這是關於T11的對話。,Esta es la conversación sobre T11.,Ceci est la conversation sur T11.,Dies ist das Gespräch über T11.,Esta é a conversa sobre T11.,Tämä on keskustelu aiheesta T11.

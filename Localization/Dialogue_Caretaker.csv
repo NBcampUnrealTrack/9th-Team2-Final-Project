@@ -1,12 +1,12 @@
 Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
-Caretaker_NAME,관리인,,,,,,,,,
-CARETAKER_FIRST_01,첫 대화입니다.,,,,,,,,,
-CARETAKER_DEFAULT_01,두 번째 대화입니다.,,,,,,,,,
-CARETAKER_CHOICE_BYE,대화 종료,,,,,,,,,
-CARETAKER_BYE_01,대화를 마칩니다.,,,,,,,,,
-CARETAKER_CHOICE_T05,T05 관련 대화,,,,,,,,,
-CARETAKER_T05_01,T05 관련 대화입니다.,,,,,,,,,
-CARETAKER_C2_FIRST_01,2막 첫 대화입니다.,,,,,,,,,
-CARETAKER_C2_DEFAULT_01,2막 두 번째 대화입니다.,,,,,,,,,
-CARETAKER_CHOICE_T13,T13 관련 대화,,,,,,,,,
-CARETAKER_T13_01,T13 관련 대화입니다.,,,,,,,,,
+Caretaker_NAME,관리인,Caretaker,管理人,管理员,管理員,Encargado,Gardien,Hausmeister,Zelador,Talonmies
+CARETAKER_FIRST_01,첫 대화입니다.,This is the first conversation.,最初の会話です。,这是第一次对话。,這是第一次對話。,Esta es la primera conversación.,Ceci est la première conversation.,Dies ist das erste Gespräch.,Esta é a primeira conversa.,Tämä on ensimmäinen keskustelu.
+CARETAKER_DEFAULT_01,두 번째 대화입니다.,This is the second conversation.,二回目の会話です。,这是第二次对话。,這是第二次對話。,Esta es la segunda conversación.,Ceci est la deuxième conversation.,Dies ist das zweite Gespräch.,Esta é a segunda conversa.,Tämä on toinen keskustelu.
+CARETAKER_CHOICE_BYE,대화 종료,End conversation,会話を終える,结束对话,結束對話,Terminar conversación,Terminer la conversation,Gespräch beenden,Encerrar conversa,Lopeta keskustelu
+CARETAKER_BYE_01,대화를 마칩니다.,The conversation ends.,会話を終えます。,结束对话。,結束對話。,Fin de la conversación.,Fin de la conversation.,Das Gespräch wird beendet.,Fim da conversa.,Keskustelu päättyy.
+CARETAKER_CHOICE_T05,T05 관련 대화,Talk about T05,T05について話す,关于T05的对话,關於T05的對話,Hablar sobre T05,Parler de T05,Über T05 sprechen,Falar sobre T05,Keskustele aiheesta T05
+CARETAKER_T05_01,T05 관련 대화입니다.,This is the conversation about T05.,T05に関する会話です。,这是关于T05的对话。,這是關於T05的對話。,Esta es la conversación sobre T05.,Ceci est la conversation sur T05.,Dies ist das Gespräch über T05.,Esta é a conversa sobre T05.,Tämä on keskustelu aiheesta T05.
+CARETAKER_C2_FIRST_01,2막 첫 대화입니다.,This is the first conversation in Act 2.,第2幕の最初の会話です。,这是第二幕的第一次对话。,這是第二幕的第一次對話。,Esta es la primera conversación del acto 2.,Ceci est la première conversation de l'acte 2.,Dies ist das erste Gespräch in Akt 2.,Esta é a primeira conversa do ato 2.,Tämä on 2. näytöksen ensimmäinen keskustelu.
+CARETAKER_C2_DEFAULT_01,2막 두 번째 대화입니다.,This is the second conversation in Act 2.,第2幕の二回目の会話です。,这是第二幕的第二次对话。,這是第二幕的第二次對話。,Esta es la segunda conversación del acto 2.,Ceci est la deuxième conversation de l'acte 2.,Dies ist das zweite Gespräch in Akt 2.,Esta é a segunda conversa do ato 2.,Tämä on 2. näytöksen toinen keskustelu.
+CARETAKER_CHOICE_T13,T13 관련 대화,Talk about T13,T13について話す,关于T13的对话,關於T13的對話,Hablar sobre T13,Parler de T13,Über T13 sprechen,Falar sobre T13,Keskustele aiheesta T13
+CARETAKER_T13_01,T13 관련 대화입니다.,This is the conversation about T13.,T13に関する会話です。,这是关于T13的对话。,這是關於T13的對話。,Esta es la conversación sobre T13.,Ceci est la conversation sur T13.,Dies ist das Gespräch über T13.,Esta é a conversa sobre T13.,Tämä on keskustelu aiheesta T13.

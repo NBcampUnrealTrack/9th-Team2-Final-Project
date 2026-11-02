@@ -1,5 +1,5 @@
 Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
-TaxiDriver_NAME,택시 기사,Taxi Driver,,,,,,,,
-TAXIDRIVER_FIRST_01,손님 거의 다 왔습니다.,,,,,,,,,
-TAXIDRIVER_FIRST_02,오늘 비가 꽤 오네요.,,,,,,,,,
-TAXIDRIVER_FIRST_03,조심히 들어가세요.,,,,,,,,,
+TaxiDriver_NAME,택시 기사,Taxi Driver,タクシー運転手,出租车司机,計程車司機,Taxista,Chauffeur de taxi,Taxifahrer,Taxista,Taksinkuljettaja
+TAXIDRIVER_FIRST_01,손님 거의 다 왔습니다.,We're almost there.,お客さん、もうすぐ着きますよ。,客人，快到了。,客人，快到了。,Ya casi llegamos.,Nous y sommes presque.,Wir sind gleich da.,Estamos quase chegando.,Olemme melkein perillä.
+TAXIDRIVER_FIRST_02,오늘 비가 꽤 오네요.,It's really coming down today.,今日はずいぶん降りますね。,今天雨下得挺大的。,今天雨下得挺大的。,Hoy está lloviendo bastante.,Il pleut pas mal aujourd'hui.,Heute regnet es ganz schön.,Está chovendo bastante hoje.,Tänään sataa aika lailla.
+TAXIDRIVER_FIRST_03,조심히 들어가세요.,Take care going in.,お気をつけて。,您慢走，路上小心。,您慢走，路上小心。,Cuídese.,Prenez soin de vous.,Passen Sie auf sich auf.,Vá com cuidado.,Pitäkää huolta itsestänne.

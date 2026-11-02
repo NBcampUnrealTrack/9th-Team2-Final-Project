@@ -169,6 +169,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "LCO|Story")
 	const TArray<FName>& GetCompletedObjectives() const { return CompletedObjectives; }
 
+	// 지금 진행 중인 목표가 이 목표인지 (예: C2_FollowCaretaker = 2막 관리인 따라가는 중)
+	UFUNCTION(BlueprintPure, Category = "LCO|Story")
+	bool IsCurrentObjective(FName ObjectiveID) const { return !ObjectiveID.IsNone() && CurrentObjectiveID == ObjectiveID; }
+
 private:
 	// 현재 진행 중인 챕터 ID
 	UPROPERTY()

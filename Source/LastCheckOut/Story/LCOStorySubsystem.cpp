@@ -15,6 +15,9 @@ namespace
 	const FName Chapter1ID(TEXT("Chapter1"));
 	const FName Chapter2ID(TEXT("Chapter2"));
 	const FName Chapter3ID(TEXT("Chapter3"));
+
+	// 2막 시작 ~ 별관 도착까지 관리인을 따라가는 중
+	const FName FollowCaretakerObjectiveID(TEXT("C2_FollowCaretaker"));
 }
 
 void ULCOStorySubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -360,6 +363,7 @@ ELCOReportResult ULCOStorySubsystem::ReportToManager(ELCOStoryFlag PresentedKeyw
 			// 407호 조사 허가 → 1막 클리어, 바로 2막 시작 (이동·저장은 GameMode가 처리)
 			CompleteChapter(Chapter1ID);
 			StartChapter(Chapter2ID);
+			StartObjective(FollowCaretakerObjectiveID);
 			Result = ELCOReportResult::Chapter1Clear;
 		}
 		else

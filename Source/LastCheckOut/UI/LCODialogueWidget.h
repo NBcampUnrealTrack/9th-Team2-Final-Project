@@ -95,6 +95,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "LCO|Dialogue")
 	bool IsDialogueActive() const { return !ActiveDialogueID.IsNone(); }
 
+	void RefreshSeniorCleanerChoices();
+	void RefreshNotebookConfiscationState();
+
 	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
 	void CloseDialogue(bool bEndNPCConversation = true);
 
@@ -198,11 +201,14 @@ private:
 	bool HasAvailableQuestions(const FLCODialogueNode& ChoiceNode) const;
 	bool IsExitChoice(const FLCODialogueChoiceRow& Choice) const;
 	bool TryStartNoQuestionsDialogue(const FLCODialogueNode& Node);
+	bool IsNotebookConfiscated() const;
+	bool TryStartNotebookConfiscatedDialogue(const FLCODialogueNode& Node);
 	void RefreshVisibleText();
 	void RefreshSpeakerPresentation(FName SpeakerID);
 	void SetChoicesVisible(bool bVisible);
 	bool IsEndNode(FName NodeID) const;
 	bool IsConditionMet(FName Condition) const;
+	bool IsSingleConditionMet(FName Condition) const;
 	bool UsesActOneNotebookConditions() const;
 	bool ValidateDialogueTextKey(FName TextKey, const FString& Context) const;
 	bool ValidateSpeakerNameKey(FName SpeakerID, const FString& Context) const;
@@ -282,4 +288,6 @@ private:
 
 	UPROPERTY(Transient)
 	bool bActiveDialogueCompletedNormally = false;
+	bool bActiveDialogueIsPostT15 = false;
+	bool bActiveDialogueConfirms407 = false;
 };

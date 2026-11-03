@@ -126,6 +126,7 @@ void ALCOPlayerCharacter::BeginPlay()
 	FirstPersonMesh->HideBoneByName(TEXT("neck_01"), EPhysBodyOp::PBO_None);
 
 	QuickSlotComponent->OnCameraEquipChanged.AddDynamic(this, &ALCOPlayerCharacter::HandleCameraEquipChanged);
+	QuickSlotComponent->OnUVLightChanged.AddDynamic(this, &ALCOPlayerCharacter::HandleUVLightChanged);
 	// 좌클릭 촬영 결과 → 찍는 몽타주 (퀵슬롯이 Capture를 호출하면 결과 델리게이트로 받음)
 	CameraCaptureComponent->OnPhotoCaptured.AddDynamic(this, &ALCOPlayerCharacter::HandlePhotoCaptured);
 	CameraCaptureComponent->OnCaptureFailed.AddDynamic(this, &ALCOPlayerCharacter::HandleCaptureFailed);
@@ -637,6 +638,12 @@ void ALCOPlayerCharacter::HandleCameraEquipChanged(bool bEquipped)
 	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Camera %s"), bEquipped ? TEXT("Equipped") : TEXT("Unequipped"));
 }
 
+void ALCOPlayerCharacter::HandleUVLightChanged(bool bOn)
+{
+	bUVLightOn = bOn;
+	UpdateFlashlightVisuals();
+}
+
 void ALCOPlayerCharacter::HandlePhotoCaptured(FName CaptureID, UTexture2D* PhotoImage, FText PhotoTitle, FText PhotoDescription)
 {
 	PlayCameraShootMontage();
@@ -981,14 +988,16 @@ void ALCOPlayerCharacter::UpdateFlashlight()
 void ALCOPlayerCharacter::UpdateFlashlightVisuals()
 {
 	const bool bFirstPerson = (ViewMode == ELCOViewMode::FirstPerson);
-	// 카메라를 든 동안(뷰파인더)에는 손전등 팔도 숨김 (빛은 그대로)
-	const bool bShowArms = bFlashlightOn && bFirstPerson && !bCameraEquipped;
+	const bool bHoldingLight = IsHoldingLight();
 
-	// 1인칭: 카메라에 붙은 손전등 팔 + 그 손의 손전등 모델 (자식까지 같이)
+	// 손전등 / UV 라이트를 들고 있을 때 1인칭 손전등 팔 표시 (카메라를 든 동안에는 숨김)
+	const bool bShowArms = bHoldingLight && bFirstPerson && !bCameraEquipped;
+
+	// 1인칭: 카메라에 붙은 손전등 팔 + 그 손의 모델 (자식까지 같이)
 	FlashlightArmsMesh->SetVisibility(bShowArms, true);
 
-	// 전신용 손전등 모델: 켜져 있을 때 보이지만, 1인칭에서는 내 화면에서 숨김 (손전등 팔이 대신 보임)
-	FlashlightMesh->SetVisibility(bFlashlightOn);
+	// 전신용 모델: 들고 있을 때 보이지만, 1인칭에서는 내 화면에서 숨김 (손전등 팔이 대신 보임)
+	FlashlightMesh->SetVisibility(bHoldingLight);
 	FlashlightMesh->SetOwnerNoSee(bFirstPerson);
 
 	// 1인칭 전신 메시의 오른팔은 손전등 팔과 겹치지 않게 숨김

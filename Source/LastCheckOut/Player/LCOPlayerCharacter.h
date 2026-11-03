@@ -109,6 +109,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Flashlight")
 	bool IsFlashlightOn() const { return bFlashlightOn; }
+	
+	// 손전등 또는 UV 라이트를 들고 있는지 (손 모양 / 팔 자세 표시용)
+	UFUNCTION(BlueprintPure, Category = "LCO|Flashlight")
+	bool IsHoldingLight() const { return bFlashlightOn || bUVLightOn; }
 
 	// 손전등이 켜지거나 꺼질 때 (UI, 사운드 등)
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Flashlight")
@@ -316,6 +320,10 @@ protected:
 	// 퀵슬롯에서 카메라를 들거나 내릴 때 (메시 표시 + 몽타주)
 	UFUNCTION()
 	void HandleCameraEquipChanged(bool bEquipped);
+	
+	// 퀵슬롯에서 UV 라이트를 켜거나 끌 때 (손 모양 표시)
+	UFUNCTION()
+	void HandleUVLightChanged(bool bOn);
 	
 	
 	// 촬영 성공 / 실패 시 (좌클릭) 찍는 몽타주 재생
@@ -687,6 +695,7 @@ private:
 	float CurrentBobAmplitude = 0.f;
 	
 	bool bCameraEquipped = false;
+	bool bUVLightOn = false;
 	
 	// 뷰파인더 줌 진행도 0 ~ 1
 	float ViewfinderAlpha = 0.f;

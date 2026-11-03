@@ -41,7 +41,7 @@ void ULCOPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	bIsSprinting = Character->IsSprinting();
 	bCameraEquipped = Character->IsCameraEquipped();
 	bIsHiding = Character->GetHiding() && Character->GetHiding()->IsHiding();
-	bFlashlightOn = Character->IsFlashlightOn();
+	bFlashlightOn = Character->IsHoldingLight();
 	FlashlightArmAlpha = FMath::FInterpTo(FlashlightArmAlpha, bFlashlightOn ? 1.f : 0.f, DeltaSeconds, ArmBlendSpeed);
 	CameraArmAlpha = FMath::FInterpTo(CameraArmAlpha, bCameraEquipped ? 1.f : 0.f, DeltaSeconds, ArmBlendSpeed);
 }

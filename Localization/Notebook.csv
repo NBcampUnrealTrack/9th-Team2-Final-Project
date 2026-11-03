@@ -727,10 +727,10 @@ Kuollut vieras majoittui siis uuden siiven huoneessa 407. Hän saattoi joutua on
 'Päärakennus suljettiin kokonaan heti palon jälkeen, ja uusi siipi jatkoi toimintaansa ilman erillistä taukoa.'
 
 Näyttää siltä, että päärakennus suljettiin palon jälkeen, mutta uusi siipi pysyi toiminnassa. Silloisen uuden siiven rakennusta ja huoneita käytettiin todennäköisesti edelleen palon jälkeenkin."
-E05_TITLE,1981년 신관 건축물대장,1981 New Wing Building Register,1981年 新館の建築物台帳,1981年新馆建筑物登记册,1981年新館建築物登記簿,Registro del edificio del ala nueva de 1981,"Registre du bâtiment de la nouvelle aile, 1981",Gebäuderegister des Neubaus von 1981,Registro do edifício da ala nova de 1981,Vuoden 1981 uuden siiven rakennusrekisteri
+E05_TITLE,1981년 본관 건축물대장,1981 Main Building Register,1981年 本館の建築物台帳,1981年主楼建筑物登记册,1981年主樓建築物登記簿,Registro del edificio principal de 1981,"Registre du bâtiment principal, 1981",Gebäuderegister des Hauptgebäudes von 1981,Registro do prédio principal de 1981,Vuoden 1981 päärakennuksen rakennusrekisteri
 E05_DESC,"호텔 사무실에서 이 건물의 건축물대장을 확인했다.
 
-'건물명: ○○호텔 신관'
+'건물명: ○○호텔 본관'
 '용도: 숙박시설'
 '구조: 철근콘크리트조'
 '착공 시기: 1981년 6월'
@@ -743,7 +743,7 @@ E05_DESC,"호텔 사무실에서 이 건물의 건축물대장을 확인했다.
 
 건축 시기와 관련된 자료가 필요하다면 참고할 수 있겠다.","In the hotel Office, I checked this building's building register.
 
-'Building name: ○○ Hotel New Wing'
+'Building name: ○○ Hotel Main Building'
 'Use: Lodging facility'
 'Structure: Reinforced concrete'
 'Construction start: June 1981'
@@ -756,7 +756,7 @@ It lays out the building's basic information and construction history, and also 
 
 This could be useful if I need anything related to when it was built.","ホテルの事務室で、この建物の建築物台帳を確認した。
 
-「建物名：○○ホテル新館」
+「建物名：○○ホテル本館」
 「用途：宿泊施設」
 「構造：鉄筋コンクリート造」
 「着工時期：1981年6月」
@@ -769,7 +769,7 @@ This could be useful if I need anything related to when it was built.","ホテ�
 
 建築時期に関する資料が必要になれば、参考にできるだろう。","我在酒店办公室查看了这栋建筑的建筑物登记册。
 
-“建筑名称：○○酒店新馆”
+“建筑名称：○○酒店主楼”
 “用途：住宿设施”
 “结构：钢筋混凝土结构”
 “开工时间：1981年6月”
@@ -782,7 +782,7 @@ This could be useful if I need anything related to when it was built.","ホテ�
 
 如果需要与建造时间相关的资料，可以拿来参考。","我在飯店辦公室查看了這棟建築的建築物登記簿。
 
-「建築名稱：○○飯店新館」
+「建築名稱：○○飯店主樓」
 「用途：住宿設施」
 「結構：鋼筋混凝土造」
 「動工時間：1981年6月」
@@ -795,7 +795,7 @@ This could be useful if I need anything related to when it was built.","ホテ�
 
 如果需要與建造時間相關的資料，可以拿來參考。","En la oficina del hotel revisé el registro del edificio de esta construcción.
 
-'Nombre del edificio: Hotel ○○, ala nueva'
+'Nombre del edificio: Hotel ○○, edificio principal'
 'Uso: alojamiento'
 'Estructura: hormigón armado'
 'Inicio de obras: junio de 1981'
@@ -808,7 +808,7 @@ Recoge la información básica del edificio y su historial de construcción, y t
 
 Me servirá de referencia si necesito datos sobre la época de construcción.","Dans le bureau de l’hôtel, j’ai consulté le registre du bâtiment de cet édifice.
 
-'Nom du bâtiment : hôtel ○○, nouvelle aile'
+'Nom du bâtiment : hôtel ○○, bâtiment principal'
 'Usage : hébergement'
 'Structure : béton armé'
 'Début des travaux : juin 1981'
@@ -821,7 +821,7 @@ On y trouve les informations de base et l’historique de construction du bâtim
 
 Cela pourra servir de référence si j’ai besoin d’informations sur la date de construction.","Im Büro des Hotels habe ich das Gebäuderegister dieses Gebäudes eingesehen.
 
-'Gebäudename: Hotel ○○, Neubau'
+'Gebäudename: Hotel ○○, Hauptgebäude'
 'Nutzung: Beherbergungsbetrieb'
 'Bauweise: Stahlbeton'
 'Baubeginn: Juni 1981'
@@ -834,7 +834,7 @@ Darin sind die grundlegenden Angaben und die Baugeschichte des Gebäudes festgeh
 
 Falls ich Unterlagen zum Bauzeitpunkt brauche, kann ich darauf zurückgreifen.","No escritório do hotel, consultei o registro do edifício deste prédio.
 
-'Nome do edifício: Ala nova do Hotel ○○'
+'Nome do edifício: Prédio principal do Hotel ○○'
 'Uso: Hospedagem'
 'Estrutura: Concreto armado'
 'Início da obra: junho de 1981'
@@ -847,7 +847,7 @@ Estão organizados ali os dados básicos do prédio e o histórico da construç�
 
 Pode servir de referência se eu precisar de dados sobre a época da construção.","Tarkastin hotellin toimistossa tämän rakennuksen rakennusrekisterin.
 
-'Rakennuksen nimi: Hotelli ○○, uusi siipi'
+'Rakennuksen nimi: Hotelli ○○, päärakennus'
 'Käyttötarkoitus: majoitustila'
 'Rakenne: teräsbetoni'
 'Rakentaminen aloitettu: kesäkuu 1981'
@@ -860,115 +860,135 @@ Rekisteriin on koottu rakennuksen perustiedot ja rakennushistoria, ja siitä kä
 
 Siihen voi palata, jos tarvitsen tietoja rakennusajankohdasta."
 E06_TITLE,1981년 11월 호텔 건물 배치도,November 1981 Hotel Site Layout Plan,1981年11月 ホテル建物配置図,1981年11月酒店建筑布局图,1981年11月飯店建築配置圖,Plano de distribución de los edificios del hotel (noviembre de 1981),"Plan de masse de l’hôtel, novembre 1981","Lageplan der Hotelgebäude, November 1981",Planta de implantação dos prédios do hotel de novembro de 1981,"Hotellin asemapiirros, marraskuu 1981"
-E06_DESC,"호텔 기록실에서 1981년 11월에 작성된 호텔 건물 배치도를 확인했다.
+E06_DESC,"호텔 문서보관실에서 1981년 11월에 작성된 호텔 건물 배치도를 확인했다.
 
 '작성 시기: 1981년 11월'
 '작성 기준: 신축 건물 완공 당시의 호텔 부지 현황'
 
 배치도에는 당시 호텔 부지에 위치한 건물들과 부속 시설의 배치가 상세하게 표시되어 있다.
 
-화재로 폐쇄된 본관의 위치와 새로 완공된 건물의 위치가 구분되어 있으며, 각 건물의 명칭과 용도가 기재되어 있다.
+각 건물에는 명칭과 용도가 기재되어 있으며, 새로 완공된 건물은 따로 구분되어 있다.
 
-현재 호텔의 배치와 비교하면 건물의 위치와 명칭에 일부 차이가 있다. 단순히 증축 과정에서 생긴 변화일 수도 있지만, 건물들의 위치가 쉽게 맞아떨어지지 않는다.
+건물의 배치와 명칭은 지금의 호텔과 크게 다르지 않다. 화재가 난 해에 정리된 배치가 지금까지 거의 그대로 이어지고 있는 셈이다.
 
-1981년의 다른 기록들과 대조해 보면 건물의 변화에 관해 좀 더 알아낼 수 있을 것 같다.","In the hotel's Records Room, I found a site layout plan of the hotel buildings drawn up in November 1981.
+다만 같은 해에 작성된 다른 기록이 있다면, 그 기록에 등장하는 건물들과 이 배치도가 맞아떨어지는지 확인해 볼 필요가 있겠다.
+
+1981년의 다른 기록들과 대조해 보면 건물의 변화에 관해 좀 더 알아낼 수 있을 것 같다.","In the hotel's document archive, I found a site layout plan of the hotel buildings drawn up in November 1981.
 
 'Date: November 1981'
 'Basis: Hotel site as of completion of the new building'
 
 The layout plan shows in detail the buildings and auxiliary facilities on the hotel grounds at the time.
 
-The location of the Main Building, closed after the fire, is marked separately from the newly completed building, and each building's name and use are listed.
+Each building is labeled with its name and use, and the newly completed building is marked separately.
 
-Compared to the hotel's current layout, some of the buildings' locations and names differ. It could simply be from later extensions, but the buildings' positions don't line up easily.
+The buildings' layout and names aren't very different from the hotel today. In other words, the layout set in the year of the fire has carried on almost unchanged to this day.
 
-If I compare this against the other records from 1981, I might learn more about how the buildings changed.","ホテルの記録室で、1981年11月に作成されたホテルの建物配置図を確認した。
+Still, if there are other records from the same year, I should check whether the buildings that appear in them match this plan.
+
+If I compare this against the other records from 1981, I might learn more about how the buildings changed.","ホテルの文書保管室で、1981年11月に作成されたホテルの建物配置図を確認した。
 
 「作成時期：1981年11月」
 「作成基準：新築建物竣工時のホテル敷地現況」
 
 配置図には、当時ホテルの敷地内にあった建物と付属施設の配置が詳しく示されている。
 
-火災で閉鎖された本館の位置と、新たに竣工した建物の位置が区別されており、それぞれの建物の名称と用途が記されている。
+各建物には名称と用途が記されており、新たに竣工した建物は別に区別されている。
 
-現在のホテルの配置と比べると、建物の位置や名称に一部違いがある。単なる増築の過程で生じた変化かもしれないが、建物の位置がどうにも噛み合わない。
+建物の配置と名称は、今のホテルとさほど変わらない。火災のあった年に整えられた配置が、今までほぼそのまま続いているわけだ。
 
-1981年の他の記録と照らし合わせれば、建物の変遷についてもう少し何かわかりそうだ。","我在酒店档案室查看了1981年11月绘制的酒店建筑布局图。
+ただ、同じ年に作成された別の記録があるなら、そこに出てくる建物とこの配置図が一致するか確かめてみる必要がありそうだ。
+
+1981年の他の記録と照らし合わせれば、建物の変遷についてもう少し何かわかりそうだ。","我在酒店文件保管室查看了1981年11月绘制的酒店建筑布局图。
 
 “绘制时间：1981年11月”
 “绘制依据：新建建筑竣工时的酒店用地现状”
 
 布局图上详细标出了当时酒店用地上的各栋建筑与附属设施的位置。
 
-因火灾而封闭的主楼和新竣工建筑的位置被区分开来，并注明了每栋建筑的名称和用途。
+每栋建筑都标注了名称和用途，新竣工的建筑被单独区分出来。
 
-与现在酒店的布局相比，建筑的位置和名称有些出入。也许只是扩建过程中产生的变化，但各栋建筑的位置很难对得上。
+建筑的布局和名称与现在的酒店相差不大。也就是说，火灾那年整理好的布局几乎原封不动地延续到了现在。
 
-如果和1981年的其他记录比对一下，或许能进一步了解建筑的变化。","我在飯店檔案室查看了1981年11月繪製的飯店建築配置圖。
+不过，如果有同一年留下的其他记录，就有必要确认一下其中出现的建筑是否与这张布局图对得上。
+
+如果和1981年的其他记录比对一下，或许能进一步了解建筑的变化。","我在飯店文件保管室查看了1981年11月繪製的飯店建築配置圖。
 
 「繪製時間：1981年11月」
 「繪製依據：新建建築完工時的飯店用地現況」
 
 配置圖上詳細標示了當時飯店用地內各建築與附屬設施的配置。
 
-因火災而封閉的主樓位置與新完工建築的位置有所區分，並註明了各建築的名稱與用途。
+每棟建築都標註了名稱與用途，新完工的建築則另外區分出來。
 
-與現在飯店的配置相比，建築的位置與名稱有些出入。或許只是擴建過程中產生的變化，但各建築的位置怎麼也對不上。
+建築的配置與名稱和現在的飯店相差不大。也就是說，火災那年整理好的配置幾乎原封不動地延續到了現在。
 
-若與1981年的其他紀錄比對，或許能進一步了解建築的變化。","En la sala de archivos del hotel revisé el plano de distribución de los edificios del hotel elaborado en noviembre de 1981.
+不過，如果有同一年留下的其他紀錄，就有必要確認一下其中出現的建築是否與這張配置圖對得上。
+
+若與1981年的其他紀錄比對，或許能進一步了解建築的變化。","En el archivo documental del hotel revisé el plano de distribución de los edificios del hotel elaborado en noviembre de 1981.
 
 'Fecha de elaboración: noviembre de 1981'
 'Base: situación del terreno del hotel al finalizar el nuevo edificio'
 
 El plano de distribución muestra con detalle la ubicación de los edificios y las instalaciones anexas que había entonces en el terreno del hotel.
 
-Distingue la ubicación del edificio principal, clausurado por el incendio, y la del edificio recién terminado, e indica el nombre y el uso de cada uno.
+Cada edificio lleva indicado su nombre y su uso, y el edificio recién terminado aparece diferenciado.
 
-Comparado con la distribución actual del hotel, hay algunas diferencias en la ubicación y los nombres de los edificios. Podrían ser simples cambios por ampliaciones, pero las posiciones de los edificios no terminan de encajar.
+La distribución y los nombres de los edificios no difieren mucho de los del hotel actual. Es decir, la distribución establecida el año del incendio se ha mantenido casi intacta hasta hoy.
 
-Si lo contrasto con los demás registros de 1981, quizá pueda averiguar algo más sobre los cambios en los edificios.","Dans la salle des archives de l’hôtel, j’ai consulté le plan de masse de l’hôtel établi en novembre 1981.
+Aun así, si hay otros registros del mismo año, convendría comprobar si los edificios que aparecen en ellos coinciden con este plano.
+
+Si lo contrasto con los demás registros de 1981, quizá pueda averiguar algo más sobre los cambios en los edificios.","Dans la salle de conservation des documents de l’hôtel, j’ai consulté le plan de masse de l’hôtel établi en novembre 1981.
 
 'Date d’établissement : novembre 1981'
 'Référence : état du terrain de l’hôtel à l’achèvement du nouveau bâtiment'
 
 Le plan indique en détail la disposition des bâtiments et des installations annexes situés à l’époque sur le terrain de l’hôtel.
 
-L’emplacement du bâtiment principal, fermé après l’incendie, y est distingué de celui du bâtiment nouvellement achevé, et le nom et l’usage de chaque bâtiment y sont indiqués.
+Le nom et l’usage de chaque bâtiment y sont indiqués, et le bâtiment nouvellement achevé est signalé à part.
 
-Par rapport à la disposition actuelle de l’hôtel, l’emplacement et le nom des bâtiments présentent quelques différences. Ce ne sont peut-être que des changements dus à des agrandissements, mais les emplacements ne concordent pas facilement.
+La disposition et le nom des bâtiments ne diffèrent guère de ceux de l’hôtel actuel. Autrement dit, la disposition fixée l’année de l’incendie s’est maintenue presque telle quelle jusqu’à aujourd’hui.
 
-En le comparant aux autres documents de 1981, je pourrais sans doute en apprendre davantage sur l’évolution des bâtiments.","Im Archivraum des Hotels habe ich einen Lageplan der Hotelgebäude vom November 1981 gefunden.
+Cela dit, s’il existe d’autres documents établis la même année, il faudrait vérifier si les bâtiments qui y figurent concordent avec ce plan.
+
+En le comparant aux autres documents de 1981, je pourrais sans doute en apprendre davantage sur l’évolution des bâtiments.","In der Dokumentenablage des Hotels habe ich einen Lageplan der Hotelgebäude vom November 1981 gefunden.
 
 'Erstellt: November 1981'
 'Grundlage: Zustand des Hotelgeländes bei Fertigstellung des Neubaus'
 
 Der Lageplan zeigt detailliert die Anordnung der Gebäude und Nebenanlagen, die damals auf dem Hotelgelände standen.
 
-Die Lage des durch den Brand geschlossenen Hauptgebäudes und die des neu fertiggestellten Gebäudes sind voneinander abgegrenzt, und zu jedem Gebäude sind Name und Nutzung angegeben.
+Zu jedem Gebäude sind Name und Nutzung angegeben, und das neu fertiggestellte Gebäude ist gesondert gekennzeichnet.
 
-Im Vergleich zur heutigen Anordnung des Hotels gibt es Unterschiede bei Lage und Bezeichnung einiger Gebäude. Das könnten einfach Veränderungen durch Erweiterungsbauten sein, aber die Positionen der Gebäude lassen sich nicht ohne Weiteres in Einklang bringen.
+Anordnung und Bezeichnungen der Gebäude unterscheiden sich kaum vom heutigen Hotel. Die im Jahr des Brandes festgelegte Anordnung hat sich also bis heute nahezu unverändert erhalten.
 
-Wenn ich ihn mit anderen Unterlagen aus dem Jahr 1981 abgleiche, kann ich vielleicht mehr über die baulichen Veränderungen herausfinden.","Na sala de arquivos do hotel, consultei a planta de implantação dos prédios do hotel elaborada em novembro de 1981.
+Falls es aber weitere Unterlagen aus demselben Jahr gibt, sollte ich prüfen, ob die darin genannten Gebäude mit diesem Plan übereinstimmen.
+
+Wenn ich ihn mit anderen Unterlagen aus dem Jahr 1981 abgleiche, kann ich vielleicht mehr über die baulichen Veränderungen herausfinden.","Na sala de documentos do hotel, consultei a planta de implantação dos prédios do hotel elaborada em novembro de 1981.
 
 'Data de elaboração: novembro de 1981'
 'Referência: situação do terreno do hotel na conclusão do novo edifício'
 
 A planta de implantação mostra em detalhes a disposição dos prédios e das instalações anexas que ficavam no terreno do hotel naquela época.
 
-A localização do prédio principal, fechado por causa do incêndio, aparece separada da do prédio recém-concluído, e o nome e o uso de cada edifício estão indicados.
+Cada prédio tem o nome e o uso indicados, e o prédio recém-concluído aparece destacado à parte.
 
-Comparando com a disposição atual do hotel, há algumas diferenças na localização e no nome dos prédios. Pode ser só uma mudança causada por ampliações, mas a posição dos edifícios não bate com facilidade.
+A disposição e os nomes dos prédios não são muito diferentes dos do hotel atual. Ou seja, a disposição definida no ano do incêndio continua quase igual até hoje.
 
-Se eu comparar com outros registros de 1981, talvez consiga descobrir mais sobre as mudanças nos prédios.","Tarkastin hotellin arkistohuoneessa marraskuussa 1981 laaditun hotellin asemapiirroksen.
+Ainda assim, se houver outros registros do mesmo ano, seria bom verificar se os prédios mencionados neles batem com esta planta.
+
+Se eu comparar com outros registros de 1981, talvez consiga descobrir mais sobre as mudanças nos prédios.","Tarkastin hotellin asiakirja-arkistossa marraskuussa 1981 laaditun hotellin asemapiirroksen.
 
 'Laadittu: marraskuu 1981'
 'Peruste: hotellin tontin tilanne uudisrakennuksen valmistuessa'
 
 Asemapiirrokseen on merkitty yksityiskohtaisesti tuolloin hotellin tontilla sijainneet rakennukset ja oheistilat.
 
-Palon vuoksi suljetun päärakennuksen ja vasta valmistuneen rakennuksen sijainnit on erotettu toisistaan, ja kunkin rakennuksen nimi ja käyttötarkoitus on merkitty.
+Kunkin rakennuksen nimi ja käyttötarkoitus on merkitty, ja vasta valmistunut rakennus on erotettu muista.
 
-Hotellin nykyiseen pohjaan verrattuna rakennusten sijainneissa ja nimissä on joitakin eroja. Ne voivat johtua pelkästään laajennuksista, mutta rakennusten sijainnit eivät tunnu täsmäävän helposti.
+Rakennusten sijoittelu ja nimet eivät juuri poikkea nykyisestä hotellista. Palovuonna vakiintunut sijoittelu on siis säilynyt lähes ennallaan tähän päivään asti.
+
+Jos samalta vuodelta on kuitenkin muita asiakirjoja, minun kannattaa tarkistaa, vastaavatko niissä mainitut rakennukset tätä piirrosta.
 
 Vertaamalla vuoden 1981 muihin asiakirjoihin voisin ehkä saada selville enemmän rakennuksissa tapahtuneista muutoksista."
 E07_TITLE,1992년 일가족 자살 사건 기록,1992 Family Suicide Case Record,1992年 一家自殺事件の記録,1992年一家人自杀事件记录,1992年一家人自殺事件紀錄,Expediente del suicidio de una familia en 1992,Dossier du suicide familial de 1992,Akte zum Familiensuizid von 1992,Registro do suicídio de uma família inteira em 1992,Asiakirjat vuoden 1992 perheen joukkoitsemurhasta
@@ -1507,7 +1527,7 @@ Tarkastustulokset ja toimenpiteet on järjestetty päivämäärittäin, joten ho
 Asiakirjojen perusteella mikään ei viittaa siihen, että kiinteistönhoidossa olisi ollut ongelmia ennen onnettomuutta.
 
 Kun vertaan tätä talonmiehen kertomaan kävelypolun hoitotapaan, voin luultavasti arvioida hotellin hoitovastuuta selkeämmin."
-E10_TITLE,사망자의 정기 건강검진 결과표,Deceased's Routine Health Checkup Results,死亡者の定期健康診断結果表,死者的定期体检结果表,死者的定期健康檢查結果表,Resultados del chequeo médico periódico del fallecido,Résultats du bilan de santé régulier du défunt,Ergebnisse der Vorsorgeuntersuchung des Verstorbenen,Resultado do check-up de rotina do falecido,Vainajan määräaikaisen terveystarkastuksen tulokset
+E10_TITLE,사망자의 정기 건강검진 결과표,Deceased's Routine Health Checkup Results,死亡者の定期健康診断結果表,死者的定期体检结果表,死者的定期健康檢查結果表,Resultados del chequeo médico periódico de la víctima,Résultats du bilan de santé régulier de la victime,Ergebnisse der Vorsorgeuntersuchung des Opfers,Resultado do check-up de rotina da vítima,Vainajan määräaikaisen terveystarkastuksen tulokset
 E10_DESC,"사망자가 사고 이전에 받은 정기 건강검진 결과표. 검사 항목에는 혈압, 혈액검사 수치, 의사의 종합 소견 등이 기재되어 있다.
 
 '검진 결과: 빈혈 소견'
@@ -1522,7 +1542,7 @@ E10_DESC,"사망자가 사고 이전에 받은 정기 건강검진 결과표. �
 
 It seems the victim may have been prone to dizziness even before the accident.
 
-Still, the checkup results alone can't prove that he actually had a dizzy spell at the time of the accident.","死亡者が事故以前に受けた定期健康診断の結果表。検査項目には血圧、血液検査の数値、医師の総合所見などが記載されている。
+Still, the checkup results alone can't prove that they actually had a dizzy spell at the time of the accident.","死亡者が事故以前に受けた定期健康診断の結果表。検査項目には血圧、血液検査の数値、医師の総合所見などが記載されている。
 
 「検診結果：貧血の所見あり」
 「総合所見：めまい・立ちくらみが生じる可能性あり。追加検査を推奨。」
@@ -1543,28 +1563,28 @@ Still, the checkup results alone can't prove that he actually had a dizzy spell 
 
 看來被害人在事故前就可能有頭暈的症狀。
 
-不過，光憑檢查結果，無法斷定事故當時確實發生了頭暈。","Resultados del chequeo médico periódico que el fallecido se hizo antes del accidente. Incluyen la presión arterial, los valores del análisis de sangre y la valoración general del médico.
+不過，光憑檢查結果，無法斷定事故當時確實發生了頭暈。","Resultados del chequeo médico periódico que la víctima se hizo antes del accidente. Incluyen la presión arterial, los valores del análisis de sangre y la valoración general del médico.
 
 'Resultado: indicios de anemia'
 'Valoración general: posibilidad de mareos y vértigo. Se recomiendan pruebas adicionales.'
 
 Parece que la víctima ya podía sufrir mareos antes del accidente.
 
-Sin embargo, los resultados por sí solos no permiten afirmar que realmente sufriera un mareo en el momento del accidente.","Les résultats du bilan de santé régulier passé par le défunt avant l’accident. On y trouve la tension artérielle, les résultats d’analyses sanguines et l’avis général du médecin.
+Sin embargo, los resultados por sí solos no permiten afirmar que realmente sufriera un mareo en el momento del accidente.","Les résultats du bilan de santé régulier passé par la victime avant l’accident. On y trouve la tension artérielle, les résultats d’analyses sanguines et l’avis général du médecin.
 
 'Résultat : signes d’anémie'
 'Avis général : risque de vertiges et d’étourdissements. Examens complémentaires recommandés.'
 
 La victime semble avoir été sujette à des vertiges dès avant l’accident.
 
-Cela dit, ces résultats ne suffisent pas à affirmer qu’elle a réellement eu un vertige au moment de l’accident.","Die Ergebnisse einer regulären Vorsorgeuntersuchung, die der Verstorbene vor dem Unfall hatte. Darin sind Blutdruck, Blutwerte, die Gesamtbeurteilung des Arztes und weitere Angaben verzeichnet.
+Cela dit, ces résultats ne suffisent pas à affirmer qu’elle a réellement eu un vertige au moment de l’accident.","Die Ergebnisse einer regulären Vorsorgeuntersuchung, die das Opfer vor dem Unfall hatte. Darin sind Blutdruck, Blutwerte, die Gesamtbeurteilung des Arztes und weitere Angaben verzeichnet.
 
 'Befund: Anämie'
 'Gesamtbeurteilung: Schwindel und Benommenheit möglich. Weitere Untersuchungen empfohlen.'
 
 Das Opfer war offenbar schon vor dem Unfall anfällig für Schwindelanfälle.
 
-Allein aus dem Befund lässt sich jedoch nicht sicher schließen, dass zum Unfallzeitpunkt tatsächlich Schwindel auftrat.","Resultado do check-up de rotina feito pelo falecido antes do acidente. Entre os itens, constam pressão arterial, valores do exame de sangue e o parecer geral do médico.
+Allein aus dem Befund lässt sich jedoch nicht sicher schließen, dass zum Unfallzeitpunkt tatsächlich Schwindel auftrat.","Resultado do check-up de rotina feito pela vítima antes do acidente. Entre os itens, constam pressão arterial, valores do exame de sangue e o parecer geral do médico.
 
 'Resultado: indício de anemia'
 'Parecer geral: possibilidade de tontura e vertigem. Recomendam-se exames complementares.'
@@ -2158,9 +2178,9 @@ T04_DESC,"사망자에 관해 벨보이에게 물어봤다.
 
 실족사의 가능성이 꽤나 높아 보인다.","I asked the Bellboy about the deceased.
 
-'That guest headed toward the walking trail by himself. I didn't see him go with anyone else.'
+'They went toward the trail alone. I didn't see anyone go with them.'
 
-'There wasn't anything especially odd about him. I just figured he was going out for a walk.'
+'Nothing seemed particularly strange. I just assumed they were going out for a walk.'
 
 The Bellboy says he saw the victim heading to the walking trail alone on the day of the accident.
 
@@ -2204,11 +2224,11 @@ An accidental fall looks fairly likely.","死亡者についてベルボーイ�
 
 這與報告書中被害人獨自使用散步道的內容也相符。
 
-失足墜亡的可能性看來相當高。","Le pregunté al botones por el fallecido.
+失足墜亡的可能性看來相當高。","Le pregunté al botones por la víctima.
 
-'Ese huésped se fue solo hacia el sendero. No lo vi ir con nadie más.'
+'Se dirigió al sendero sin compañía. No vi que fuera con nadie más.'
 
-'No noté nada raro en él. Pensé que simplemente salía a dar un paseo.'
+'No noté nada raro. Pensé que simplemente salía a dar un paseo.'
 
 El botones dice que vio a la víctima dirigirse sola al sendero el día del accidente.
 
@@ -2216,11 +2236,11 @@ Pero no la siguió una vez entró en el sendero, así que no es un testimonio di
 
 Coincide con lo que dice el informe: que la víctima recorría el sendero sola.
 
-La posibilidad de una muerte por caída accidental parece bastante alta.","J’ai interrogé le groom au sujet du défunt.
+La posibilidad de una muerte por caída accidental parece bastante alta.","J’ai interrogé le groom au sujet de la victime.
 
-'Ce client est parti seul en direction du sentier. Je ne l’ai vu avec personne.'
+'Cette personne est partie seule vers le sentier. Je n’ai vu personne l’accompagner.'
 
-'Il n’avait rien de particulièrement bizarre. Je pensais juste qu’il sortait se promener.'
+'Rien de particulièrement étrange. J’ai simplement pensé que cette personne allait se promener.'
 
 Le groom dit avoir vu la victime partir seule vers le sentier le jour de l’accident.
 
@@ -2228,11 +2248,11 @@ Il n’a cependant pas suivi ses déplacements une fois sur le sentier ; ce n’
 
 Cela concorde avec le rapport d’incident, selon lequel la victime était seule sur le sentier.
 
-L’hypothèse d’une chute mortelle accidentelle semble assez probable.","Ich habe den Pagen nach dem Verstorbenen gefragt.
+L’hypothèse d’une chute mortelle accidentelle semble assez probable.","Ich habe den Pagen nach dem Opfer gefragt.
 
-'Der Gast ist allein in Richtung Wanderweg gegangen. Dass jemand mit ihm unterwegs war, habe ich nicht gesehen.'
+'Der Gast ist allein zum Wanderweg gegangen. Eine Begleitung habe ich nicht gesehen.'
 
-'Mir ist nichts Besonderes aufgefallen. Ich dachte, er geht einfach spazieren.'
+'Nichts besonders Auffälliges. Ich dachte einfach, der Gast wollte spazieren gehen.'
 
 Der Page hat nach eigener Aussage gesehen, wie das Opfer am Unfalltag allein zum Wanderweg ging.
 
@@ -2240,11 +2260,11 @@ Was danach auf dem Wanderweg geschah, hat er jedoch nicht gesehen; er ist also k
 
 Das deckt sich mit der Angabe im Unfallbericht, dass das Opfer allein auf dem Wanderweg unterwegs war.
 
-Ein tödlicher Sturz erscheint ziemlich wahrscheinlich.","Perguntei ao mensageiro sobre o falecido.
+Ein tödlicher Sturz erscheint ziemlich wahrscheinlich.","Perguntei ao mensageiro sobre a vítima.
 
-'Esse hóspede foi sozinho para os lados da trilha. Não vi ninguém indo com ele.'
+'Foi sem companhia em direção à trilha. Não vi ninguém indo junto.'
 
-'Não notei nada de estranho. Achei que ele só ia dar uma caminhada.'
+'Nada de muito estranho. Achei que estava só saindo para caminhar.'
 
 O mensageiro diz ter visto a vítima indo sozinha para a trilha no dia do acidente.
 
@@ -2367,7 +2387,7 @@ Talonmiehen mukaan kävelypolun kaiteet ja valaistus tarkastetaan kerran kuukaud
 Pelkkä säännöllinen tarkastus ei kuitenkaan todista, että kaikki rakenteet olivat kunnossa myös onnettomuuden sattuessa.
 
 Jos tarkastuspöytäkirjoja on tallessa, ne kannattaa käydä läpi."
-T06_TITLE,프론트 직원 - 다음 날 투숙객이 발견·신고,Front Desk Clerk - Guest Found and Reported Next Day,フロント係 - 翌日、宿泊客が発見・通報,前台职员 - 次日住客发现并报告,櫃檯人員 - 隔天由房客發現並通報,Recepcionista - Un huésped lo encontró y avisó al día siguiente,Réceptionniste - Découverte et signalement par un client le lendemain,Rezeptionist - Gast fand und meldete Leiche am nächsten Tag,Recepcionista - Um hóspede encontrou e avisou no dia seguinte,Vastaanottovirkailija - Hotellivieras löysi ja ilmoitti seuraavana päivänä
+T06_TITLE,프론트 직원 - 다음 날 투숙객이 발견·신고,Front Desk Clerk - Guest Found and Reported Next Day,フロント係 - 翌日、宿泊客が発見・通報,前台职员 - 次日住客发现并报告,櫃檯人員 - 隔天由房客發現並通報,Recepcionista - Un huésped lo encontró y avisó al día siguiente,Réceptionniste - Découverte et signalement par un client le lendemain,Rezeptionistin - Gast fand und meldete Leiche am nächsten Tag,Recepcionista - Um hóspede encontrou e avisou no dia seguinte,Vastaanottovirkailija - Hotellivieras löysi ja ilmoitti seuraavana päivänä
 T06_DESC,"사망자에 관해 프론트 직원에게 물어봤다.
 
 '다른 투숙객분이 산책로에서 사람을 발견했다면서 프론트로 오셨어요.'
@@ -2428,7 +2448,7 @@ An accidental fall looks fairly likely.","死亡者についてフロント係�
 
 就目前確認的內容來看，發現與通報的經過沒有特別的矛盾。
 
-失足墜亡的可能性看來相當高。","Le pregunté a la recepcionista por el fallecido.
+失足墜亡的可能性看來相當高。","Le pregunté a la recepcionista por la víctima.
 
 'Otro huésped vino a recepción diciendo que había encontrado a alguien en el sendero.'
 
@@ -2440,31 +2460,31 @@ Esto coincide con el hallazgo y el aviso que describe el informe del incidente. 
 
 Por lo que he comprobado hasta ahora, no hay ninguna contradicción particular en cómo se encontró el cuerpo y se dio el aviso.
 
-La posibilidad de una muerte por caída accidental parece bastante alta.","J’ai interrogé le réceptionniste au sujet du défunt.
+La posibilidad de una muerte por caída accidental parece bastante alta.","J’ai interrogé la réceptionniste au sujet de la victime.
 
 'Un autre client est venu à la réception en disant qu’il avait trouvé quelqu’un sur le sentier.'
 
 'Un employé est allé vérifier sur place, nous a fait son rapport, et nous avons aussitôt contacté les autorités.'
 
-D’après le réceptionniste, c’est un client ordinaire qui a découvert le corps le lendemain de l’accident et l’a signalé à la réception.
+D’après la réceptionniste, c’est un client ordinaire qui a découvert le corps le lendemain de l’accident et l’a signalé à la réception.
 
 Cela concorde avec la découverte et le signalement décrits dans le rapport d’incident. J’ai aussi pu confirmer que la personne qui a fait la découverte n’avait pas assisté à l’accident.
 
 Rien, dans ce que j’ai vérifié jusqu’ici, ne contredit les circonstances de la découverte et du signalement.
 
-L’hypothèse d’une chute mortelle accidentelle semble assez probable.","Ich habe den Rezeptionisten nach dem Verstorbenen gefragt.
+L’hypothèse d’une chute mortelle accidentelle semble assez probable.","Ich habe die Rezeptionistin nach dem Opfer gefragt.
 
 'Ein anderer Gast kam an die Rezeption und sagte, er habe auf dem Wanderweg jemanden gefunden.'
 
 'Ein Angestellter ging nachsehen und berichtete über die Lage, und wir haben sofort die zuständigen Behörden verständigt.'
 
-Laut Rezeptionist fand am Tag nach dem Unfall ein gewöhnlicher Gast die Leiche und meldete es an der Rezeption.
+Laut Rezeptionistin fand am Tag nach dem Unfall ein gewöhnlicher Gast die Leiche und meldete es an der Rezeption.
 
 Das deckt sich mit dem im Unfallbericht beschriebenen Ablauf von Auffindung und Meldung. Ich habe auch bestätigt, dass der erste Finder den Unfall nicht selbst beobachtet hat.
 
 Nach allem, was ich bisher weiß, gibt es keine besonderen Widersprüche im Ablauf von Auffindung und Meldung.
 
-Ein tödlicher Sturz erscheint ziemlich wahrscheinlich.","Perguntei à recepcionista sobre o falecido.
+Ein tödlicher Sturz erscheint ziemlich wahrscheinlich.","Perguntei à recepcionista sobre a vítima.
 
 'Um outro hóspede veio até a recepção dizendo que tinha encontrado uma pessoa na trilha.'
 
@@ -2716,146 +2736,166 @@ On hieman yllättävää, että hotelli, jossa onnettomuudet eivät lopu, kukois
 T09_TITLE,지배인 - 옛 신관은 현재 별관,Manager - The Old New Wing Is Now the Annex,支配人 - かつての新館は現在の別館,经理 - 旧新馆即现在的别馆,經理 - 舊新館即現在的別館,Gerente - La antigua ala nueva es el actual anexo,Directeur - L’ancienne nouvelle aile est l’annexe actuelle,Hoteldirektor - Alter Neubau ist heute das Nebengebäude,Gerente - A antiga ala nova é o atual anexo,Johtaja - Entinen uusi siipi on nykyinen sivurakennus
 T09_DESC,"호텔 건물의 건축 시기와 구조 변경에 관해 지배인에게 물어봤다.
 
-'예, 맞습니다. 지금 신관이라고 부르는 건물은 1981년 화재 이후에 지어진 건물입니다.'
+'예, 맞습니다. 지금 본관이라고 부르는 건물은 1981년 화재 이후에 지어진 건물입니다.'
 
-'화재로 폐쇄된 옛 본관이 있던 부지를 정리하고, 그 위에 새 건물을 세운 겁니다. 그 과정에서 호텔의 구조도 많이 바뀌었죠.'
+'불이 난 건물이 원래 본관이었죠. 화재 이후로는 구관이라고 불렀습니다만, 지금은 철거되고 남아 있지 않습니다. 그 부지 위에 새 본관을 세운 겁니다.'
 
-'지금 별관이라고 부르는 건물도 예전에는 신관이었습니다. 새 건물이 들어서면서 명칭이 바뀐 거죠. 결국 어느 건물이 가장 최근에 지어졌느냐가 중요한 겁니다.'
+'지금 별관이라고 부르는 건물은 당시 신관이었습니다. 새 본관이 들어서면서 명칭이 바뀐 거죠.'
 
 지배인의 설명으로 화재원인 조사보고서와 건축물대장에 나타난 건축 시기의 차이를 이해할 수 있었다.
 
-1981년 당시 신관으로 불렸던 건물은 현재 별관이다. 그렇다면 보고서에 등장하는 신관 407호도 현재 별관에 해당한다는 뜻이다.
+1981년에 불탄 본관은 화재 이후 구관으로 불렸고, 지금은 철거되어 남아 있지 않다고 한다. 현재의 본관은 그 자리에 새로 지어진 건물이다.
+
+그리고 당시 신관이었던 건물이 현재의 별관이다. 그렇다면 보고서에 등장하는 신관 407호는 현재 별관 407호에 해당한다는 뜻이다.
 
 407호에 관해 조금 더 물어보려 했지만, 지배인은 질문이 이어지자 다소 경계하는 기색을 보였다. 더 자세한 이야기는 꺼내고 싶지 않은 모양이다.
 
 객실의 현재 운영 상태에 대해서는 다른 직원에게 물어보는 편이 좋겠다.","I asked the Manager about when the hotel buildings were built and how the layout changed.
 
-'Yes, that's right. The building we now call the New Wing was built after the 1981 fire.'
+'Yes, that's correct. The building we now call the Main Building was built after the 1981 fire.'
 
-'We cleared the site where the old Main Building stood after it was closed by the fire, and put up a new building there. The hotel's layout changed quite a bit in the process.'
+'The building that caught fire was the original Main Building. After the fire we called it the Old Building, but it has since been demolished; nothing of it remains. The new Main Building was built on that site.'
 
-'The building we now call the Annex used to be the New Wing, too. The name changed when the new building went up. In the end, what matters is which building was built most recently.'
+'The building we now call the Annex was the New Wing back then. Its name changed when the new Main Building went up.'
 
 The Manager's explanation cleared up the discrepancy in construction dates between the fire cause investigation report and the building register.
 
-The building called the New Wing in 1981 is now the Annex. That means New Wing Room 407 in the report corresponds to what is now the Annex.
+The Main Building that burned in 1981 was called the Old Building after the fire, and it has apparently been demolished since. The current Main Building is a new building put up on that spot.
+
+And the building that was the New Wing back then is today's Annex. That means New Wing Room 407 in the report corresponds to today's Annex Room 407.
 
 I tried to ask a bit more about Room 407, but as the questions continued, the Manager grew somewhat guarded. He apparently doesn't want to go into any more detail.
 
 I'd better ask another staff member about the room's current status.","ホテルの建物の建築時期と構造の変更について、支配人に尋ねた。
 
-「ええ、その通りです。今、新館と呼んでいる建物は、1981年の火災の後に建てられたものです。」
+「はい、その通りです。現在本館と呼んでいる建物は、1981年の火災の後に建てられたものです。」
 
-「火災で閉鎖された旧本館があった敷地を整理して、その上に新しい建物を建てたんです。その過程でホテルの構造もずいぶん変わりました。」
+「火事になった建物が、もともとの本館でした。火災の後は旧館と呼んでおりましたが、今は取り壊されて残っておりません。その跡地に新しい本館を建てたのです。」
 
-「今、別館と呼んでいる建物も、以前は新館だったんですよ。新しい建物ができたことで名称が変わったわけです。結局、どの建物が一番新しく建てられたかが重要なんです。」
+「現在別館と呼んでいる建物が、当時の新館です。新しい本館ができたことで、名称が変わったのです。」
 
 支配人の説明で、火災原因調査報告書と建築物台帳に記された建築時期のずれが理解できた。
 
-1981年当時に新館と呼ばれていた建物は、現在の別館だ。だとすれば、報告書に出てくる新館407号室も、現在の別館にあたるということになる。
+1981年に焼けた本館は、火災の後は旧館と呼ばれ、今は取り壊されて残っていないという。現在の本館は、その跡地に新しく建てられた建物だ。
+
+そして、当時新館だった建物が現在の別館だ。つまり、報告書に出てくる新館407号室は、現在の別館407号室にあたるということだ。
 
 407号室についてもう少し尋ねようとしたが、質問が続くと支配人はやや警戒する素振りを見せた。これ以上詳しい話はしたくないようだ。
 
 客室の現在の運営状況については、他の従業員に聞いたほうがよさそうだ。","我向经理询问了酒店建筑的建造时间和结构变更。
 
-“是的，没错。现在称为新馆的建筑，是1981年火灾之后建的。”
+“是的，没错。现在被称为主楼的建筑，是1981年火灾之后建造的。”
 
-“我们整理了因火灾封闭的旧主楼所在的用地，在上面盖了新建筑。在这个过程中，酒店的结构也变了很多。”
+“起火的那栋楼原本就是主楼。火灾之后，我们称它为旧馆，不过现在已经拆除，不复存在了。新主楼就是在那块地上建起来的。”
 
-“现在称为别馆的建筑，以前也是新馆。新建筑落成后名称就改了。说到底，关键在于哪栋建筑是最近建的。”
+“现在被称为别馆的建筑，就是当时的新馆。新主楼建成后，名称就改了。”
 
 通过经理的说明，我理解了火灾原因调查报告与建筑物登记册所显示的建造时间之间的差异。
 
-1981年时被称为新馆的建筑，就是现在的别馆。这么说来，报告中出现的新馆407号房，也就相当于现在的别馆407号房。
+1981年烧毁的主楼在火灾后被称为旧馆，据说现在已经拆除，不复存在。现在的主楼是在原址上新建的建筑。
+
+而当时的新馆就是现在的别馆。也就是说，报告中出现的新馆407号房，相当于现在的别馆407号房。
 
 我本想再多问问407号房的事，但随着问题接连不断，经理显得有些戒备。看来他不想再多说什么了。
 
 关于这间客房目前的使用情况，还是问问其他员工比较好。","我向經理詢問了飯店建築的建造時間與結構變更。
 
-「是的，沒錯。現在稱為新館的建築，是在1981年火災之後蓋的。」
+「是的，沒錯。現在被稱為主樓的建築，是1981年火災之後建造的。」
 
-「我們整理了因火災而封閉的舊主樓所在的用地，在上面蓋了新建築。在這個過程中，飯店的結構也改變了很多。」
+「起火的那棟樓原本就是主樓。火災之後，我們稱它為舊館，不過現在已經拆除，不復存在了。新主樓就是在那塊地上建起來的。」
 
-「現在稱為別館的建築，以前也是新館。新建築落成後，名稱就改了。說到底，重要的是哪棟建築是最新蓋的。」
+「現在被稱為別館的建築，就是當時的新館。新主樓建成後，名稱就改了。」
 
 聽了經理的說明，我理解了火災原因調查報告書與建築物登記簿上建造時間的差異。
 
-1981年當時被稱為新館的建築，就是現在的別館。這麼說來，報告書中出現的新館407號房，也就位於現在的別館。
+1981年燒毀的主樓在火災後被稱為舊館，據說現在已經拆除，不復存在。現在的主樓是在原址上新建的建築。
+
+而當時的新館就是現在的別館。也就是說，報告中出現的新館407號房，相當於現在的別館407號房。
 
 我本想再多問一些關於407號房的事，但問題一多，經理就顯得有些戒備。看來他不想再多談。
 
 至於客房目前的營運狀態，最好問問其他員工。","Le pregunté al gerente por la época de construcción de los edificios del hotel y los cambios en su estructura.
 
-'Sí, así es. El edificio que hoy llamamos ala nueva se construyó después del incendio de 1981.'
+'Sí, así es. El edificio que ahora llamamos edificio principal se construyó después del incendio de 1981.'
 
-'Se despejó el terreno donde estaba el antiguo edificio principal, clausurado tras el incendio, y se levantó encima el nuevo edificio. En ese proceso, la estructura del hotel cambió mucho.'
+'El edificio que se incendió era el edificio principal original. Después del incendio pasamos a llamarlo edificio antiguo, pero ya fue demolido y no queda nada de él. El nuevo edificio principal se levantó en ese mismo solar.'
 
-'El edificio que hoy llamamos anexo también era antes el ala nueva. Cuando se construyó el nuevo edificio, cambió de nombre. Al final, lo que cuenta es qué edificio se construyó más recientemente.'
+'El edificio que ahora llamamos anexo era entonces el ala nueva. Cambió de nombre cuando se levantó el nuevo edificio principal.'
 
 Con la explicación del gerente pude entender la diferencia de fechas de construcción entre el informe de investigación de las causas del incendio y el registro del edificio.
 
-El edificio que en 1981 se llamaba ala nueva es el actual anexo. Eso significa que la habitación 407 del ala nueva que aparece en el informe corresponde hoy al anexo.
+El edificio principal que ardió en 1981 pasó a llamarse edificio antiguo tras el incendio y, al parecer, ya fue demolido. El edificio principal actual se construyó en ese mismo lugar.
+
+Y el edificio que entonces era el ala nueva es el anexo actual. Eso significa que la habitación 407 del ala nueva que aparece en el informe corresponde a la actual habitación 407 del anexo.
 
 Intenté preguntarle algo más sobre la habitación 407, pero, al ver que seguía preguntando, el gerente se puso un poco a la defensiva. Parece que no quiere entrar en detalles.
 
 Sobre el estado actual de esa habitación, será mejor preguntar a otro empleado.","J’ai interrogé le directeur sur la date de construction des bâtiments de l’hôtel et les modifications de leur structure.
 
-'Oui, c’est exact. Le bâtiment que nous appelons aujourd’hui la nouvelle aile a été construit après l’incendie de 1981.'
+'Oui, c’est exact. Le bâtiment que nous appelons aujourd’hui le bâtiment principal a été construit après l’incendie de 1981.'
 
-'Nous avons déblayé le terrain de l’ancien bâtiment principal, fermé après l’incendie, et construit un nouveau bâtiment à sa place. La structure de l’hôtel a beaucoup changé à cette occasion.'
+'Le bâtiment qui a brûlé était le bâtiment principal d’origine. Après l’incendie, nous l’appelions l’ancien bâtiment, mais il a depuis été démoli et il n’en reste rien. Le nouveau bâtiment principal a été construit sur ce terrain.'
 
-'Le bâtiment que nous appelons aujourd’hui l’annexe était autrefois la nouvelle aile. Son nom a changé quand le nouveau bâtiment a été construit. Au fond, ce qui compte, c’est de savoir quel bâtiment est le plus récent.'
+'Le bâtiment que nous appelons aujourd’hui l’annexe était alors la nouvelle aile. Son nom a changé à la construction du nouveau bâtiment principal.'
 
 Les explications du directeur m’ont permis de comprendre l’écart entre les dates de construction figurant dans le rapport d’enquête sur les causes de l’incendie et dans le registre du bâtiment.
 
-Le bâtiment appelé nouvelle aile en 1981 est l’annexe actuelle. Cela signifie que la chambre 407 de la nouvelle aile mentionnée dans le rapport se trouve aujourd’hui dans l’annexe.
+Le bâtiment principal qui a brûlé en 1981 a été appelé l’ancien bâtiment après l’incendie, et il aurait depuis été démoli. L’actuel bâtiment principal a été construit à son emplacement.
+
+Et le bâtiment qui était alors la nouvelle aile est l’actuelle annexe. Cela signifie que la chambre 407 de la nouvelle aile mentionnée dans le rapport correspond à l’actuelle chambre 407 de l’annexe.
 
 J’ai voulu en savoir un peu plus sur la chambre 407, mais le directeur s’est montré quelque peu méfiant à mesure que les questions s’enchaînaient. Il ne semble pas vouloir en dire davantage.
 
 Pour savoir si cette chambre est actuellement utilisée, mieux vaudrait interroger un autre employé.","Ich habe den Hoteldirektor nach dem Bauzeitpunkt und den baulichen Veränderungen der Hotelgebäude gefragt.
 
-'Ja, das stimmt. Das Gebäude, das wir heute Neubau nennen, wurde nach dem Brand von 1981 errichtet.'
+'Ja, das stimmt. Das Gebäude, das wir heute Hauptgebäude nennen, wurde nach dem Brand von 1981 errichtet.'
 
-'Wir haben das Grundstück, auf dem das durch den Brand geschlossene alte Hauptgebäude stand, geräumt und darauf ein neues Gebäude errichtet. Dabei hat sich auch die Struktur des Hotels stark verändert.'
+'Das Gebäude, das gebrannt hat, war das ursprüngliche Hauptgebäude. Nach dem Brand nannten wir es den Altbau, aber inzwischen ist es abgerissen und existiert nicht mehr. Auf dem Grundstück haben wir das neue Hauptgebäude errichtet.'
 
-'Das Gebäude, das wir heute Nebengebäude nennen, war früher ebenfalls der Neubau. Mit dem neuen Gebäude hat sich die Bezeichnung geändert. Entscheidend ist letztlich, welches Gebäude zuletzt gebaut wurde.'
+'Das Gebäude, das wir heute Nebengebäude nennen, war damals der Neubau. Mit dem Bau des neuen Hauptgebäudes wurde es umbenannt.'
 
 Durch die Erklärung des Hoteldirektors konnte ich die Diskrepanz beim Bauzeitpunkt zwischen dem Brandursachenbericht und dem Gebäuderegister nachvollziehen.
 
-Das Gebäude, das 1981 Neubau genannt wurde, ist heute das Nebengebäude. Das bedeutet, dass das im Bericht erwähnte Zimmer 407 im Neubau heute im Nebengebäude liegt.
+Das Hauptgebäude, das 1981 abbrannte, wurde nach dem Brand Altbau genannt und ist inzwischen angeblich abgerissen. Das heutige Hauptgebäude wurde an seiner Stelle neu errichtet.
+
+Und das Gebäude, das damals der Neubau war, ist das heutige Nebengebäude. Zimmer 407 im Neubau aus dem Bericht entspricht also dem heutigen Zimmer 407 im Nebengebäude.
 
 Ich wollte noch etwas mehr über Zimmer 407 fragen, doch als die Fragen weitergingen, wirkte der Hoteldirektor etwas wachsam. Offenbar will er nicht ins Detail gehen.
 
 Nach dem aktuellen Zustand des Zimmers frage ich besser einen anderen Angestellten.","Perguntei ao gerente sobre a época de construção dos prédios do hotel e as mudanças na estrutura.
 
-'Sim, isso mesmo. O prédio que hoje chamamos de ala nova foi construído depois do incêndio de 1981.'
+'Sim, exatamente. O prédio que hoje chamamos de prédio principal foi construído depois do incêndio de 1981.'
 
-'Limpamos o terreno onde ficava o antigo prédio principal, fechado por causa do incêndio, e erguemos um novo prédio ali. Nesse processo, a estrutura do hotel mudou bastante.'
+'O prédio que pegou fogo era o prédio principal original. Depois do incêndio, passamos a chamá-lo de prédio antigo, mas ele já foi demolido e não existe mais. O novo prédio principal foi construído naquele mesmo terreno.'
 
-'O prédio que hoje chamamos de anexo também já foi a ala nova. O nome mudou quando o novo prédio ficou pronto. No fim, o que importa é qual prédio foi construído mais recentemente.'
+'O prédio que hoje chamamos de anexo era, na época, a ala nova. O nome mudou quando o novo prédio principal foi construído.'
 
 Com a explicação do gerente, consegui entender a diferença nas datas de construção que aparecem no relatório de investigação da causa do incêndio e no registro do edifício.
 
-O prédio chamado de ala nova em 1981 é o atual anexo. Então o quarto 407 da ala nova citado no relatório corresponde ao atual anexo.
+O prédio principal que pegou fogo em 1981 passou a ser chamado de prédio antigo depois do incêndio e, pelo que dizem, já foi demolido. O prédio principal atual foi construído naquele mesmo lugar.
+
+E o prédio que era a ala nova naquela época é o anexo atual. Isso significa que o quarto 407 da ala nova citado no relatório corresponde ao atual quarto 407 do anexo.
 
 Tentei perguntar um pouco mais sobre o quarto 407, mas, conforme as perguntas continuavam, o gerente pareceu ficar na defensiva. Parece que não quer entrar em detalhes.
 
 Sobre a situação atual do quarto, é melhor perguntar a outro funcionário.","Kysyin johtajalta hotellin rakennusten rakennusajankohdista ja rakennemuutoksista.
 
-'Kyllä, aivan oikein. Rakennus, jota nykyään kutsumme uudeksi siiveksi, rakennettiin vuoden 1981 tulipalon jälkeen.'
+'Kyllä, aivan oikein. Rakennus, jota nykyään kutsumme päärakennukseksi, rakennettiin vuoden 1981 tulipalon jälkeen.'
 
-'Raivasimme tontin, jolla palon vuoksi suljettu vanha päärakennus sijaitsi, ja rakensimme sen paikalle uuden rakennuksen. Siinä yhteydessä hotellin rakennekin muuttui paljon.'
+'Palanut rakennus oli alkuperäinen päärakennus. Tulipalon jälkeen kutsuimme sitä vanhaksi rakennukseksi, mutta nyt se on purettu, eikä siitä ole mitään jäljellä. Uusi päärakennus rakennettiin samalle tontille.'
 
-'Myös rakennus, jota nyt kutsumme sivurakennukseksi, oli aiemmin uusi siipi. Nimi vaihtui, kun uusi rakennus valmistui. Loppujen lopuksi ratkaisevaa on, mikä rakennus on rakennettu viimeisimpänä.'
+'Rakennus, jota nykyään kutsumme sivurakennukseksi, oli silloin uusi siipi. Nimi muuttui, kun uusi päärakennus valmistui.'
 
 Johtajan selityksen ansiosta ymmärsin, miksi tulipalon syyntutkintaraportissa ja rakennusrekisterissä esiintyvät rakennusajankohdat eroavat toisistaan.
 
-Rakennus, jota vuonna 1981 kutsuttiin uudeksi siiveksi, on nykyinen sivurakennus. Se tarkoittaa, että raportissa mainittu uuden siiven huone 407 on nykyään sivurakennuksessa.
+Vuonna 1981 palanutta päärakennusta kutsuttiin tulipalon jälkeen vanhaksi rakennukseksi, ja se on kuulemma nyt purettu. Nykyinen päärakennus on rakennettu sen paikalle.
+
+Ja silloinen uusi siipi on nykyinen sivurakennus. Se tarkoittaa, että raportissa mainittu uuden siiven huone 407 on nykyinen sivurakennuksen huone 407.
 
 Yritin kysyä huoneesta 407 vähän lisää, mutta kysymysten jatkuessa johtaja muuttui hieman varautuneeksi. Hän ei ilmeisesti halua puhua asiasta tarkemmin.
 
 Huoneen nykyisestä käytöstä on parempi kysyä joltakulta muulta työntekijältä."
-T10_TITLE,프론트 직원 - 사고 기록 출처 추궁,Front Desk Clerk - Presses on the Records' Source,フロント係 - 事故記録の出所を追及,前台职员 - 追问事故记录来源,櫃檯人員 - 追問事故紀錄來源,Recepcionista - Pregunta de dónde salió el registro de accidentes,Réceptionniste - Demande d’où vient la liste des accidents,Rezeptionist - Fragt nach Herkunft der Unfallliste,Recepcionista - Questiona a origem dos registros de acidentes,Vastaanottovirkailija - Tivaa onnettomuusluettelon alkuperää
+T10_TITLE,프론트 직원 - 사고 기록 출처 추궁,Front Desk Clerk - Presses on the Records' Source,フロント係 - 事故記録の出所を追及,前台职员 - 追问事故记录来源,櫃檯人員 - 追問事故紀錄來源,Recepcionista - Pregunta de dónde salió el registro de accidentes,Réceptionniste - Demande d’où vient la liste des accidents,Rezeptionistin - Fragt nach Herkunft der Unfallliste,Recepcionista - Questiona a origem dos registros de acidentes,Vastaanottovirkailija - Tivaa onnettomuusluettelon alkuperää
 T10_DESC,"호텔의 과거 사고 기록 목록을 보여주며 프론트 직원에게 물어봤다.
 
 '잠깐만요. 이 서류는 어디서 구하신 거죠?'
@@ -2872,7 +2912,7 @@ T10_DESC,"호텔의 과거 사고 기록 목록을 보여주며 프론트 직원
 
 'This isn't something we make public. Did you go into the Records Room, by any chance?'
 
-The moment the Front Desk Clerk saw the document, the first thing they wanted to know was where it came from. They avoided giving specific answers about past accidents and made it clear that the material shouldn't be disclosed outside.
+The moment the Front Desk Clerk saw the document, the first thing she wanted to know was where it came from. She avoided giving specific answers about past accidents and made it clear that the material shouldn't be disclosed outside.
 
 Truth is, I took it out of the Records Room without permission, so I'm not exactly in the clear either. I can understand the clerk taking issue with where it came from.
 
@@ -2916,27 +2956,27 @@ Nada más ver el documento, la recepcionista quiso saber de dónde había salido
 
 La verdad es que me lo llevé de la sala de archivos sin permiso, así que no tengo la conciencia del todo tranquila. Entiendo que le preocupe su procedencia.
 
-Aun así, me inquieta un poco esa reacción tan exagerada antes siquiera de mirar el contenido. ¿Será solo porque saqué documentos internos sin autorización?","J’ai montré la liste des accidents passés de l’hôtel au réceptionniste et je l’ai interrogé.
+Aun así, me inquieta un poco esa reacción tan exagerada antes siquiera de mirar el contenido. ¿Será solo porque saqué documentos internos sin autorización?","J’ai montré la liste des accidents passés de l’hôtel à la réceptionniste et je l’ai interrogée.
 
 'Un instant. Où avez-vous trouvé ce document ?'
 
 'Ce n’est pas un document accessible au public. Seriez-vous entré dans la salle des archives ?'
 
-Dès qu’il a vu le document, le réceptionniste a d’abord cherché à savoir d’où il venait. Il a évité de répondre précisément aux questions sur les accidents passés et a fait valoir que ces documents ne devaient pas être divulgués à l’extérieur.
+Dès qu’elle a vu le document, la réceptionniste a d’abord cherché à savoir d’où il venait. Elle a évité de répondre précisément aux questions sur les accidents passés et a fait valoir que ces documents ne devaient pas être divulgués à l’extérieur.
 
-À vrai dire, j’ai emporté ces documents de la salle des archives sans autorisation, je ne suis donc pas irréprochable non plus. Qu’il s’inquiète de leur provenance, je peux le comprendre.
+À vrai dire, j’ai emporté ces documents de la salle des archives sans autorisation, je ne suis donc pas irréprochable non plus. Qu’elle s’inquiète de leur provenance, je peux le comprendre.
 
-Cependant, sa réaction excessive, avant même d’avoir vérifié le contenu du document, me préoccupe un peu. Est-ce seulement parce que j’ai sorti des documents internes sans permission ?","Ich habe dem Rezeptionisten die Liste früherer Unfälle im Hotel gezeigt und nachgefragt.
+Cependant, sa réaction excessive, avant même d’avoir vérifié le contenu du document, me préoccupe un peu. Est-ce seulement parce que j’ai sorti des documents internes sans permission ?","Ich habe der Rezeptionistin die Liste früherer Unfälle im Hotel gezeigt und nachgefragt.
 
 'Moment mal. Woher haben Sie dieses Dokument?'
 
 'Das ist kein öffentlich zugängliches Material. Waren Sie etwa im Archivraum?'
 
-Kaum hatte der Rezeptionist das Dokument gesehen, wollte er wissen, woher es stammt. Konkreten Antworten zu früheren Unfällen wich er aus und machte deutlich, dass diese Unterlagen nicht nach außen gelangen dürfen.
+Kaum hatte die Rezeptionistin das Dokument gesehen, wollte sie wissen, woher es stammt. Konkreten Antworten zu früheren Unfällen wich sie aus und machte deutlich, dass diese Unterlagen nicht nach außen gelangen dürfen.
 
-Tatsächlich habe ich die Unterlagen ohne Erlaubnis aus dem Archivraum mitgenommen, also habe ich selbst kein ganz reines Gewissen. Dass er nach der Herkunft fragt, ist verständlich.
+Tatsächlich habe ich die Unterlagen ohne Erlaubnis aus dem Archivraum mitgenommen, also habe ich selbst kein ganz reines Gewissen. Dass sie nach der Herkunft fragt, ist verständlich.
 
-Dennoch beschäftigt mich seine übertriebene Reaktion, noch bevor er den Inhalt überhaupt geprüft hatte. Liegt es nur daran, dass ich interne Unterlagen unerlaubt mitgenommen habe?","Mostrei a lista de registros de acidentes antigos do hotel à recepcionista e perguntei sobre ela.
+Dennoch beschäftigt mich ihre übertriebene Reaktion, noch bevor sie den Inhalt überhaupt geprüft hatte. Liegt es nur daran, dass ich interne Unterlagen unerlaubt mitgenommen habe?","Mostrei a lista de registros de acidentes antigos do hotel à recepcionista e perguntei sobre ela.
 
 'Um momento. Onde o senhor conseguiu este documento?'
 
@@ -2957,12 +2997,12 @@ Vastaanottovirkailija halusi asiakirjan nähtyään ensimmäiseksi tietää, mis
 Totta puhuen otin aineiston arkistohuoneesta luvatta, joten minullakaan ei ole puhtaat paperit. On ymmärrettävää, että virkailija kyseenalaistaa sen alkuperän.
 
 Mutta yliherkkä reaktio jo ennen kuin hän edes katsoi asiakirjan sisältöä vaivaa minua hieman. Johtuiko se vain siitä, että sisäistä aineistoa oli viety luvatta?"
-T11_TITLE,프론트 직원 - 별관 407호 투숙객 안 받음,Front Desk Clerk - Annex Room 407 Not Taking Guests,フロント係 - 別館407号室は客を受け入れていない,前台职员 - 别馆407号房不接待住客,櫃檯人員 - 別館407號房不接待房客,Recepcionista - La habitación 407 del anexo no admite huéspedes,Réceptionniste - La chambre 407 de l’annexe n’accueille aucun client,Rezeptionist - Zimmer 407 im Nebengebäude wird nicht vergeben,Recepcionista - O quarto 407 do anexo não recebe hóspedes,Vastaanottovirkailija - Sivurakennuksen huoneeseen 407 ei oteta vieraita
+T11_TITLE,프론트 직원 - 별관 407호 투숙객 안 받음,Front Desk Clerk - Annex Room 407 Not Taking Guests,フロント係 - 別館407号室は客を受け入れていない,前台职员 - 别馆407号房不接待住客,櫃檯人員 - 別館407號房不接待房客,Recepcionista - La habitación 407 del anexo no admite huéspedes,Réceptionniste - La chambre 407 de l’annexe n’accueille aucun client,Rezeptionistin - Zimmer 407 im Nebengebäude wird nicht vergeben,Recepcionista - O quarto 407 do anexo não recebe hóspedes,Vastaanottovirkailija - Sivurakennuksen huoneeseen 407 ei oteta vieraita
 T11_DESC,"별관 407호에 관해 프론트 직원에게 물어봤다.
 
-'407호요? 그 객실은 현재 투숙객을 받고 있지 않습니다.'
+'별관 407호는 현재 투숙객을 받고 있지 않습니다.'
 
-'언제부터 사용하지 않았는지는 저도 정확히 모르겠습니다. 오래전부터 예약을 받지 않는 객실로 알고 있어요.'
+'정확한 시기는 저도 잘 모르겠습니다. 오래전부터 예약을 받지 않는 객실로 알고 있습니다.'
 
 프론트 직원에 따르면 별관 407호는 현재 투숙객에게 제공하지 않는 객실이라고 한다.
 
@@ -2970,9 +3010,9 @@ T11_DESC,"별관 407호에 관해 프론트 직원에게 물어봤다.
 
 호텔 측에서 해당 객실을 사용하지 않는 이유를 알아볼 필요가 있겠다.","I asked the Front Desk Clerk about Annex Room 407.
 
-'Room 407? That room isn't currently taking guests.'
+'Annex Room 407 isn't currently taking guests.'
 
-'I'm not exactly sure when it stopped being used, either. As far as I know, it's been a room we haven't taken bookings for in a long time.'
+'I'm not sure of the exact timing myself. As far as I know, it's been a room we haven't taken bookings for in a long time.'
 
 According to the Front Desk Clerk, Annex Room 407 is currently not offered to guests.
 
@@ -2980,9 +3020,9 @@ It might simply be out of use due to a facility problem, but the reason it's bee
 
 I need to find out why the hotel isn't using that room.","別館407号室について、フロント係に尋ねた。
 
-「407号室ですか？あの客室は現在、お客様をお泊めしておりません。」
+「別館407号室は、現在お客様をお泊めしておりません。」
 
-「いつから使われていないのかは、私も正確には存じません。ずいぶん前から予約を受け付けていない部屋だと聞いています。」
+「正確な時期は、私もよく存じません。ずいぶん前から予約を受け付けていない客室だと聞いております。」
 
 フロント係によれば、別館407号室は現在、宿泊客に提供していない客室だという。
 
@@ -2990,9 +3030,9 @@ I need to find out why the hotel isn't using that room.","別館407号室につ�
 
 ホテル側がこの客室を使っていない理由を調べる必要がありそうだ。","我向前台职员询问了别馆407号房的情况。
 
-“407号房吗？那间客房目前不接待住客。”
+“别馆407号房目前不接待住客。”
 
-“从什么时候开始不用的，我也不太清楚。只知道很久以前就不接受预订了。”
+“具体时间我也不太清楚。只知道那间客房很久以前就不接受预订了。”
 
 据前台职员说，别馆407号房目前不提供给住客。
 
@@ -3000,9 +3040,9 @@ I need to find out why the hotel isn't using that room.","別館407号室につ�
 
 有必要弄清楚酒店方不使用这间客房的原因。","我向櫃檯人員詢問了別館407號房的事。
 
-「407號房嗎？那間客房目前不接待房客。」
+「別館407號房目前不接待房客。」
 
-「從什麼時候開始不使用的，我也不太清楚。我只知道那是很久以前就不接受預約的客房。」
+「確切的時間我也不太清楚。我只知道那是很久以前就不接受預約的客房。」
 
 據櫃檯人員說，別館407號房目前不提供給房客使用。
 
@@ -3010,39 +3050,39 @@ I need to find out why the hotel isn't using that room.","別館407号室につ�
 
 有必要查清飯店方面不使用那間客房的原因。","Le pregunté a la recepcionista por la habitación 407 del anexo.
 
-'¿La 407? Esa habitación no admite huéspedes en este momento.'
+'La habitación 407 del anexo no admite huéspedes en este momento.'
 
-'No sé exactamente desde cuándo no se usa. Tengo entendido que hace mucho que no se aceptan reservas para ella.'
+'No sé con exactitud desde cuándo. Tengo entendido que hace mucho que no se aceptan reservas para esa habitación.'
 
 Según la recepcionista, la habitación 407 del anexo no se ofrece actualmente a los huéspedes.
 
 Podría ser simplemente por algún problema en las instalaciones, pero no se sabe por qué lleva tanto tiempo vacía.
 
-Tendré que averiguar por qué el hotel no usa esa habitación.","J’ai interrogé le réceptionniste au sujet de la chambre 407 de l’annexe.
+Tendré que averiguar por qué el hotel no usa esa habitación.","J’ai interrogé la réceptionniste au sujet de la chambre 407 de l’annexe.
 
-'La chambre 407 ? Elle n’accueille pas de clients en ce moment.'
+'La chambre 407 de l’annexe n’accueille pas de clients en ce moment.'
 
-'Je ne sais pas exactement depuis quand elle n’est plus utilisée. Pour autant que je sache, elle n’est plus proposée à la réservation depuis longtemps.'
+'Je ne connais pas la date exacte moi non plus. Pour autant que je sache, elle n’est plus proposée à la réservation depuis longtemps.'
 
-D’après le réceptionniste, la chambre 407 de l’annexe n’est actuellement pas proposée aux clients.
+D’après la réceptionniste, la chambre 407 de l’annexe n’est actuellement pas proposée aux clients.
 
 Ce n’est peut-être qu’un problème d’équipement, mais on ignore pourquoi la chambre est restée vide si longtemps.
 
-Il faudrait découvrir pourquoi l’hôtel n’utilise pas cette chambre.","Ich habe den Rezeptionisten nach Zimmer 407 im Nebengebäude gefragt.
+Il faudrait découvrir pourquoi l’hôtel n’utilise pas cette chambre.","Ich habe die Rezeptionistin nach Zimmer 407 im Nebengebäude gefragt.
 
-'Zimmer 407? Dieses Zimmer wird derzeit nicht an Gäste vergeben.'
+'Zimmer 407 im Nebengebäude wird derzeit nicht an Gäste vergeben.'
 
-'Seit wann es nicht mehr genutzt wird, weiß ich selbst nicht genau. Soweit ich weiß, werden dafür schon lange keine Buchungen mehr angenommen.'
+'Den genauen Zeitpunkt kenne ich selbst nicht. Soweit ich weiß, werden für dieses Zimmer schon lange keine Buchungen mehr angenommen.'
 
-Laut Rezeptionist wird Zimmer 407 im Nebengebäude derzeit nicht an Gäste vergeben.
+Laut Rezeptionistin wird Zimmer 407 im Nebengebäude derzeit nicht an Gäste vergeben.
 
 Vielleicht wird es einfach wegen technischer Mängel nicht genutzt, aber warum das Zimmer so lange leer steht, ist nicht geklärt.
 
 Ich sollte herausfinden, warum das Hotel dieses Zimmer nicht nutzt.","Perguntei à recepcionista sobre o quarto 407 do anexo.
 
-'O quarto 407? Esse quarto não está recebendo hóspedes no momento.'
+'O quarto 407 do anexo não está recebendo hóspedes no momento.'
 
-'Também não sei exatamente desde quando ele não é usado. Pelo que sei, faz muito tempo que não aceitamos reservas para ele.'
+'Também não sei exatamente desde quando. Pelo que sei, faz muito tempo que esse quarto não aceita reservas.'
 
 Segundo a recepcionista, o quarto 407 do anexo atualmente não é oferecido aos hóspedes.
 
@@ -3050,9 +3090,9 @@ Pode ser só um problema nas instalações, mas não se sabe por que o quarto es
 
 Preciso descobrir por que o hotel não usa esse quarto.","Kysyin vastaanottovirkailijalta sivurakennuksen huoneesta 407.
 
-'Huone 407? Siihen huoneeseen ei tällä hetkellä oteta vieraita.'
+'Sivurakennuksen huoneeseen 407 ei tällä hetkellä oteta vieraita.'
 
-'En tiedä tarkalleen, mistä lähtien se on ollut käyttämättä. Käsittääkseni siihen ei ole otettu varauksia pitkään aikaan.'
+'En tiedä tarkkaa ajankohtaa itsekään. Käsittääkseni siihen ei ole otettu varauksia pitkään aikaan.'
 
 Vastaanottovirkailijan mukaan sivurakennuksen huonetta 407 ei tällä hetkellä tarjota hotellivieraille.
 
@@ -3712,158 +3752,158 @@ Varsinkin palon syttymisrakennus, päärakennus, suljettiin kokonaan heti onnett
 Ohjeessa ei voi suoraan sanoa olevan vikaa. Mutta palon aikaisessa toiminnassa on yhä asioita, joita on vaikea selittää pelkkien asiakirjojen perusteella, ja se herättää muutamia kysymyksiä.
 
 Joku, joka on käynyt hotellissa jo pitkään, saattaisi muistaa jotain silloisesta tilanteesta."
-K02_TITLE,신관의 건축 시기와 구조 변경,New Wing Construction Date and Layout Changes,新館の建築時期と構造の変更,新馆的建造时间与结构变更,新館的建造時間與結構變更,Época de construcción del ala nueva y cambios en la estructura,Date de construction et réorganisation de la nouvelle aile,Bauzeitpunkt und Umbau des Neubaus,A época de construção e as mudanças na estrutura da ala nova,Uuden siiven rakennusajankohta ja rakennemuutokset
-K02_DESC,"1981년 화재원인 조사보고서, 현재 신관 건축물대장, 1981년 호텔 건물 배치도를 대조했다.
+K02_TITLE,본관의 건축 시기와 구조 변경,Main Building Construction Date and Layout Changes,本館の建築時期と構造の変更,主楼的建造时间与结构变更,主樓的建造時間與結構變更,Época de construcción del edificio principal y cambios en la estructura,Date de construction et réorganisation du bâtiment principal,Bauzeitpunkt und Umbau des Hauptgebäudes,A época de construção e as mudanças na estrutura do prédio principal,Päärakennuksen rakennusajankohta ja rakennemuutokset
+K02_DESC,"1981년 화재원인 조사보고서, 본관 건축물대장, 1981년 호텔 건물 배치도를 대조했다.
 
 화재원인 조사보고서에는 1981년 1월 호텔 본관에서 화재가 발생했으며, 당시 신관도 운영되고 있었다고 기록되어 있다.
 
-그런데 현재 신관의 건축물대장을 확인하니 건축 시기가 맞지 않는다.
+그런데 지금의 본관 건축물대장을 확인하니 건축 시기가 맞지 않는다.
 
 '착공 시기: 1981년 6월'
 '완공 시기: 1981년 11월'
 
-화재가 발생한 것은 1월인데, 지금 신관이라고 부르는 건물은 그로부터 몇 달 뒤에야 착공했다는 뜻이다.
+본관에서 불이 난 것은 1월인데, 지금의 본관은 그로부터 몇 달 뒤에야 착공했다. 1월에 불탄 본관과 지금의 본관은 같은 건물일 수 없다.
 
-1981년 11월에 작성된 건물 배치도에서도 현재와 다른 건물의 위치와 명칭이 확인된다.
+1981년 11월에 작성된 건물 배치도도 이상하다. 배치도에는 본관과 별관이 표시되어 있을 뿐, 보고서에 등장했던 신관은 어디에도 없다.
 
-그렇다면 화재원인 조사보고서에 등장하는 신관은 어느 건물을 가리키는 것일까? 단순히 건물의 명칭이 변경된 것인지, 화재 이후 호텔의 구조 자체가 달라진 것인지 확인할 필요가 있다.
+그렇다면 1월에 불탄 본관은 어떻게 되었고, 보고서에 등장하는 신관은 지금의 어느 건물을 가리키는 것일까? 단순히 건물의 명칭이 바뀐 것인지, 화재 이후 호텔의 구조 자체가 달라진 것인지 확인할 필요가 있다.
 
-건물의 변경 경위에 대해서는 지배인에게 직접 물어봐야겠다.","I compared the 1981 fire cause investigation report, the current New Wing's building register, and the 1981 hotel site layout plan.
+건물의 변경 경위에 대해서는 지배인에게 직접 물어봐야겠다.","I compared the 1981 fire cause investigation report, the Main Building's building register, and the 1981 hotel site layout plan.
 
 The fire cause investigation report records that a fire broke out in the hotel's Main Building in January 1981, and that the New Wing was also in operation at the time.
 
-But checking the current New Wing's building register, the construction dates don't add up.
+But checking the building register for the current Main Building, the construction dates don't add up.
 
 'Construction start: June 1981'
 'Completion: November 1981'
 
-The fire happened in January, which means the building we now call the New Wing wasn't even started until months later.
+The fire in the Main Building happened in January, yet the current Main Building wasn't started until months later. The Main Building that burned in January and the Main Building today can't be the same building.
 
-The site layout plan drawn up in November 1981 also shows building locations and names that differ from today.
+The site layout plan drawn up in November 1981 is strange, too. It shows only the Main Building and the Annex; the New Wing mentioned in the report is nowhere to be found.
 
-Then which building does the New Wing in the fire cause investigation report refer to? I need to find out whether the buildings were simply renamed, or whether the hotel's very layout changed after the fire.
+So what happened to the Main Building that burned in January, and which of today's buildings is the New Wing in the report? I need to find out whether the buildings were simply renamed, or whether the hotel's whole layout changed after the fire.
 
-I'll have to ask the Manager directly about how the buildings changed.","1981年の火災原因調査報告書、現在の新館の建築物台帳、1981年のホテル建物配置図を照らし合わせた。
+I should ask the Manager directly about how the buildings changed.","1981年の火災原因調査報告書、本館の建築物台帳、1981年のホテル建物配置図を照らし合わせた。
 
 火災原因調査報告書には、1981年1月にホテル本館で火災が発生し、当時は新館も営業していたと記録されている。
 
-ところが、現在の新館の建築物台帳を確認すると、建築時期が合わない。
+ところが、今の本館の建築物台帳を確認すると、建築時期が合わない。
 
 「着工時期：1981年6月」
 「竣工時期：1981年11月」
 
-火災が起きたのは1月なのに、今新館と呼ばれている建物は、その数か月後にようやく着工したことになる。
+本館で火災が起きたのは1月なのに、今の本館はその数か月後にようやく着工している。1月に焼けた本館と今の本館が、同じ建物であるはずがない。
 
-1981年11月に作成された建物配置図でも、現在とは異なる建物の位置と名称が確認できる。
+1981年11月に作成された建物配置図もおかしい。配置図には本館と別館が示されているだけで、報告書に出てきた新館はどこにもない。
 
-だとすれば、火災原因調査報告書に出てくる新館とは、どの建物を指しているのか？単に建物の名称が変わっただけなのか、火災の後にホテルの構造そのものが変わったのか、確かめる必要がある。
+では、1月に焼けた本館はどうなったのか。そして報告書に出てくる新館は、今のどの建物を指しているのだろうか。単に建物の名称が変わっただけなのか、火災の後にホテルの構造そのものが変わったのか、確かめる必要がある。
 
-建物の変更の経緯については、支配人に直接聞いてみよう。","我比对了1981年火灾原因调查报告、现在的新馆建筑物登记册，以及1981年酒店建筑布局图。
+建物が変わった経緯については、支配人に直接聞いてみなければ。","我比对了1981年火灾原因调查报告、主楼的建筑物登记册，以及1981年酒店建筑布局图。
 
 火灾原因调查报告中记载，1981年1月酒店主楼发生火灾，当时新馆也在营业。
 
-可是查看现在新馆的建筑物登记册，建造时间却对不上。
+可是查看现在主楼的建筑物登记册，建造时间却对不上。
 
 “开工时间：1981年6月”
 “竣工时间：1981年11月”
 
-火灾发生在1月，而现在被称为新馆的建筑，却是在那之后几个月才开工的。
+主楼起火是在1月，可现在的主楼却是在那几个月之后才开工的。1月烧毁的主楼和现在的主楼，不可能是同一栋建筑。
 
-在1981年11月绘制的建筑布局图上，也能看到与现在不同的建筑位置和名称。
+1981年11月绘制的建筑布局图也很奇怪。图上只标着主楼和别馆，报告中出现的新馆却哪里都找不到。
 
-那么，火灾原因调查报告中出现的新馆，指的究竟是哪栋建筑？有必要确认这只是建筑名称的变更，还是火灾之后酒店的结构本身发生了变化。
+那么，1月烧毁的主楼后来怎么样了？报告中出现的新馆又是指现在的哪栋建筑？是单纯的建筑改名，还是火灾之后酒店的结构本身发生了变化，有必要查清楚。
 
-关于建筑变更的经过，我得直接去问问经理。","我比對了1981年火災原因調查報告書、現在的新館建築物登記簿，以及1981年飯店建築配置圖。
+关于建筑变更的经过，得直接去问经理。","我比對了1981年火災原因調查報告書、主樓的建築物登記簿，以及1981年飯店建築配置圖。
 
-火災原因調查報告書記載，1981年1月飯店主樓發生火災，當時新館也在營運中。
+火災原因調查報告書中記載，1981年1月飯店主樓發生火災，當時新館也在營業。
 
-然而查看現在新館的建築物登記簿，建造時間卻對不上。
+可是查看現在主樓的建築物登記簿，建造時間卻對不上。
 
 「動工時間：1981年6月」
 「完工時間：1981年11月」
 
-火災發生在1月，這表示現在稱為新館的建築，是在那之後幾個月才動工的。
+主樓起火是在1月，可現在的主樓卻是在那幾個月之後才動工的。1月燒毀的主樓和現在的主樓，不可能是同一棟建築。
 
-在1981年11月繪製的建築配置圖上，也能看到與現在不同的建築位置與名稱。
+1981年11月繪製的建築配置圖也很奇怪。圖上只標著主樓和別館，報告中出現的新館卻哪裡都找不到。
 
-那麼，火災原因調查報告書中出現的新館，指的是哪一棟建築？有必要確認究竟只是建築名稱變更，還是火災之後飯店的結構本身就改變了。
+那麼，1月燒毀的主樓後來怎麼樣了？報告中出現的新館又是指現在的哪棟建築？是單純的建築改名，還是火災之後飯店的結構本身發生了變化，有必要查清楚。
 
-關於建築變更的經過，得直接問問經理。","Contrasté el informe de investigación de las causas del incendio de 1981, el registro del edificio de la actual ala nueva y el plano de distribución de los edificios del hotel de 1981.
+關於建築變更的經過，得直接去問經理。","Contrasté el informe de investigación de las causas del incendio de 1981, el registro del edificio principal y el plano de distribución de los edificios del hotel de 1981.
 
-El informe de investigación de las causas del incendio recoge que en enero de 1981 se produjo un incendio en el edificio principal del hotel y que el ala nueva también estaba en funcionamiento en ese momento.
+El informe de investigación de las causas del incendio recoge que en enero de 1981 se produjo un incendio en el edificio principal del hotel, y que entonces también funcionaba el ala nueva.
 
-Pero, al revisar el registro del edificio de la actual ala nueva, las fechas de construcción no cuadran.
+Sin embargo, al revisar el registro del edificio principal actual, las fechas de construcción no cuadran.
 
 'Inicio de obras: junio de 1981'
 'Finalización de obras: noviembre de 1981'
 
-El incendio fue en enero, lo que significa que el edificio que hoy llamamos ala nueva no empezó a construirse hasta varios meses después.
+El incendio del edificio principal fue en enero, pero el edificio principal actual no empezó a construirse hasta meses después. El edificio principal que ardió en enero y el actual no pueden ser el mismo.
 
-El plano de distribución de noviembre de 1981 también muestra ubicaciones y nombres de edificios distintos a los actuales.
+El plano de distribución de noviembre de 1981 también es extraño. Solo aparecen el edificio principal y el anexo; el ala nueva que mencionaba el informe no figura por ningún lado.
 
-Entonces, ¿a qué edificio se refiere el ala nueva que aparece en el informe de investigación de las causas del incendio? Tengo que averiguar si solo cambió el nombre del edificio o si la propia estructura del hotel cambió tras el incendio.
+Entonces, ¿qué pasó con el edificio principal que ardió en enero, y a cuál de los edificios actuales se refiere el ala nueva del informe? Tengo que averiguar si simplemente cambiaron los nombres o si la propia estructura del hotel cambió tras el incendio.
 
-Sobre cómo cambiaron los edificios, tendré que preguntarle directamente al gerente.","J’ai comparé le rapport d’enquête sur les causes de l’incendie de 1981, le registre du bâtiment de l’actuelle nouvelle aile et le plan de masse de l’hôtel de 1981.
+Tendré que preguntarle directamente al gerente cómo cambiaron los edificios.","J’ai comparé le rapport d’enquête sur les causes de l’incendie de 1981, le registre du bâtiment principal et le plan de masse de l’hôtel de 1981.
 
-Le rapport indique qu’un incendie s’est déclaré dans le bâtiment principal en janvier 1981 et que la nouvelle aile était alors en activité.
+Le rapport d’enquête sur les causes de l’incendie indique qu’un incendie s’est déclaré dans le bâtiment principal de l’hôtel en janvier 1981, et que la nouvelle aile était alors aussi en service.
 
-Pourtant, d’après le registre du bâtiment de l’actuelle nouvelle aile, les dates de construction ne collent pas.
+Pourtant, en consultant le registre du bâtiment principal actuel, les dates de construction ne concordent pas.
 
 'Début des travaux : juin 1981'
 'Achèvement : novembre 1981'
 
-L’incendie a eu lieu en janvier, ce qui veut dire que le bâtiment que l’on appelle aujourd’hui la nouvelle aile n’a été mis en chantier que plusieurs mois plus tard.
+L’incendie du bâtiment principal a eu lieu en janvier, alors que l’actuel bâtiment principal n’a été mis en chantier que plusieurs mois plus tard. Le bâtiment principal qui a brûlé en janvier et celui d’aujourd’hui ne peuvent pas être le même bâtiment.
 
-Le plan de masse établi en novembre 1981 montre lui aussi des emplacements et des noms de bâtiments différents de ceux d’aujourd’hui.
+Le plan de masse établi en novembre 1981 est étrange, lui aussi. On n’y voit que le bâtiment principal et l’annexe ; la nouvelle aile mentionnée dans le rapport n’y figure nulle part.
 
-Dans ce cas, de quel bâtiment parle le rapport quand il mentionne la nouvelle aile ? Il faut déterminer si les bâtiments ont simplement changé de nom ou si la structure même de l’hôtel a changé après l’incendie.
+Alors, qu’est devenu le bâtiment principal qui a brûlé en janvier, et à quel bâtiment actuel correspond la nouvelle aile du rapport ? Il faut que je vérifie si les bâtiments ont simplement changé de nom, ou si la structure même de l’hôtel a changé après l’incendie.
 
-Pour savoir comment les bâtiments ont évolué, je vais devoir interroger directement le directeur.","Ich habe den Brandursachenbericht von 1981, das Gebäuderegister des heutigen Neubaus und den Lageplan der Hotelgebäude von 1981 miteinander abgeglichen.
+Je vais devoir interroger directement le directeur sur l’évolution des bâtiments.","Ich habe den Brandursachenbericht von 1981, das Gebäuderegister des Hauptgebäudes und den Lageplan des Hotels von 1981 miteinander abgeglichen.
 
-Laut Brandursachenbericht brach im Januar 1981 im Hauptgebäude des Hotels ein Feuer aus, und der Neubau war damals ebenfalls in Betrieb.
+Laut Brandursachenbericht brach im Januar 1981 im Hauptgebäude des Hotels ein Feuer aus, und auch der Neubau war damals in Betrieb.
 
-Laut Gebäuderegister des heutigen Neubaus passt der Bauzeitpunkt jedoch nicht.
+Doch als ich das Gebäuderegister des heutigen Hauptgebäudes prüfe, passen die Bauzeiten nicht zusammen.
 
 'Baubeginn: Juni 1981'
 'Fertigstellung: November 1981'
 
-Der Brand war im Januar, aber mit dem Bau des Gebäudes, das heute Neubau heißt, wurde erst einige Monate später begonnen.
+Im Hauptgebäude brannte es im Januar, doch mit dem Bau des heutigen Hauptgebäudes wurde erst Monate später begonnen. Das Hauptgebäude, das im Januar abbrannte, und das heutige Hauptgebäude können nicht dasselbe Gebäude sein.
 
-Auch der im November 1981 erstellte Lageplan zeigt Gebäude in anderer Lage und mit anderen Bezeichnungen als heute.
+Auch der Lageplan vom November 1981 ist seltsam. Darauf sind nur das Hauptgebäude und das Nebengebäude eingezeichnet; der im Bericht erwähnte Neubau ist nirgends zu finden.
 
-Welches Gebäude ist dann mit dem Neubau im Brandursachenbericht gemeint? Ich muss klären, ob sich nur die Bezeichnung der Gebäude geändert hat oder ob nach dem Brand die gesamte Struktur des Hotels eine andere wurde.
+Was ist also aus dem Hauptgebäude geworden, das im Januar abbrannte, und welches der heutigen Gebäude ist der Neubau aus dem Bericht? Ich muss herausfinden, ob die Gebäude nur umbenannt wurden oder ob sich nach dem Brand die gesamte Anlage des Hotels verändert hat.
 
-Nach den baulichen Veränderungen sollte ich den Hoteldirektor direkt fragen.","Comparei o relatório de investigação da causa do incêndio de 1981, o registro do edifício da atual ala nova e a planta de implantação dos prédios do hotel de 1981.
+Wie sich die Gebäude verändert haben, sollte ich den Direktor direkt fragen.","Comparei o relatório de investigação da causa do incêndio de 1981, o registro do prédio principal e a planta de implantação dos prédios do hotel de 1981.
 
 O relatório de investigação da causa do incêndio registra que, em janeiro de 1981, houve um incêndio no prédio principal do hotel e que a ala nova também estava em funcionamento na época.
 
-Mas, ao consultar o registro do edifício da atual ala nova, as datas de construção não batem.
+Mas, ao conferir o registro do prédio principal atual, as datas de construção não batem.
 
 'Início da obra: junho de 1981'
 'Conclusão da obra: novembro de 1981'
 
-O incêndio foi em janeiro, mas a obra do prédio que hoje chamamos de ala nova só começou meses depois.
+O incêndio no prédio principal foi em janeiro, mas a obra do prédio principal atual só começou meses depois. O prédio principal que pegou fogo em janeiro e o de hoje não podem ser o mesmo prédio.
 
-Na planta de implantação elaborada em novembro de 1981, também aparecem localizações e nomes de prédios diferentes dos atuais.
+A planta de implantação de novembro de 1981 também é estranha. Nela aparecem só o prédio principal e o anexo; a ala nova citada no relatório não está em lugar nenhum.
 
-Então, a que prédio se refere a ala nova citada no relatório de investigação da causa do incêndio? Preciso verificar se foi só uma mudança de nome dos prédios ou se a própria estrutura do hotel mudou depois do incêndio.
+Então, o que aconteceu com o prédio principal que pegou fogo em janeiro, e a qual prédio atual corresponde a ala nova do relatório? Preciso descobrir se os prédios só mudaram de nome ou se a própria estrutura do hotel mudou depois do incêndio.
 
-Vou perguntar diretamente ao gerente como os prédios mudaram.","Vertasin vuoden 1981 tulipalon syyntutkintaraporttia, nykyisen uuden siiven rakennusrekisteriä ja hotellin vuoden 1981 asemapiirrosta.
+Vou ter que perguntar diretamente ao gerente como os prédios mudaram.","Vertasin vuoden 1981 tulipalon syyntutkintaraporttia, päärakennuksen rakennusrekisteriä ja hotellin vuoden 1981 asemapiirrosta.
 
 Tulipalon syyntutkintaraporttiin on kirjattu, että hotellin päärakennuksessa syttyi tulipalo tammikuussa 1981 ja että myös uusi siipi oli tuolloin toiminnassa.
 
-Mutta nykyisen uuden siiven rakennusrekisteriä tarkastellessa rakennusajankohta ei täsmää.
+Mutta nykyisen päärakennuksen rakennusrekisteriä tarkastellessa rakennusajankohta ei täsmää.
 
 'Rakentaminen aloitettu: kesäkuu 1981'
 'Valmistunut: marraskuu 1981'
 
-Palo syttyi tammikuussa, mutta rakennuksen, jota nyt kutsutaan uudeksi siiveksi, rakentaminen aloitettiin vasta muutamaa kuukautta myöhemmin.
+Päärakennuksessa paloi tammikuussa, mutta nykyisen päärakennuksen rakentaminen aloitettiin vasta muutamaa kuukautta myöhemmin. Tammikuussa palanut päärakennus ja nykyinen päärakennus eivät voi olla sama rakennus.
 
-Myös marraskuussa 1981 laaditussa asemapiirroksessa rakennusten sijainnit ja nimet poikkeavat nykyisistä.
+Myös marraskuussa 1981 laadittu asemapiirros on outo. Siihen on merkitty vain päärakennus ja sivurakennus, eikä raportissa mainittua uutta siipeä löydy mistään.
 
-Mihin rakennukseen tulipalon syyntutkintaraportin uusi siipi sitten viittaa? Pitää selvittää, onko kyse pelkästä rakennusten nimien muuttumisesta vai muuttuiko hotellin koko rakenne palon jälkeen.
+Mitä siis tapahtui tammikuussa palaneelle päärakennukselle, ja mihin nykyisistä rakennuksista raportin uusi siipi viittaa? Minun on selvitettävä, vaihtuivatko vain rakennusten nimet vai muuttuiko hotellin koko rakenne tulipalon jälkeen.
 
-Rakennusten muutosten taustasta täytyy kysyä suoraan johtajalta."
+Rakennusten muutoksista minun on kysyttävä suoraan johtajalta."
 K03_TITLE,과거 사망 사건의 공통점,What the Past Deaths Have in Common,過去の死亡事件の共通点,过往死亡事件的共同点,過去死亡事件的共通點,Lo que tienen en común las muertes del pasado,Le point commun des décès passés,Gemeinsamkeiten früherer Todesfälle,O ponto em comum das mortes do passado,Aiempien kuolemantapausten yhteinen piirre
 K03_DESC,"호텔의 과거 사고 기록 목록과 1992년 일가족 자살 사건 기록을 대조했다.
 
@@ -4083,7 +4123,7 @@ K04_DESC,"실족사 사고에 관한 조사 내용과 벨보이, 프론트 직�
 
 이제 사고 원인보다는 피해자의 건강 상태와 호텔 측의 안전관리 책임을 확인하는 것이 좋겠다.","I compared my findings on the accidental fall with the testimony of the Bellboy and the Front Desk Clerk.
 
-The incident report and the scene photos I took confirmed the possibility that the victim lost his footing and fell down the slope.
+The incident report and the scene photos I took confirmed the possibility that the victim lost their footing and fell down the slope.
 
 The Bellboy testified that he saw the victim heading to the walking trail alone on the day of the accident, and that nothing seemed particularly odd at the time.
 
@@ -4151,13 +4191,13 @@ En los documentos reunidos hasta ahora tampoco hay indicios que hagan sospechar 
 
 Es muy probable que esto fuera una muerte por caída accidental fortuita.
 
-Ahora, más que la causa del accidente, convendría comprobar el estado de salud de la víctima y la responsabilidad del hotel en materia de seguridad.","J’ai comparé les résultats de l’enquête sur la chute mortelle accidentelle avec les témoignages du groom et du réceptionniste.
+Ahora, más que la causa del accidente, convendría comprobar el estado de salud de la víctima y la responsabilidad del hotel en materia de seguridad.","J’ai comparé les résultats de l’enquête sur la chute mortelle accidentelle avec les témoignages du groom et de la réceptionniste.
 
 Le rapport d’incident et les photos que j’ai prises sur place confirment que la victime a pu faire un faux pas et chuter au bas du talus.
 
 Le groom a vu la victime partir seule vers le sentier le jour de l’accident et affirme n’avoir rien remarqué de particulier.
 
-Le témoignage du réceptionniste concorde lui aussi avec le rapport d’incident. Le corps de la victime a été découvert le lendemain par un client ordinaire qui passait sur le sentier, puis, après signalement, l’affaire a été transmise aux autorités.
+Le témoignage de la réceptionniste concorde lui aussi avec le rapport d’incident. Le corps de la victime a été découvert le lendemain par un client ordinaire qui passait sur le sentier, puis, après signalement, l’affaire a été transmise aux autorités.
 
 Aucune contradiction notable n’apparaît dans les faits et gestes de la victime avant l’accident ni dans les circonstances de la découverte. Le terrain lui-même appuie la thèse d’une chute due à un faux pas.
 
@@ -4165,13 +4205,13 @@ Rien, dans les éléments recueillis jusqu’ici, ne laisse soupçonner l’inte
 
 Il est très probable qu’il s’agisse d’une chute mortelle accidentelle.
 
-Plutôt que la cause de l’accident, il vaudrait mieux désormais vérifier l’état de santé de la victime et la responsabilité de l’hôtel en matière de sécurité.","Ich habe die Ermittlungsergebnisse zum tödlichen Sturz mit den Aussagen des Pagen und des Rezeptionisten abgeglichen.
+Plutôt que la cause de l’accident, il vaudrait mieux désormais vérifier l’état de santé de la victime et la responsabilité de l’hôtel en matière de sécurité.","Ich habe die Ermittlungsergebnisse zum tödlichen Sturz mit den Aussagen des Pagen und der Rezeptionistin abgeglichen.
 
 Der Unfallbericht und meine eigenen Fotos der Unfallstelle bestätigen, dass das Opfer einen Abhang hinabgestürzt sein könnte.
 
 Der Page sah das Opfer am Unfalltag allein zum Wanderweg gehen und sagte aus, dass ihm dabei nichts Ungewöhnliches aufgefallen sei.
 
-Auch die Aussage des Rezeptionisten deckt sich mit dem Unfallbericht. Die Leiche des Opfers wurde am nächsten Tag von einem gewöhnlichen Gast gefunden, der den Wanderweg entlangging, und nach der Meldung den zuständigen Behörden übergeben.
+Auch die Aussage der Rezeptionistin deckt sich mit dem Unfallbericht. Die Leiche des Opfers wurde am nächsten Tag von einem gewöhnlichen Gast gefunden, der den Wanderweg entlangging, und nach der Meldung den zuständigen Behörden übergeben.
 
 Weder im Verhalten vor dem Unfall noch beim Auffinden gibt es besondere Widersprüche. Auch das Gelände vor Ort stützt die Annahme eines Absturzes durch Ausrutschen.
 
@@ -4287,7 +4327,7 @@ Le témoignage du directeur m’a permis d’établir que la nouvelle aile de 19
 
 Or, selon le professeur, avant même que la nouvelle de l’incendie se répande, les employés de l’hôtel se comportaient de manière inhabituelle. Certains semblaient se préoccuper d’autre chose que de guider les clients ou de combattre le feu.
 
-Un autre fait me préoccupe. Selon le réceptionniste, la chambre 407 de l’annexe n’accueille actuellement aucun client, et on ne sait même pas clairement depuis quand elle n’est plus utilisée.
+Un autre fait me préoccupe. Selon la réceptionniste, la chambre 407 de l’annexe n’accueille actuellement aucun client, et on ne sait même pas clairement depuis quand elle n’est plus utilisée.
 
 Que la chambre du client mort dans l’incendie ne soit toujours pas proposée aux clients peut être une coïncidence. Mais si on y ajoute le comportement étrange du personnel, il est difficile de passer outre.
 
@@ -4299,7 +4339,7 @@ Durch die Aussage des Hoteldirektors weiß ich, dass der Neubau von 1981 das heu
 
 Laut Aussage des Professors verhielten sich die Hotelangestellten jedoch schon vor Bekanntwerden des Brandes anders als sonst. Einige schienen sich um andere Dinge zu kümmern als um die Gäste oder die Brandbekämpfung.
 
-Und dann ist da noch etwas, das mich beschäftigt. Laut Rezeptionist wird Zimmer 407 im Nebengebäude derzeit nicht an Gäste vergeben, und seit wann es nicht mehr genutzt wird, ist unklar.
+Und dann ist da noch etwas, das mich beschäftigt. Laut Rezeptionistin wird Zimmer 407 im Nebengebäude derzeit nicht an Gäste vergeben, und seit wann es nicht mehr genutzt wird, ist unklar.
 
 Dass das Zimmer, in dem der beim Brand verstorbene Gast wohnte, bis heute nicht an Gäste vergeben wird, könnte Zufall sein. Aber zusammen mit dem seltsamen Verhalten der Angestellten kann ich das nicht einfach übergehen.
 
@@ -4445,9 +4485,9 @@ K07_DESC,"1993년 산책로 실족사 사건에 관한 조사 자료를 최종�
 
 보험 조사관으로서 확인해야 할 사항은 모두 검토했다. 이제 조사 결과를 정리해 지배인에게 전하고 보험사로 돌아가면 된다.","I did a final review of the investigation materials on the 1993 accidental fall on the walking trail.
 
-Taking the terrain at the scene and the testimony of those involved together, the victim most likely lost his footing on the trail and fell. So far, no grounds have been found to suspect anyone else was involved.
+Taking the terrain at the scene and the testimony of those involved together, the victim most likely lost their footing on the trail and fell. So far, no grounds have been found to suspect anyone else was involved.
 
-The deceased's routine health checkup results also showed signs of anemia. Whether he had a dizzy spell at the time is unknown, but it may have contributed to the fall.
+The deceased's routine health checkup results also showed signs of anemia. Whether they had a dizzy spell at the time is unknown, but it may have contributed to the fall.
 
 The hotel's facility maintenance records and the Caretaker's testimony are also consistent with each other. There's no indication of any particular problem with the trail's safety facilities before the accident.
 
@@ -4487,7 +4527,7 @@ As an insurance investigator, I've reviewed everything I needed to check. Now I 
 
 Teniendo en cuenta el terreno del lugar del accidente y los testimonios de los implicados, es probable que la víctima resbalara en el sendero y cayera. Hasta ahora no se ha encontrado nada que haga sospechar la intervención de un tercero.
 
-Los resultados del chequeo médico periódico del fallecido también muestran indicios de anemia. No se sabe si sufrió un mareo en el momento del accidente, pero es posible que influyera en la caída.
+Los resultados del chequeo médico periódico de la víctima también muestran indicios de anemia. No se sabe si sufrió un mareo en el momento del accidente, pero es posible que influyera en la caída.
 
 El registro de mantenimiento del hotel y el testimonio del conserje también coinciden. No hay indicios de que las instalaciones de seguridad del sendero tuvieran problemas antes del accidente.
 
@@ -4497,7 +4537,7 @@ Como investigador de seguros, he revisado todo lo que debía comprobar. Ahora so
 
 Au vu du terrain et des témoignages des personnes concernées, il est très probable que la victime ait fait un faux pas sur le sentier et chuté. Aucun élément ne permet à ce jour de soupçonner l’intervention d’un tiers.
 
-Les résultats du bilan de santé régulier du défunt font aussi état de signes d’anémie. On ne sait pas s’il a eu un vertige au moment de l’accident, mais cela a pu contribuer à sa chute.
+Les résultats du bilan de santé régulier de la victime font aussi état de signes d’anémie. On ne sait pas s’il a eu un vertige au moment de l’accident, mais cela a pu contribuer à sa chute.
 
 Le registre d’entretien des installations de l’hôtel et le témoignage du gardien concordent également. Rien n’indique que les équipements de sécurité du sentier présentaient un problème particulier avant l’accident.
 
@@ -4507,7 +4547,7 @@ En tant qu’enquêteur d’assurance, j’ai examiné tout ce qu’il fallait v
 
 Nimmt man das Gelände an der Unfallstelle und die Aussagen der Beteiligten zusammen, ist das Opfer wahrscheinlich auf dem Wanderweg ausgerutscht und abgestürzt. Bisher wurde kein Anhaltspunkt für eine Fremdeinwirkung gefunden.
 
-In den Ergebnissen der Vorsorgeuntersuchung des Verstorbenen wurde zudem eine Anämie festgestellt. Ob zum Unfallzeitpunkt Schwindel auftrat, ist nicht bekannt, aber es könnte den Sturz begünstigt haben.
+In den Ergebnissen der Vorsorgeuntersuchung des Opfers wurde zudem eine Anämie festgestellt. Ob zum Unfallzeitpunkt Schwindel auftrat, ist nicht bekannt, aber es könnte den Sturz begünstigt haben.
 
 Auch die Instandhaltungsprotokolle des Hotels und die Aussage des Hausmeisters stimmen überein. Es gibt keine Hinweise darauf, dass die Sicherheitseinrichtungen des Wanderwegs vor dem Unfall besondere Mängel aufwiesen.
 
@@ -4517,7 +4557,7 @@ Als Versicherungsermittler habe ich alles geprüft, was zu prüfen war. Jetzt mu
 
 Juntando o terreno do local e os depoimentos dos envolvidos, é provável que a vítima tenha perdido o equilíbrio na trilha e caído. Até agora, não foi encontrado nenhum motivo para suspeitar do envolvimento de outra pessoa.
 
-O resultado do check-up de rotina do falecido também indicou anemia. Não se sabe se ele teve tontura no momento do acidente, mas é possível que isso tenha contribuído para a queda.
+O resultado do check-up de rotina da vítima também indicou anemia. Não se sabe se ele teve tontura no momento do acidente, mas é possível que isso tenha contribuído para a queda.
 
 Os registros de manutenção do hotel e o depoimento do zelador também coincidem. Não há indícios de que houvesse algum problema especial nas instalações de segurança da trilha antes do acidente.
 

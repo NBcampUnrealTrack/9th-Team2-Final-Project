@@ -6,7 +6,7 @@
 
 // 게임 인트로 (택시 맵) 진행 담당 (Taxi 맵에 1개 배치)
 // - 로딩 화면이 사라진 뒤 StartDelay 뒤에 택시 기사 대화를 자동으로 시작 (로딩이 없으면 맵 시작 기준)
-// - 대화가 끝나면 NextLevel의 NextPlayerStartTag 위치로 이동 (도착 후 자동 저장)
+// - 대화가 정상 완료되면 NextLevel의 NextPlayerStartTag 위치로 이동 (도착 후 자동 저장)
 // - 택시 안에서는 플레이어 이동을 막음 (시점 회전은 가능)
 UCLASS()
 class LASTCHECKOUT_API ALCOTaxiIntroDirector : public AActor
@@ -25,7 +25,7 @@ protected:
 	FName DialogueID = TEXT("TaxiDriver");
 
 	UPROPERTY(EditAnywhere, Category = "LCO|TaxiIntro")
-	FName StartNodeID = TEXT("FIRST_01");
+	FName StartNodeID = TEXT("FIRST_01_01");
 
 	// 로딩이 끝나고 대화가 시작되기까지 대기 시간
 	UPROPERTY(EditAnywhere, Category = "LCO|TaxiIntro", meta = (ClampMin = "0.1", Units = "s"))

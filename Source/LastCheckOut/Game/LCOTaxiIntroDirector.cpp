@@ -88,8 +88,7 @@ void ALCOTaxiIntroDirector::StartIntroDialogue()
 	ULCODialogueSubsystem* DialogueSubsystem = GetDialogueSubsystem(this);
 	if (!DialogueSubsystem)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[LCOTaxiIntroDirector] Dialogue subsystem not found -> Travel"));
-		TravelToNextLevel();
+		UE_LOG(LogTemp, Error, TEXT("[LCOTaxiIntroDirector] Dialogue subsystem not found; intro stopped"));
 		return;
 	}
 
@@ -99,10 +98,9 @@ void ALCOTaxiIntroDirector::StartIntroDialogue()
 	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
 	if (!DialogueSubsystem->StartDialogue(DialogueID, StartNodeID, PlayerPawn))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[LCOTaxiIntroDirector] StartDialogue failed: %s / %s -> Travel"),
+		UE_LOG(LogTemp, Error, TEXT("[LCOTaxiIntroDirector] StartDialogue failed: %s / %s; intro stopped"),
 			*DialogueID.ToString(), *StartNodeID.ToString());
 		DialogueSubsystem->OnDialogueFinished.RemoveDynamic(this, &ThisClass::HandleDialogueFinished);
-		TravelToNextLevel();
 		return;
 	}
 
@@ -124,7 +122,10 @@ void ALCOTaxiIntroDirector::HandleDialogueFinished(FName FinishedDialogueID, boo
 		DialogueSubsystem->OnDialogueFinished.RemoveDynamic(this, &ThisClass::HandleDialogueFinished);
 	}
 
-	TravelToNextLevel();
+	if (bCompletedNormally)
+	{
+		TravelToNextLevel();
+	}
 }
 
 void ALCOTaxiIntroDirector::TravelToNextLevel()

@@ -259,6 +259,7 @@ bool ULCODialogueWidget::OpenDialogueInternal(ALCONPCBase* InNPC, AActor* InInte
 	ActiveNPC = InNPC;
 	Interactor = InInteractor;
 	ActiveDialogueID = DialogueID;
+	LastLineSpeakerID = NAME_None;
 	bActiveDialogueStartedAsFirstConversation = bPlayFirstConversation;
 	bActiveDialogueCompletedNormally = false;
 	bActiveDialogueIsPostT15 = false;
@@ -357,6 +358,8 @@ void ULCODialogueWidget::CloseDialogue(bool bEndNPCConversation)
 	}
 
 	TGuardValue<bool> ClosingGuard(bIsClosingDialogue, true);
+	++NodeActivationSerial;
+	bActiveNodeConfirmed = false;
 
 	ALCONPCBase* NPC = ActiveNPC.Get();
 	const FName ClosingDialogueID = ActiveDialogueID;
@@ -371,6 +374,7 @@ void ULCODialogueWidget::CloseDialogue(bool bEndNPCConversation)
 
 	ActiveNodeID = NAME_None;
 	ActiveDialogueID = NAME_None;
+	LastLineSpeakerID = NAME_None;
 	FullTypewriterString.Empty();
 	TypewriterVisibleLength = 0;
 	bIsTypewriting = false;
@@ -457,6 +461,7 @@ void ULCODialogueWidget::HandleChoiceSelected(FName ChoiceID)
 		}
 	}
 
+	if (!ConfirmActiveNode()) return;
 	if (IsEndNode(SelectedTarget))
 	{
 		CompleteActiveConversation();
@@ -741,6 +746,11 @@ void ULCODialogueWidget::StartNode(FName NodeID)
 	ActiveNodeID = NodeID;
 	SetChoicesVisible(false);
 	VisibleChoiceTargets.Empty();
+	bActiveNodeConfirmed = false;
+	const uint64 EntrySerial = ++NodeActivationSerial;
+	OnDialogueNodeEntered.Broadcast(ActiveDialogueID, ActiveNodeID);
+	// Subscribers may close the UI or begin a different node/dialogue synchronously.
+	if (NodeActivationSerial != EntrySerial) return;
 
 	if (Node->RowType == RowTypeLine)
 	{
@@ -782,7 +792,8 @@ void ULCODialogueWidget::ShowCurrentLine()
 		return;
 	}
 
-	RefreshSpeakerPresentation(Node->SpeakerID);
+	LastLineSpeakerID = Node->SpeakerID;
+	RefreshSpeakerPresentation(LastLineSpeakerID);
 	const FText DisplayText = ReplaceDialogueKeyPlaceholders(ResolveDialogueText(Node->TextKey));
 
 	if (bAutoAdvanceActive)
@@ -813,7 +824,16 @@ void ULCODialogueWidget::ShowCurrentLine()
 	}
 }
 
-void ULCODialogueWidget::AdvanceDialogue()
+bool ULCODialogueWidget::ConfirmActiveNode()
+{
+	if (bIsClosingDialogue || ActiveDialogueID.IsNone() || ActiveNodeID.IsNone() || bActiveNodeConfirmed) return false;
+	bActiveNodeConfirmed = true;
+	const uint64 ConfirmedSerial = NodeActivationSerial;
+	OnDialogueNodeConfirmed.Broadcast(ActiveDialogueID, ActiveNodeID);
+	return NodeActivationSerial == ConfirmedSerial;
+}
+
+void ULCODialogueWidget::AdvanceDialogue(bool bPlayerConfirmed)
 {
 	if (bAutoAdvanceActive) return;
 	if (bIsTypewriting)
@@ -842,6 +862,7 @@ void ULCODialogueWidget::AdvanceDialogue()
 
 	if (Node->bEndConversation || IsEndNode(Node->NextNodeID))
 	{
+		if (bPlayerConfirmed && !ConfirmActiveNode()) return;
 		CompleteActiveConversation();
 		return;
 	}
@@ -855,14 +876,16 @@ void ULCODialogueWidget::AdvanceDialogue()
 		return;
 	}
 
-	StartNode(Node->NextNodeID);
+	const FName NextNodeID = Node->NextNodeID;
+	if (bPlayerConfirmed && !ConfirmActiveNode()) return;
+	StartNode(NextNodeID);
 }
 
 void ULCODialogueWidget::HandleAutoAdvance()
 {
 	if (!bAutoAdvanceActive || !IsInViewport()) return;
 	bAutoAdvanceActive = false;
-	AdvanceDialogue();
+	AdvanceDialogue(false);
 }
 
 void ULCODialogueWidget::ClearAutoAdvanceTimer()
@@ -1099,7 +1122,8 @@ void ULCODialogueWidget::RefreshChoices()
 	}
 	if (TryStartNoQuestionsDialogue(*Node)) return;
 
-	RefreshSpeakerPresentation(Node->SpeakerID);
+	// The displayed text still belongs to the last Line, including on language refresh.
+	if (!LastLineSpeakerID.IsNone()) RefreshSpeakerPresentation(LastLineSpeakerID);
 
 	TSubclassOf<ULCODialogueChoiceWidget> LoadedChoiceWidgetClass = ChoiceWidgetClass.IsNull() ? nullptr : ChoiceWidgetClass.LoadSynchronous();
 	if (!LoadedChoiceWidgetClass)

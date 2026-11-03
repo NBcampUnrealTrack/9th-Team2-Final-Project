@@ -10,6 +10,8 @@
 #include "Player/LCOPlayerInteractionComponent.h"
 #include "TimerManager.h"
 #include "UI/LCODialogueWidget.h"
+#include "UI/LCONotebookUISubsystem.h"
+#include "UI/LCONotebookWidget.h"
 #include "Story/LCOStorySubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Misc/FileHelper.h"
@@ -24,6 +26,11 @@ ULCODialogueSubsystem::ULCODialogueSubsystem()
 void ULCODialogueSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	if (ULCOStorySubsystem* Story = GetStorySubsystem())
+	{
+		BoundStorySubsystem = Story;
+		Story->OnStateFlagChanged.AddUniqueDynamic(this, &ThisClass::HandleStoryStateFlagChanged);
+	}
 
 	FWorldDelegates::OnWorldCleanup.AddUObject(this, &ThisClass::HandleWorldCleanup);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &ThisClass::HandlePostLoadMapWithWorld);
@@ -36,6 +43,9 @@ void ULCODialogueSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void ULCODialogueSubsystem::Deinitialize()
 {
+	if (ULCOStorySubsystem* Story = BoundStorySubsystem.Get())
+		Story->OnStateFlagChanged.RemoveDynamic(this, &ThisClass::HandleStoryStateFlagChanged);
+	BoundStorySubsystem.Reset();
 	FWorldDelegates::OnWorldCleanup.RemoveAll(this);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 
@@ -273,13 +283,51 @@ void ULCODialogueSubsystem::SetSeniorCleanerState(FName State, bool bEnabled)
 	else SeniorCleanerStates.Remove(State);
 }
 
+ULCOStorySubsystem* ULCODialogueSubsystem::GetStorySubsystem() const
+{
+	const ULocalPlayer* LocalPlayer = GetLocalPlayer();
+	UGameInstance* GameInstance = LocalPlayer ? LocalPlayer->GetGameInstance() : nullptr;
+	return GameInstance ? GameInstance->GetSubsystem<ULCOStorySubsystem>() : nullptr;
+}
+
+bool ULCODialogueSubsystem::IsNotebookConfiscated() const
+{
+	if (const ULCOStorySubsystem* Story = GetStorySubsystem())
+		return Story->HasStateFlag(TEXT("C2_NotebookConfiscated"));
+	return SeniorCleanerStates.Contains(FName(TEXT("C2_NotebookConfiscated")));
+}
+
+void ULCODialogueSubsystem::HandleStoryStateFlagChanged(FName FlagName, bool bIsSet)
+{
+	if (FlagName != FName(TEXT("C2_NotebookConfiscated"))) return;
+	if (bIsSet)
+	{
+		if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+		{
+			if (ULCONotebookUISubsystem* NotebookUI = LocalPlayer->GetSubsystem<ULCONotebookUISubsystem>())
+			{
+				if (ULCONotebookWidget* Notebook = NotebookUI->GetNotebookWidget()) Notebook->CloseNotebook();
+			}
+		}
+	}
+	if (DialogueWidget) DialogueWidget->RefreshNotebookConfiscationState();
+}
+
 void ULCODialogueSubsystem::SetNotebookConfiscated(bool bConfiscated)
 {
+	if (ULCOStorySubsystem* Story = GetStorySubsystem())
+	{
+		SeniorCleanerStates.Remove(FName(TEXT("NOTEBOOK_CONFISCATED")));
+		SeniorCleanerStates.Remove(FName(TEXT("C2_NotebookConfiscated")));
+		if (bConfiscated) Story->SetStateFlag(TEXT("C2_NotebookConfiscated"));
+		else Story->ClearStateFlag(TEXT("C2_NotebookConfiscated"));
+		return;
+	}
 	if (IsNotebookConfiscated() == bConfiscated) return;
 	const FName State(TEXT("C2_NotebookConfiscated"));
 	if (bConfiscated) SeniorCleanerStates.Add(State);
 	else SeniorCleanerStates.Remove(State);
-	if (DialogueWidget) DialogueWidget->RefreshNotebookConfiscationState();
+	HandleStoryStateFlagChanged(State, bConfiscated);
 }
 
 void ULCODialogueSubsystem::BeginDialogueProgressTransaction(FName DialogueID, bool bStartedFirstConversation, FName ProgressKey)

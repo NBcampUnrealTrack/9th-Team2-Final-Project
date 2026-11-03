@@ -11,6 +11,7 @@ class ULCOInteractComponent;
 class ULCODialogueWidget;
 class ULCOPlayerInteractionComponent;
 class UWorld;
+class ULCOStorySubsystem;
 
 // 대화창이 닫힐 때 (NPC / NPC 없는 대화 공통). bCompletedNormally: 끝까지 진행했는지 (ESC 등 중단이면 false)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCODialogueFinished, FName, DialogueID, bool, bCompletedNormally);
@@ -60,7 +61,12 @@ public:
 	{
 		TArray<FName> Result = CompletedFirstConversationNPCIds.Array();
 		// Namespaced UI state travels through the existing dialogue save field.
-		for (FName State : SeniorCleanerStates) Result.Add(FName(*(TEXT("__LCO_SC_STATE__") + State.ToString())));
+		for (FName State : SeniorCleanerStates)
+		{
+			// Story owns notebook persistence; retain legacy storage only if Story is unavailable.
+			if (GetStorySubsystem() && (State == FName(TEXT("NOTEBOOK_CONFISCATED")) || State == FName(TEXT("C2_NotebookConfiscated")))) continue;
+			Result.Add(FName(*(TEXT("__LCO_SC_STATE__") + State.ToString())));
+		}
 		return Result;
 	}
 
@@ -72,9 +78,16 @@ public:
 		{
 			const FString Value = ID.ToString();
 			const FString Prefix(TEXT("__LCO_SC_STATE__"));
-			if (Value.StartsWith(Prefix)) SetSeniorCleanerState(FName(*Value.RightChop(Prefix.Len())), true);
+			if (Value.StartsWith(Prefix))
+			{
+				const FName State(*Value.RightChop(Prefix.Len()));
+				// SaveManager restores Story first. Old UI mirrors must not re-confiscate a returned notebook.
+				if (GetStorySubsystem() && (State == FName(TEXT("NOTEBOOK_CONFISCATED")) || State == FName(TEXT("C2_NotebookConfiscated")))) continue;
+				SetSeniorCleanerState(State, true);
+			}
 			else CompletedFirstConversationNPCIds.Add(ID);
 		}
+		HandleStoryStateFlagChanged(TEXT("C2_NotebookConfiscated"), IsNotebookConfiscated());
 	}
 
 	void ResetDialogueProgress()
@@ -95,9 +108,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue|SeniorCleaner")
 	void SetSeniorCleanerState(FName State, bool bEnabled);
 
-	// UI mirror of the future Story flag C2_NotebookConfiscated; no Story API dependency.
+	// Story's C2_NotebookConfiscated is authoritative, including after load without change events.
 	UFUNCTION(BlueprintPure, Category = "LCO|Dialogue")
-	bool IsNotebookConfiscated() const { return SeniorCleanerStates.Contains(FName(TEXT("C2_NotebookConfiscated"))); }
+	bool IsNotebookConfiscated() const;
 
 	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
 	void SetNotebookConfiscated(bool bConfiscated);
@@ -107,6 +120,11 @@ public:
 	FOnLCODialogueFinished OnDialogueFinished;
 
 private:
+	ULCOStorySubsystem* GetStorySubsystem() const;
+
+	UFUNCTION()
+	void HandleStoryStateFlagChanged(FName FlagName, bool bIsSet);
+
 	UFUNCTION()
 	void HandlePossessedPawnChanged(APawn* OldPawn, APawn* NewPawn);
 
@@ -170,4 +188,7 @@ private:
 
 	UPROPERTY(Transient)
 	FLCODialogueProgressTransaction PendingProgressTransaction;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<ULCOStorySubsystem> BoundStorySubsystem;
 };

@@ -42,6 +42,7 @@ void ULCOStorySubsystem::StartNewStory()
 	CurrentObjectiveID = NAME_None;
 	CompletedObjectives.Empty();
 	StoryFlags.Empty();
+	StateFlags.Empty();
 
 	// 첫 챕터 시작
 	// 첫 챕터 ID는 DataTable(DataManager)이 생기기 전까지 임시로 여기에서 지정
@@ -530,4 +531,45 @@ void ULCOStorySubsystem::RestoreStoryFlags(const TArray<FName>& FlagNames)
 
 	// Log Test
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] RestoreStoryFlags: %d"), StoryFlags.Num());
+}
+
+void ULCOStorySubsystem::SetStateFlag(FName FlagName)
+{
+	if (FlagName.IsNone() || StateFlags.Contains(FlagName))
+	{
+		return;
+	}
+
+	StateFlags.Add(FlagName);
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] SetStateFlag: %s"), *FlagName.ToString());
+	OnStateFlagChanged.Broadcast(FlagName, true);
+}
+
+void ULCOStorySubsystem::ClearStateFlag(FName FlagName)
+{
+	if (StateFlags.Remove(FlagName) == 0)
+	{
+		return;
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] ClearStateFlag: %s"), *FlagName.ToString());
+	OnStateFlagChanged.Broadcast(FlagName, false);
+}
+
+void ULCOStorySubsystem::RestoreStateFlags(const TArray<FName>& FlagNames)
+{
+	StateFlags.Empty();
+	for (const FName& FlagName : FlagNames)
+	{
+		if (!FlagName.IsNone())
+		{
+			StateFlags.Add(FlagName);
+		}
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] RestoreStateFlags: %d"), StateFlags.Num());
 }

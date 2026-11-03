@@ -6,6 +6,7 @@
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
+#include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 #include "Inventory/InventoryComponent.h"
@@ -20,6 +21,7 @@
 #include "Story/LCOStorySubsystem.h"
 #include "TimerManager.h"
 #include "UI/LCODialogueChoiceWidget.h"
+#include "UI/LCODialogueSubsystem.h"
 #include "UI/LCOInteractionPromptSubsystem.h"
 #include "UObject/SoftObjectPath.h"
 
@@ -34,6 +36,7 @@ namespace
 	const FName FirstNodeID = TEXT("FIRST_01");
 	const FName DefaultNodeID = TEXT("DEFAULT_01");
 	const FName NoQuestionsNodeID = TEXT("__LCO_NO_QUESTIONS__");
+	const FName NotebookConfiscatedNodeID = TEXT("__LCO_NOTEBOOK_CONFISCATED__");
 	const FName EndNodeID = TEXT("END");
 
 	bool IsHighSurrogate(TCHAR Character)
@@ -258,6 +261,8 @@ bool ULCODialogueWidget::OpenDialogueInternal(ALCONPCBase* InNPC, AActor* InInte
 	ActiveDialogueID = DialogueID;
 	bActiveDialogueStartedAsFirstConversation = bPlayFirstConversation;
 	bActiveDialogueCompletedNormally = false;
+	bActiveDialogueIsPostT15 = false;
+	bActiveDialogueConfirms407 = false;
 	LastVoicePlaybackTime = -FLT_MAX;
 
 	if (!LoadFlowForDialogueID(ActiveDialogueID))
@@ -267,6 +272,26 @@ bool ULCODialogueWidget::OpenDialogueInternal(ALCONPCBase* InNPC, AActor* InInte
 		ActiveDialogueID = NAME_None;
 		bActiveDialogueStartedAsFirstConversation = false;
 		return false;
+	}
+
+	if (ActiveDialogueID == FName(TEXT("SeniorCleaner")) && IsValid(InNPC))
+	{
+		FName PreferredNode = InitialNodeID;
+		if (IsConditionMet(TEXT("T15")))
+		{
+			PreferredNode = IsConditionMet(TEXT("SC_POST_T15_SEEN")) ? FName(TEXT("POST_T15_DEFAULT")) : FName(TEXT("POST_T15_01"));
+		}
+		else if (bPlayFirstConversation)
+		{
+			PreferredNode = IsConditionMet(TEXT("T12")) ? FName(TEXT("FIRST_T12_01")) : FirstNodeID;
+		}
+		else if (IsConditionMet(TEXT("T12&!SC_407_CONFIRMED"))) PreferredNode = TEXT("T12_REVISIT_01");
+		else if (IsConditionMet(TEXT("SC_407_CONFIRMED"))) PreferredNode = TEXT("DEFAULT_02");
+		// Older CSVs retain their original entry points.
+		if (ActiveFlow.Nodes.Contains(PreferredNode)) InitialNodeID = PreferredNode;
+		bActiveDialogueIsPostT15 = InitialNodeID == FName(TEXT("POST_T15_01"));
+		bActiveDialogueConfirms407 = InitialNodeID == FName(TEXT("FIRST_T12_01"))
+			|| InitialNodeID == FName(TEXT("T12_REVISIT_01"));
 	}
 
 	if (!ActiveFlow.Nodes.Contains(InitialNodeID))
@@ -281,6 +306,17 @@ bool ULCODialogueWidget::OpenDialogueInternal(ALCONPCBase* InNPC, AActor* InInte
 		ActiveFlow = FLCODialogueFlow();
 		bActiveDialogueStartedAsFirstConversation = false;
 		return false;
+	}
+
+	if (IsValid(InNPC))
+	{
+		FLCODialogueNode Confiscated;
+		Confiscated.NodeID = NotebookConfiscatedNodeID;
+		Confiscated.RowType = RowTypeLine;
+		Confiscated.SpeakerID = NarratorSpeakerID;
+		Confiscated.TextKey = TEXT("NPC_NOTEBOOK_CONFISCATED");
+		Confiscated.bEndConversation = true;
+		ActiveFlow.Nodes.Add(NotebookConfiscatedNodeID, MoveTemp(Confiscated));
 	}
 
 	if (IsValid(InNPC) && !bPlayFirstConversation)
@@ -325,7 +361,8 @@ void ULCODialogueWidget::CloseDialogue(bool bEndNPCConversation)
 	ALCONPCBase* NPC = ActiveNPC.Get();
 	const FName ClosingDialogueID = ActiveDialogueID;
 	const bool bCompletedNormally = bActiveDialogueCompletedNormally;
-	const bool bCompletedFirstConversation = bActiveDialogueStartedAsFirstConversation && bCompletedNormally;
+	const bool bCompletedFirstConversation = bActiveDialogueStartedAsFirstConversation && bCompletedNormally
+		&& ActiveNodeID != NotebookConfiscatedNodeID;
 
 	ClearAutoAdvanceTimer();
 	ClearTypewriterTimer();
@@ -342,6 +379,8 @@ void ULCODialogueWidget::CloseDialogue(bool bEndNPCConversation)
 	VisibleChoiceTargets.Empty();
 	bActiveDialogueStartedAsFirstConversation = false;
 	bActiveDialogueCompletedNormally = false;
+	bActiveDialogueConfirms407 = false;
+	bActiveDialogueIsPostT15 = false;
 	SetChoicesVisible(false);
 
 	if (IsInViewport())
@@ -391,6 +430,9 @@ void ULCODialogueWidget::HandleOptionsRequested()
 
 void ULCODialogueWidget::HandleChoiceSelected(FName ChoiceID)
 {
+	const FLCODialogueNode* CurrentNode = ActiveFlow.Nodes.Find(ActiveNodeID);
+	if (CurrentNode && TryStartNotebookConfiscatedDialogue(*CurrentNode)) return;
+
 	const FName* TargetNodeID = VisibleChoiceTargets.Find(ChoiceID);
 	if (!TargetNodeID)
 	{
@@ -693,6 +735,7 @@ void ULCODialogueWidget::StartNode(FName NodeID)
 		return;
 	}
 
+	if (TryStartNotebookConfiscatedDialogue(*Node)) return;
 	if (TryStartNoQuestionsDialogue(*Node)) return;
 
 	ActiveNodeID = NodeID;
@@ -754,7 +797,9 @@ void ULCODialogueWidget::ShowCurrentLine()
 	}
 
 	// 증언 획득 (조건 검사 후 수첩 증언 탭에 자동 기록, 이미 있으면 무시)
-	if (!Node->UnlockFlag.IsNone())
+	// SeniorCleaner completion states are committed by CompleteActiveConversation, never Story unlocks.
+	if (!Node->UnlockFlag.IsNone()
+		&& !(ActiveDialogueID == FName(TEXT("SeniorCleaner")) && Node->UnlockFlag.ToString().StartsWith(TEXT("SC_"))))
 	{
 		if (ULCOStorySubsystem* StorySubsystem = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>())
 		{
@@ -833,6 +878,17 @@ void ULCODialogueWidget::CompleteActiveConversation()
 		? Node->ReportKeyword : NAME_None;
 	const bool bHasReportEvidence = !ReportKeyword.IsNone() && IsConditionMet(ReportKeyword);
 	bActiveDialogueCompletedNormally = true;
+	// A confiscation monologue closes normally as UI, but does not complete the interrupted NPC flow.
+	if (ActiveDialogueID == FName(TEXT("SeniorCleaner")) && ActiveNodeID != NotebookConfiscatedNodeID)
+	{
+		if (ULCODialogueSubsystem* Dialogue = GetOwningLocalPlayer() ? GetOwningLocalPlayer()->GetSubsystem<ULCODialogueSubsystem>() : nullptr)
+		{
+			if (bActiveDialogueConfirms407) Dialogue->SetSeniorCleanerState(TEXT("SC_407_CONFIRMED"), true);
+			if (ActiveNodeID == FName(TEXT("K09_FAIL_04")) || ActiveNodeID == FName(TEXT("K10_FAIL_04")))
+				Dialogue->SetSeniorCleanerState(TEXT("SC_INTERROGATION_ATTEMPTED"), true);
+			if (bActiveDialogueIsPostT15) Dialogue->SetSeniorCleanerState(TEXT("SC_POST_T15_SEEN"), true);
+		}
+	}
 	CloseDialogue(true);
 
 	// Finish the dialogue and commit its progress before an existing report API can travel/save.
@@ -991,6 +1047,8 @@ bool ULCODialogueWidget::HasAvailableQuestions(const FLCODialogueNode& ChoiceNod
 
 bool ULCODialogueWidget::TryStartNoQuestionsDialogue(const FLCODialogueNode& Node)
 {
+	// Preserve preceding lines; the common confiscation gate runs at the actual choice node.
+	if (IsNotebookConfiscated()) return false;
 	// Only NPC repeat conversations with an actual choice step use this fallback.
 	// Phone dialogue, first conversations and ordinary line-only sequences retain their flow.
 	if (!ActiveNPC.IsValid() || bActiveDialogueStartedAsFirstConversation || Node.bEndConversation) return false;
@@ -1001,6 +1059,11 @@ bool ULCODialogueWidget::TryStartNoQuestionsDialogue(const FLCODialogueNode& Nod
 		if (NextNode && NextNode->RowType == RowTypeChoice) ChoiceNode = NextNode;
 	}
 	if (!ChoiceNode || HasAvailableQuestions(*ChoiceNode)) return false;
+	// Keep available exit choices visible so the player decides when to leave.
+	if (ChoiceNode->Choices.ContainsByPredicate([this](const FLCODialogueChoiceRow& Choice)
+	{
+		return IsExitChoice(Choice) && IsConditionMet(Choice.Condition);
+	})) return false;
 
 	// Feed a side-effect-free terminal line through the existing typewriter/normal-close path.
 	FLCODialogueNode* Fallback = ActiveFlow.Nodes.Find(NoQuestionsNodeID);
@@ -1012,6 +1075,9 @@ bool ULCODialogueWidget::TryStartNoQuestionsDialogue(const FLCODialogueNode& Nod
 
 void ULCODialogueWidget::RefreshChoices()
 {
+	const FLCODialogueNode* CurrentNode = ActiveFlow.Nodes.Find(ActiveNodeID);
+	if (CurrentNode && TryStartNotebookConfiscatedDialogue(*CurrentNode)) return;
+
 	if (!ChoicesPanel)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] Cannot display choices: ChoicesPanel is not bound (Dialogue=%s Node=%s Widget=%s)"),
@@ -1166,8 +1232,65 @@ bool ULCODialogueWidget::IsEndNode(FName NodeID) const
 	return NodeID == EndNodeID;
 }
 
+bool ULCODialogueWidget::IsNotebookConfiscated() const
+{
+	const ULCODialogueSubsystem* Dialogue = GetOwningLocalPlayer() ? GetOwningLocalPlayer()->GetSubsystem<ULCODialogueSubsystem>() : nullptr;
+	return Dialogue && Dialogue->IsNotebookConfiscated();
+}
+
+bool ULCODialogueWidget::TryStartNotebookConfiscatedDialogue(const FLCODialogueNode& Node)
+{
+	if (!ActiveNPC.IsValid() || Node.RowType != RowTypeChoice || !IsNotebookConfiscated()) return false;
+	SetChoicesVisible(false);
+	VisibleChoiceTargets.Empty();
+	if (ChoicesPanel) ChoicesPanel->ClearChildren();
+	StartNode(NotebookConfiscatedNodeID);
+	return true;
+}
+
+void ULCODialogueWidget::RefreshNotebookConfiscationState()
+{
+	const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID);
+	if (ActiveNPC.IsValid() && Node && Node->RowType == RowTypeChoice) RefreshChoices();
+}
+
+void ULCODialogueWidget::RefreshSeniorCleanerChoices()
+{
+	const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID);
+	if (ActiveDialogueID == FName(TEXT("SeniorCleaner")) && Node && Node->RowType == RowTypeChoice)
+		RefreshChoices();
+}
+
 bool ULCODialogueWidget::IsConditionMet(FName Condition) const
 {
+	// Extended expressions are deliberately limited to SeniorCleaner.
+	if (ActiveDialogueID != FName(TEXT("SeniorCleaner"))) return IsSingleConditionMet(Condition);
+	if (Condition.IsNone()) return true;
+	TArray<FString> Terms;
+	Condition.ToString().ParseIntoArray(Terms, TEXT("&"), false);
+	for (FString Term : Terms)
+	{
+		Term.TrimStartAndEndInline();
+		const bool bNegated = Term.RemoveFromStart(TEXT("!"));
+		Term.TrimStartAndEndInline();
+		if (Term.IsEmpty() || Term.Contains(TEXT("!"))) return false;
+		const FName Token(*Term);
+		bool bMet = false;
+		if (Token == FName(TEXT("NOTEBOOK_CONFISCATED")) || Term.StartsWith(TEXT("SC_")))
+		{
+			const ULCODialogueSubsystem* Dialogue = GetOwningLocalPlayer() ? GetOwningLocalPlayer()->GetSubsystem<ULCODialogueSubsystem>() : nullptr;
+			bMet = Dialogue && Dialogue->HasSeniorCleanerState(Token);
+		}
+		else bMet = IsSingleConditionMet(Token);
+		if (bMet == bNegated) return false;
+	}
+	return !Terms.IsEmpty();
+}
+
+bool ULCODialogueWidget::IsSingleConditionMet(FName Condition) const
+{
+	if (Condition == FName(TEXT("C2_NotebookConfiscated")) || Condition == FName(TEXT("NOTEBOOK_CONFISCATED")))
+		return IsNotebookConfiscated();
 	if (Condition.IsNone())
 	{
 		return true;

@@ -58,18 +58,49 @@ public:
 
 	TArray<FName> GetCompletedFirstConversations() const
 	{
-		return CompletedFirstConversationNPCIds.Array();
+		TArray<FName> Result = CompletedFirstConversationNPCIds.Array();
+		// Namespaced UI state travels through the existing dialogue save field.
+		for (FName State : SeniorCleanerStates) Result.Add(FName(*(TEXT("__LCO_SC_STATE__") + State.ToString())));
+		return Result;
 	}
 
 	void RestoreCompletedFirstConversations(const TArray<FName>& InIds)
 	{
-		CompletedFirstConversationNPCIds = TSet<FName>(InIds);
+		CompletedFirstConversationNPCIds.Empty();
+		SeniorCleanerStates.Empty();
+		for (FName ID : InIds)
+		{
+			const FString Value = ID.ToString();
+			const FString Prefix(TEXT("__LCO_SC_STATE__"));
+			if (Value.StartsWith(Prefix)) SetSeniorCleanerState(FName(*Value.RightChop(Prefix.Len())), true);
+			else CompletedFirstConversationNPCIds.Add(ID);
+		}
 	}
 
 	void ResetDialogueProgress()
 	{
 		CompletedFirstConversationNPCIds.Empty();
+		SeniorCleanerStates.Empty();
 	}
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Dialogue|SeniorCleaner")
+	bool HasSeniorCleanerState(FName State) const
+	{
+		if (State == FName(TEXT("NOTEBOOK_CONFISCATED")) || State == FName(TEXT("C2_NotebookConfiscated")))
+			return IsNotebookConfiscated();
+		return SeniorCleanerStates.Contains(State);
+	}
+
+	// The three SC_* states plus the legacy/canonical notebook state names are accepted.
+	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue|SeniorCleaner")
+	void SetSeniorCleanerState(FName State, bool bEnabled);
+
+	// UI mirror of the future Story flag C2_NotebookConfiscated; no Story API dependency.
+	UFUNCTION(BlueprintPure, Category = "LCO|Dialogue")
+	bool IsNotebookConfiscated() const { return SeniorCleanerStates.Contains(FName(TEXT("C2_NotebookConfiscated"))); }
+
+	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
+	void SetNotebookConfiscated(bool bConfiscated);
 
 	// 대화창이 닫힐 때 호출 (NPC 대화 포함)
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
@@ -133,6 +164,9 @@ private:
 
 	UPROPERTY(Transient)
 	TSet<FName> CompletedFirstConversationNPCIds;
+
+	UPROPERTY(Transient)
+	TSet<FName> SeniorCleanerStates;
 
 	UPROPERTY(Transient)
 	FLCODialogueProgressTransaction PendingProgressTransaction;

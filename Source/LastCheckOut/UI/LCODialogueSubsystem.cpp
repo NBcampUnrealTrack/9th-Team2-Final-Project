@@ -259,6 +259,29 @@ void ULCODialogueSubsystem::CleanupDialogue()
 	DialogueWidget = nullptr;
 }
 
+void ULCODialogueSubsystem::SetSeniorCleanerState(FName State, bool bEnabled)
+{
+	if (State == FName(TEXT("NOTEBOOK_CONFISCATED")) || State == FName(TEXT("C2_NotebookConfiscated")))
+	{
+		SetNotebookConfiscated(bEnabled);
+		return;
+	}
+	static const TSet<FName> Supported = { TEXT("SC_407_CONFIRMED"), TEXT("SC_INTERROGATION_ATTEMPTED"),
+		TEXT("SC_POST_T15_SEEN") };
+	if (!Supported.Contains(State)) return;
+	if (bEnabled) SeniorCleanerStates.Add(State);
+	else SeniorCleanerStates.Remove(State);
+}
+
+void ULCODialogueSubsystem::SetNotebookConfiscated(bool bConfiscated)
+{
+	if (IsNotebookConfiscated() == bConfiscated) return;
+	const FName State(TEXT("C2_NotebookConfiscated"));
+	if (bConfiscated) SeniorCleanerStates.Add(State);
+	else SeniorCleanerStates.Remove(State);
+	if (DialogueWidget) DialogueWidget->RefreshNotebookConfiscationState();
+}
+
 void ULCODialogueSubsystem::BeginDialogueProgressTransaction(FName DialogueID, bool bStartedFirstConversation, FName ProgressKey)
 {
 	PendingProgressTransaction.DialogueID = DialogueID;

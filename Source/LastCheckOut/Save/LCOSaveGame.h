@@ -41,6 +41,10 @@ public:
 	// 획득한 증언 / 키워드 플래그 이름 (예: "T02", "K01")
 	UPROPERTY()
 	TArray<FName> StoryFlags;
+
+	// 켜져 있는 상태 플래그 이름 (예: "C2_NotebookConfiscated")
+	UPROPERTY()
+	TArray<FName> StateFlags;
 	
 	// [수첩] (목표 / 단서 / 증언 / 사진)
 	UPROPERTY()

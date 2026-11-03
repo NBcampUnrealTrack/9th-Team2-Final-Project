@@ -18,6 +18,7 @@
 #include "UI/LCOLoadingSubsystem.h"
 #include "Core/LCOGameSettingsSubsystem.h"
 #include "Game/LCOTimeOfDayManager.h"
+#include "AI/Chasing/LCOChasingManager.h"
 
 ALCOGameMode::ALCOGameMode()
 {
@@ -241,6 +242,9 @@ void ALCOGameMode::HandleMatchHasStarted()
 	{
 		GameSettings->ApplyGameplaySettingsToPlayer(Cast<ALCOPlayerCharacter>(UGameplayStatics::GetPlayerPawn(this, 0)));
 	}
+
+	// 잡혔을 때 수첩 압수
+	BindChasingManager();
 
 	// 이 맵 도착으로 시간대 갱신 → 조명 적용 (아래 자동 저장에 갱신된 시간대가 들어가도록 먼저 처리)
 	RefreshTimeOfDay();
@@ -472,6 +476,34 @@ void ALCOGameMode::HandleChapterAdvanced(FName CompletedChapterID, FName NewChap
 	// Log Test
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] Chapter advanced: %s -> %s"), *CompletedChapterID.ToString(), *NewChapterID.ToString());
 	StartChapterTransition(NewChapterID);
+}
+
+void ALCOGameMode::BindChasingManager()
+{
+	for (TActorIterator<ALCOChasingManager> It(GetWorld()); It; ++It)
+	{
+		It->OnCaughtSequenceFinished.AddUniqueDynamic(this, &ThisClass::HandleCaughtSequenceFinished);
+	}
+}
+
+void ALCOGameMode::HandleCaughtSequenceFinished(AActor* Player)
+{
+	ULCOStorySubsystem* StorySubsystem = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>();
+	if (!StorySubsystem)
+	{
+		return;
+	}
+
+	// 1막에서는 압수하지 않음 (2막부터)
+	const FName ChapterID = StorySubsystem->GetCurrentChapterID();
+	if (ChapterID.IsNone() || ChapterID == FName(TEXT("Chapter1")))
+	{
+		return;
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] Caught -> Notebook confiscated (Chapter = %s)"), *ChapterID.ToString());
+	StorySubsystem->SetStateFlag(TEXT("C2_NotebookConfiscated"));
 }
 
 void ALCOGameMode::StartChapterTransition(FName NewChapterID)

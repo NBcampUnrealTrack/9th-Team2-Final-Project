@@ -112,6 +112,13 @@ private:
 	UFUNCTION()
 	void HandleChapterAdvanced(FName CompletedChapterID, FName NewChapterID);
 
+	// 추격에서 잡힌 뒤 처리가 끝났을 때 (2막부터 수첩 압수)
+	UFUNCTION()
+	void HandleCaughtSequenceFinished(AActor* Player);
+
+	// 맵의 추격 매니저에 잡힘 알림 연결
+	void BindChasingManager();
+
 	// 새 챕터 시작 공통 처리: 시간대 진행 → ChapterStartInfos의 시작 맵으로 이동 → 도착 후 자동 저장
 	void StartChapterTransition(FName NewChapterID);
 

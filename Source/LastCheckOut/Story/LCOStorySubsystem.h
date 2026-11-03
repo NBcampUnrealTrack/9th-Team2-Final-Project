@@ -13,6 +13,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOStoryFlagUnlocked, ELCOStoryFl
 // 지배인 보고 결과 (GameMode: 2막 이동·자동 저장 / 대화: 독백 / UI: 엔딩 화면 / 레벨: 407호 문 열기 등)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOReportResolved, ELCOStoryFlag, PresentedKeyword, ELCOReportResult, Result);
 
+// 상태 플래그가 켜지거나 꺼질 때 (예: C2_NotebookConfiscated)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOStateFlagChanged, FName, FlagName, bool, bIsSet);
+
 // 챕터 클리어로 다음 챕터 시작 (GameMode: 시간대 진행 · 시작 맵 이동 · 자동 저장)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOChapterAdvanced, FName, CompletedChapterID, FName, NewChapterID);
 
@@ -151,6 +154,24 @@ public:
 	// 이름 목록으로 플래그 복원 (세이브 불러오기용). 모르는 이름은 무시
 	void RestoreStoryFlags(const TArray<FName>& FlagNames);
 
+	// 상태 플래그 (켜고 끌 수 있는 진행 상태, 세이브에 저장. 예: C2_NotebookConfiscated = 수첩 압수 중)
+
+	UFUNCTION(BlueprintCallable, Category = "LCO|Story|State")
+	void SetStateFlag(FName FlagName);
+
+	UFUNCTION(BlueprintCallable, Category = "LCO|Story|State")
+	void ClearStateFlag(FName FlagName);
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Story|State")
+	bool HasStateFlag(FName FlagName) const { return StateFlags.Contains(FlagName); }
+
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Story|State")
+	FOnLCOStateFlagChanged OnStateFlagChanged;
+
+	// 세이브 저장 / 불러오기용
+	TArray<FName> GetStateFlagNames() const { return StateFlags.Array(); }
+	void RestoreStateFlags(const TArray<FName>& FlagNames);
+
 	// 조회
 
 	// 현재 챕터 ID (없으면 None)
@@ -207,6 +228,10 @@ private:
 	// 획득한 증언 / 키워드 플래그 (새 게임 시 초기화)
 	UPROPERTY()
 	TSet<ELCOStoryFlag> StoryFlags;
+
+	// 켜져 있는 상태 플래그 (새 게임 시 초기화)
+	UPROPERTY()
+	TSet<FName> StateFlags;
 
 	// 플래그별 해금 조건 (코드에서 고정, 세이브 대상 아님)
 	UPROPERTY()

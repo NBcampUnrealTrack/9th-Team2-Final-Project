@@ -109,6 +109,20 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "LCO|Flashlight")
 	bool IsFlashlightOn() const { return bFlashlightOn; }
+	
+	// ---------- 대화 시점 ----------
+
+	// NPC와 대화를 시작할 때 시점을 그 NPC 얼굴 쪽으로 천천히 돌려서 고정 (NPC 대화 시작 시 호출)
+	UFUNCTION(BlueprintCallable, Category = "LCO|Conversation")
+	void BeginConversationFocus(AActor* Target);
+
+	// 대화가 끝나면 시점 고정 해제
+	UFUNCTION(BlueprintCallable, Category = "LCO|Conversation")
+	void EndConversationFocus();
+	
+	// 손전등 또는 UV 라이트를 들고 있는지 (손 모양 / 팔 자세 표시용)
+	UFUNCTION(BlueprintPure, Category = "LCO|Flashlight")
+	bool IsHoldingLight() const { return bFlashlightOn || bUVLightOn; }
 
 	// 손전등이 켜지거나 꺼질 때 (UI, 사운드 등)
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Flashlight")
@@ -317,6 +331,10 @@ protected:
 	UFUNCTION()
 	void HandleCameraEquipChanged(bool bEquipped);
 	
+	// 퀵슬롯에서 UV 라이트를 켜거나 끌 때 (손 모양 표시)
+	UFUNCTION()
+	void HandleUVLightChanged(bool bOn);
+	
 	
 	// 촬영 성공 / 실패 시 (좌클릭) 찍는 몽타주 재생
 	UFUNCTION()
@@ -341,29 +359,23 @@ protected:
 	void UpdateFlashlightVisuals();
 	// 카메라를 들고 1인칭이면(뷰파인더) 내 화면에서 팔 / 손 카메라 숨김
 	void UpdateViewfinderVisuals();
-
+	// 대화 중이면 시점을 대화 상대 얼굴 쪽으로 부드럽게 돌림
+	void UpdateConversationFocus(float DeltaSeconds);
 	// 달리기 조건(Shift, 이동 중, 지면, 스태미나)을 확인해서 상태 갱신
 	void UpdateSprint();
 	void SetSprinting(bool bNewSprinting);
-
 	// 현재 상태(걷기 / 달리기 + 이동속도 버프)에 맞게 MaxWalkSpeed 갱신
 	void UpdateMoveSpeed();
-
 	void EndMoveSpeedBuff();
 	void EndMaxStaminaBuff();
-
 	// 달리기 상태에 맞춰 시야각을 부드럽게 변경
 	void UpdateCameraFOV(float DeltaSeconds);
-	
 	// 1인칭 걷기 / 달리기 / 웅크리기 시 카메라 흔들림
 	void UpdateHeadBob(float DeltaSeconds);
-	
 	// 켜져 있을 때 손전등을 바라보는 방향으로 회전
 	void UpdateFlashlight();
-	
 	// 버프 활성 여부에 맞춰 화면 효과 진행도를 보간하고 포스트 프로세스에 반영
 	void UpdateBuffEffects(float DeltaSeconds);
-
 	// BP에서 지정한 머티리얼로 MID를 만들어 카메라 포스트 프로세스에 등록 (머티리얼이 없으면 nullptr)
 	UMaterialInstanceDynamic* CreateBuffPostProcess(UMaterialInterface* Material);
 	void ApplyBuffPostProcess(UMaterialInstanceDynamic* MID, float Intensity);
@@ -534,6 +546,21 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Viewfinder", meta = (ClampMin = "0.0"))
 	float ViewfinderFadeTime = 0.2f;
 	
+	// 대화 시 시점이 NPC 쪽으로 돌아가는 속도 (작을수록 천천히)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Conversation")
+	float ConversationTurnSpeed = 5.f;
+
+	// 대화 시 바라볼 NPC 뼈 (머리). 없으면 NPC 위치 + ConversationFocusHeight
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Conversation")
+	FName ConversationFocusBone = TEXT("head");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Conversation")
+	float ConversationFocusHeight = 60.f;
+
+	// 대화 중 살짝 줄어드는 시야각 (대화에 집중되는 느낌, 0이면 줌 없음)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Conversation")
+	float ConversationZoomFOV = 10.f;
+	
 	// 1인칭 팔을 그릴 때 쓰는 시야각 (카메라 FOV와 별개라 줌인해도 팔은 그대로)
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FirstPerson")
     float FirstPersonArmsFOV = 70.f;
@@ -687,12 +714,19 @@ private:
 	float CurrentBobAmplitude = 0.f;
 	
 	bool bCameraEquipped = false;
+	bool bUVLightOn = false;
 	
 	// 뷰파인더 줌 진행도 0 ~ 1
 	float ViewfinderAlpha = 0.f;
 
 	// 카메라를 들기 전 시점 (내리면 이 시점으로 복귀)
 	ELCOViewMode ViewModeBeforeCamera = ELCOViewMode::FirstPerson;
+	
+	// 지금 대화 중인 상대 (없으면 대화 중 아님)
+	TWeakObjectPtr<AActor> ConversationTarget;
+
+	// 대화 줌 진행도 0 ~ 1
+	float ConversationAlpha = 0.f;
 	
 	// 현재 카메라 높이 (부드럽게 바뀌는 중간값)
 	float CurrentCameraHeight = 0.f;

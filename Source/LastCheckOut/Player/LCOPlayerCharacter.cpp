@@ -359,7 +359,7 @@ void ALCOPlayerCharacter::UpdateCameraFOV(float DeltaSeconds)
 	const float SenseZoomAlpha = FMath::InterpEaseInOut(0.f, 1.f, GetSenseHoldProgress(), 2.f);
 	TargetFOV -= SenseZoomFOV * SenseZoomAlpha;
 	// 카메라 뷰파인더: 들면 서서히 줌인 (카메라 안으로 들어가는 느낌), 내리면 원래대로
-	ViewfinderAlpha = FMath::FInterpTo(ViewfinderAlpha, bCameraEquipped ? 1.f : 0.f, DeltaSeconds, ViewfinderZoomSpeed);
+	ViewfinderAlpha = FMath::FInterpTo(ViewfinderAlpha, bInViewfinder ? 1.f : 0.f, DeltaSeconds, ViewfinderZoomSpeed);
 	TargetFOV -= ViewfinderZoomFOV * ViewfinderAlpha;
 	
 	// 대화 중 살짝 줌인, 끝나면 원래대로
@@ -622,14 +622,19 @@ void ALCOPlayerCharacter::HandleCameraEquipChanged(bool bEquipped)
 		SetViewMode(ViewModeBeforeCamera);
 	}
 
-	// 카메라를 들 때 화면이 어두웠다 밝아지며 뷰파인더로 들어가는 느낌
-	if (bEquipped && ViewfinderFadeTime > 0.f)
+	// 먼저 카메라를 눈앞으로 드는 동작을 보여주고, 다 들면 뷰파인더로 들어감. 내릴 때는 바로 나옴
+	GetWorldTimerManager().ClearTimer(ViewfinderTimerHandle);
+	if (bEquipped && CameraRaiseTime > 0.f)
 	{
-		const APlayerController* PC = Cast<APlayerController>(GetController());
-		if (PC && PC->PlayerCameraManager)
-		{
-			PC->PlayerCameraManager->StartCameraFade(1.f, 0.f, ViewfinderFadeTime, FLinearColor::Black);
-		}
+		GetWorldTimerManager().SetTimer(ViewfinderTimerHandle, this, &ALCOPlayerCharacter::EnterViewfinder, CameraRaiseTime, false);
+	}
+	else if (bEquipped)
+	{
+		EnterViewfinder();
+	}
+	else
+	{
+		SetInViewfinder(false);
 	}
 
 	UpdateViewfinderVisuals();
@@ -1019,7 +1024,7 @@ void ALCOPlayerCharacter::UpdateFlashlightVisuals()
 void ALCOPlayerCharacter::UpdateViewfinderVisuals()
 {
 	// 1인칭으로 카메라를 들고 있으면 뷰파인더 화면이라 내 팔 / 손 카메라를 내 화면에서 숨김
-	const bool bInViewfinder = bCameraEquipped && ViewMode == ELCOViewMode::FirstPerson;
+	const bool bHideArms = bInViewfinder && ViewMode == ELCOViewMode::FirstPerson;
 
 	HeldCameraMesh->SetOwnerNoSee(bInViewfinder);
 
@@ -1070,4 +1075,37 @@ void ALCOPlayerCharacter::UpdateConversationFocus(float DeltaSeconds)
 	const FRotator DesiredRotation = (FocusLocation - Camera->GetComponentLocation()).Rotation();
 	const FRotator NewRotation = FMath::RInterpTo(Controller->GetControlRotation(), DesiredRotation, DeltaSeconds, ConversationTurnSpeed);
 	Controller->SetControlRotation(NewRotation);
+}
+
+void ALCOPlayerCharacter::EnterViewfinder()
+{
+	// 타이머 도중 카메라를 내렸으면 무시
+	if (!bCameraEquipped)
+	{
+		return;
+	}
+
+	// 팔이 사라지는 순간을 짧은 암전으로 가림 (카메라에 눈을 대는 느낌)
+	if (ViewfinderFadeTime > 0.f)
+	{
+		const APlayerController* PC = Cast<APlayerController>(GetController());
+		if (PC && PC->PlayerCameraManager)
+		{
+			PC->PlayerCameraManager->StartCameraFade(1.f, 0.f, ViewfinderFadeTime, FLinearColor::Black);
+		}
+	}
+
+	SetInViewfinder(true);
+}
+
+void ALCOPlayerCharacter::SetInViewfinder(bool bNewInViewfinder)
+{
+	if (bInViewfinder == bNewInViewfinder)
+	{
+		return;
+	}
+
+	bInViewfinder = bNewInViewfinder;
+	UpdateViewfinderVisuals();
+	OnViewfinderChanged.Broadcast(bInViewfinder);
 }

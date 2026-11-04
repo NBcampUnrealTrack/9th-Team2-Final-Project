@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Sound/SoundBase.h"
+#include "Components/AudioComponent.h"
 #include "TimerManager.h"
 
 namespace
@@ -87,26 +88,116 @@ void ALCOTaxiIntroDirector::ScheduleIntroDialogue()
 
 void ALCOTaxiIntroDirector::BeginIntroSequence()
 {
+	// 검은 화면에서 위치 자막 먼저 (한 번만)
+	if (bStartScreenBlack && !bLocationCaptionShown && LocationCaptionClass && LocationCaptionLines.Num() > 0)
+	{
+		bLocationCaptionShown = true;
+
+		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+		LocationCaptionWidget = PlayerController ? CreateWidget<ULCOLocationCaptionWidget>(PlayerController, LocationCaptionClass) : nullptr;
+		if (LocationCaptionWidget)
+		{
+			LocationCaptionWidget->AddToViewport(50);
+			LocationCaptionWidget->OnCaptionFinished.AddUniqueDynamic(this, &ThisClass::HandleLocationCaptionFinished);
+			LocationCaptionWidget->StartCaption(LocationCaptionLines, ClockStartHour * 3600 + ClockStartMinute * 60 + ClockStartSecond);
+			return;
+		}
+
+		UE_LOG(LogTemp, Warning, TEXT("[LCOTaxiIntroDirector] Location caption widget creation failed -> skip"));
+	}
+
+	ContinueIntroSequence();
+}
+
+void ALCOTaxiIntroDirector::HandleLocationCaptionFinished()
+{
+	if (LocationCaptionWidget)
+	{
+		LocationCaptionWidget->OnCaptionFinished.RemoveDynamic(this, &ThisClass::HandleLocationCaptionFinished);
+		LocationCaptionWidget->RemoveFromParent();
+		LocationCaptionWidget = nullptr;
+	}
+
+	ContinueIntroSequence();
+}
+
+void ALCOTaxiIntroDirector::ContinueIntroSequence()
+{
 	if (!bStartScreenBlack)
 	{
 		StartIntroDialogue();
 		return;
 	}
 
-	// 페이드 인이 끝난 뒤 대화 시작
-	if (!bArrivalFadePlayed)
+	// 대사를 넘길 때 페이드 인: 검은 화면 그대로 대화 시작
+	if (!FadeInNodeID.IsNone())
 	{
-		bArrivalFadePlayed = true;
-		PlayTaxiArrivalFadeIn();
+		StartIntroDialogue();
+		return;
 	}
+
+	// 페이드 인이 끝난 뒤 대화 시작
+	TriggerArrivalFadeIn();
 
 	if (ArrivalFadeInDuration > 0.f)
 	{
-		GetWorldTimerManager().SetTimer(ArrivalFadeTimerHandle, this, &ThisClass::StartIntroDialogue, ArrivalFadeInDuration, false);
+		GetWorldTimerManager().SetTimer(ArrivalFadeTimerHandle, this, &ThisClass::StartIntroDialogue, 
+			ArrivalFadeInDuration, false);
 	}
 	else
 	{
 		StartIntroDialogue();
+	}
+}
+
+void ALCOTaxiIntroDirector::TriggerArrivalFadeIn()
+{
+	if (bArrivalFadePlayed)
+	{
+		return;
+	}
+	bArrivalFadePlayed = true;
+
+	PlayTaxiArrivalFadeIn();
+
+	// 페이드 인이 끝나면 브금
+	if (ArrivalFadeInDuration > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(ArrivalBGMTimerHandle, this, &ThisClass::PlayArrivalBGM, 
+			ArrivalFadeInDuration, false);
+	}
+	else
+	{
+		PlayArrivalBGM();
+	}
+}
+
+void ALCOTaxiIntroDirector::PlayArrivalBGM_Implementation()
+{
+	if (!ArrivalBGM)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LCOTaxiIntroDirector] PlayArrivalBGM: ArrivalBGM is not set"));
+		return;
+	}
+
+	ArrivalBGMComponent = UGameplayStatics::CreateSound2D(this, ArrivalBGM, ArrivalBGMVolume, 
+		1.f, 0.f, nullptr, false, true);
+	
+	if (!ArrivalBGMComponent)
+	{
+		return;
+	}
+
+	// Log Test
+	UE_LOG(LogTemp, Warning, TEXT("[LCOTaxiIntroDirector] PlayArrivalBGM: %s"), *ArrivalBGM->GetName());
+
+	if (ArrivalBGMFadeInTime > 0.f)
+	{
+		ArrivalBGMComponent->FadeIn(ArrivalBGMFadeInTime, 1.f);
+	}
+	else
+	{
+		ArrivalBGMComponent->Play();
 	}
 }
 
@@ -118,20 +209,31 @@ void ALCOTaxiIntroDirector::PlayTaxiArrivalFadeIn_Implementation()
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
 	if (PlayerController && PlayerController->PlayerCameraManager)
 	{
-		PlayerController->PlayerCameraManager->StartCameraFade(1.f, 0.f, ArrivalFadeInDuration, FLinearColor::Black, false, false);
+		PlayerController->PlayerCameraManager->StartCameraFade(1.f, 0.f, 
+			ArrivalFadeInDuration, FLinearColor::Black, false, false);
 	}
 }
 
 void ALCOTaxiIntroDirector::HandleDialogueNodeConfirmed(FName ConfirmedDialogueID, FName NodeID)
 {
-	// 다른 NPC 대화나 다른 노드는 무시, 한 번만
-	if (bDepartureSoundPlayed || ConfirmedDialogueID != DialogueID || NodeID != DepartureSoundNodeID)
+	// 다른 NPC 대화는 무시
+	if (ConfirmedDialogueID != DialogueID)
 	{
 		return;
 	}
 
-	bDepartureSoundPlayed = true;
-	PlayTaxiDepartureSound();
+	// 검은 화면 대사를 넘길 때 페이드 인
+	if (bStartScreenBlack && !FadeInNodeID.IsNone() && NodeID == FadeInNodeID)
+	{
+		TriggerArrivalFadeIn();
+	}
+
+	// 택시 출발 사운드 (한 번만)
+	if (!bDepartureSoundPlayed && NodeID == DepartureSoundNodeID)
+	{
+		bDepartureSoundPlayed = true;
+		PlayTaxiDepartureSound();
+	}
 }
 
 void ALCOTaxiIntroDirector::PlayTaxiDepartureSound_Implementation()
@@ -175,6 +277,14 @@ void ALCOTaxiIntroDirector::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(StartDialogueTimerHandle);
 	GetWorldTimerManager().ClearTimer(ArrivalFadeTimerHandle);
+	GetWorldTimerManager().ClearTimer(ArrivalBGMTimerHandle);
+
+	if (LocationCaptionWidget)
+	{
+		LocationCaptionWidget->OnCaptionFinished.RemoveDynamic(this, &ThisClass::HandleLocationCaptionFinished);
+		LocationCaptionWidget->RemoveFromParent();
+		LocationCaptionWidget = nullptr;
+	}
 
 	if (ULCOLoadingSubsystem* LoadingSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<ULCOLoadingSubsystem>() : nullptr)
 	{

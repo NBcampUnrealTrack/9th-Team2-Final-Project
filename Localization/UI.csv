@@ -137,3 +137,7 @@ KEYBIND_SWAPPED,{0} 키와 교체되었습니다,Swapped with {0},{0}とキー�
 KEYBIND_BLOCKED,사용할 수 없는 키입니다,This key cannot be used,このキーは使用できません,无法使用此按键,無法使用此按鍵,No se puede usar esta tecla,Cette touche ne peut pas être utilisée,Diese Taste kann nicht verwendet werden,Esta tecla não pode ser usada,Tätä näppäintä ei voi käyttää
 KEYBIND_FAILED,키를 변경하지 못했습니다,Failed to change key,キーを変更できませんでした,无法更改按键,無法變更按鍵,No se pudo cambiar la tecla,Impossible de changer la touche,Taste konnte nicht geändert werden,Não foi possível alterar a tecla,Näppäintä ei voitu vaihtaa
 SETTINGS_RESET_KEYS,키 설정 초기화,Reset Key Bindings,キー設定をリセット,重置按键设置,重設按鍵設定,Restablecer controles,Réinitialiser les touches,Tastenbelegung zurücksetzen,Redefinir teclas,Palauta näppäimet
+CAPTION_ARRIVAL_TITLE,"""호스티아 호텔""",,,,,,,,,
+CAPTION_ARRIVAL_DATE,1993년 11월 ○일,,,,,,,,,
+CAPTION_ARRIVAL_PERSON,"에릭 리드, 로열 패스넷 생명보험 조사관",,,,,,,,,
+CAPTION_ARRIVAL_PLACE,호스티아 호텔 정문,,,,,,,,,

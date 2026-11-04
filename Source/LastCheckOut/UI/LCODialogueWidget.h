@@ -13,6 +13,7 @@ class USoundBase;
 class UTextBlock;
 class UTexture2D;
 class ULCODialogueChoiceWidget;
+class ULCOPhoneOverlayWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnLCODialogueWidgetClosed, ALCONPCBase*, NPC, FName, DialogueID, bool, bCompletedNormally, bool, bCompletedFirstConversation);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCODialogueWidgetNodeEvent, FName, DialogueID, FName, NodeID);
@@ -93,6 +94,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
 	bool OpenDialogueByID(FName DialogueID, FName StartNodeID, AActor* InInteractor, bool bPlayFirstConversation = false);
 
+	// Shared NPC replacement; no NPC CSV or first-conversation progress is used.
+	bool OpenNotebookConfiscatedDialogue(ALCONPCBase* InNPC, AActor* InInteractor);
+
 	UFUNCTION(BlueprintPure, Category = "LCO|Dialogue")
 	bool IsDialogueActive() const { return !ActiveDialogueID.IsNone(); }
 
@@ -116,6 +120,23 @@ public:
 	FOnLCODialogueWidgetNodeEvent OnDialogueNodeConfirmed;
 
 protected:
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual FReply NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply NativeOnPreviewMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Phone", meta = (ClampMin = "0.01"))
+	float PhoneReportFadeSeconds = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Phone", meta = (ClampMin = "0.01"))
+	float TutorialHoldSeconds = 0.7f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Dialogue", meta = (ClampMin = "0.01"))
+	float FastForwardInterval = 0.05f;
+
+	// Optional future artwork: Camera, Sense, Notebook. Missing images use a text card.
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Phone")
+	TMap<FName, TObjectPtr<UTexture2D>> PhoneTutorialImages;
+
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -183,6 +204,33 @@ protected:
 	TObjectPtr<UTextBlock> Text_ContinueHint;
 
 private:
+	void StopFastForward();
+	void TickFastForward(float DeltaSeconds);
+	bool bLeftControlHeld = false;
+	bool bRightControlHeld = false;
+	float FastForwardElapsed = 0.f;
+
+	UFUNCTION()
+	void HandlePhoneNodeEntered(FName DialogueID, FName NodeID);
+	UFUNCTION()
+	void HandlePhoneNodeConfirmed(FName DialogueID, FName NodeID);
+	bool IsPhoneProgressBlocked() const;
+	void ResetPhonePresentation();
+	void ReleaseTutorialInput();
+	UPROPERTY(Transient)
+	TObjectPtr<ULCOPhoneOverlayWidget> PhoneOverlay;
+	bool bTutorialOpen = false;
+	bool bPhoneFDown = false;
+	bool bTutorialAwaitRelease = false;
+	bool bTutorialHolding = false;
+	bool bTutorialNeedsFreshPress = false;
+	bool bTutorialAdvancePending = false;
+	float TutorialHeldSeconds = 0.f;
+	bool bPhoneReport = false;
+	bool bPhoneFadeActive = false;
+	bool bPhoneFadeIn = false;
+	float PhoneFadeElapsed = 0.f;
+
 	UFUNCTION()
 	void HandleLanguageChanged(FName NewLanguage);
 

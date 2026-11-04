@@ -10,6 +10,7 @@ class UButton;
 class UBorder;
 class UTextBlock;
 class ULCOSaveManager;
+class ULCODialogueSubsystem;
 
 // OnMenuRequestedDelegate의 Phone을 전달한다. 위젯 생성은 BP에서 담당한다.
 UCLASS(Abstract)
@@ -43,7 +44,7 @@ public:
 	bool IsSaveFeedbackActive() const { return bWaitingForSaveResult || bShowingSaveResult; }
 
 	// Lock pause from the initial darkening through the final return to gameplay.
-	bool IsPauseBlockedByReport() const { return bMenuActive && bBlockPauseForReport; }
+	bool IsPauseBlockedByReport() const { return bMenuActive && (bWaitingForReport || IsSaveFeedbackActive()); }
 
 	UFUNCTION(BlueprintPure, Category = "LCO|PhoneMenu")
 	ALCOPhone* GetPhone() const { return Phone.Get(); }
@@ -90,15 +91,19 @@ private:
 	UFUNCTION()
 	void HandleCallClicked();
 
-	void BeginReportSave(bool bReuseSave, TOptional<bool> ExistingSaveResult);
+	void BeginReportSave();
+	UFUNCTION()
+	void HandleReportClicked();
+	UFUNCTION()
+	void HandleReportFinished(FName DialogueID, bool bCompletedNormally);
+	TWeakObjectPtr<ULCODialogueSubsystem> ReportDialogueSubsystem;
+	bool bWaitingForReport = false;
 	bool OpenPhoneMenuInternal(ALCOPhone* InPhone, bool bForReport);
 	void ClearCallTracking();
 	void HandleCompletedCall();
 	void RefreshMenuTexts();
 	UFUNCTION()
 	void HandleLanguageChanged(FName Language);
-	UFUNCTION()
-	void HandleCallStarted(ALCOPhone* InPhone, AActor* Caller, int32 EntryIndex, FName DialogueID, FName StartNodeID);
 	UFUNCTION()
 	void HandleCallFinished(ALCOPhone* InPhone, AActor* Caller, bool bCompletedNormally);
 	UFUNCTION()
@@ -110,10 +115,7 @@ private:
 	void RestoreInput();
 	void NotifyPromptVisibility(bool bVisible);
 	void FinishSaveFeedback();
-	void StartReportFade(bool bFadeOut);
-	void UpdateReportFade();
 	void ResetSaveFeedback();
-	void HandleMinimumSaveWaitElapsed();
 	void TryShowSaveResult();
 	void AdvanceSavePendingAnimation();
 	void RefreshSavePendingText();
@@ -126,26 +128,15 @@ private:
 
 	bool bMenuActive = false;
 	bool bWaitingForCall = false;
-	bool bWorkSeniorCall = false;
 	bool bReportQueued = false;
-	bool bReuseCallSave = false;
-	TOptional<bool> CompletedCallSaveResult;
 	FTimerHandle CompletedCallTimerHandle;
 	bool bPreviousShowMouseCursor = false;
 	bool bMoveInputBlockedByThisWidget = false;
 	bool bLookInputBlockedByThisWidget = false;
 	bool bWaitingForSaveResult = false;
 	bool bShowingSaveResult = false;
-	bool bMinimumSaveWaitElapsed = false;
 	bool bHasReceivedSaveResult = false;
 	bool bPendingSaveSuccess = false;
-	bool bShowingRestMessage = false;
-	bool bReportFadeActive = false;
-	bool bReportFadingOut = false;
-	bool bBlockPauseForReport = false;
-	float ReportFadeStartTime = 0.f;
-	FTimerHandle ReportFadeTimerHandle;
-	FTimerHandle MinimumSaveWaitTimerHandle;
 	FTimerHandle SavePendingAnimationTimerHandle;
 	int32 SavePendingAnimationIndex = 0;
 	FText OriginalDescription;

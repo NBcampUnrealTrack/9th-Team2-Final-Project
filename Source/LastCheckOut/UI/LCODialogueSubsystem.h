@@ -53,10 +53,14 @@ public:
 	virtual void PlayerControllerChanged(APlayerController* NewPlayerController) override;
 
 	// NPC 없이 대화 시작 (전화기 등). DialogueFlow_<DialogueID>.csv를 StartNodeID부터 재생
-	// WorkSenior는 기존 첫 대화 완료 기록으로 FIRST_001 / SECOND_001을 선택한다.
+	// WorkSenior는 첫 대화 완료 기록으로 FIRST_001 / SECOND_001을 선택한다.
+	// REPORT_001 명시 요청은 첫 통화 완료 후 별도로 재생하며 완료 기록을 변경하지 않는다.
 	// 그 외 NPC 없는 대화는 진행 기록을 사용하지 않는다. 이미 대화 중이거나 열기에 실패하면 false
 	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
 	bool StartDialogue(FName DialogueID, FName StartNodeID, AActor* Interactor);
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Dialogue")
+	bool HasCompletedWorkSeniorCall() const { return CompletedFirstConversationNPCIds.Contains(FName(TEXT("WorkSenior"))); }
 
 	TArray<FName> GetCompletedFirstConversations() const
 	{

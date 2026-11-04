@@ -194,7 +194,8 @@ void ALCOPhone::FinishCall(bool bCompletedNormally)
 	{
 		ApplyCallResult(CallEntries[EntryIndex]);
 
-		if (bSaveOnCallFinished)
+		// WorkSenior saves only through the explicit company-report action.
+		if (bSaveOnCallFinished && CallEntries[EntryIndex].DialogueID != FName(TEXT("WorkSenior")))
 		{
 			RequestSave();
 		}

@@ -144,6 +144,16 @@ void ULCODialogueSubsystem::HandleNPCConversationEnded()
 	ActiveNPC.Reset();
 }
 
+void ULCODialogueSubsystem::HandleDialogueNodeEntered(FName DialogueID, FName NodeID)
+{
+	OnDialogueNodeEntered.Broadcast(DialogueID, NodeID);
+}
+
+void ULCODialogueSubsystem::HandleDialogueNodeConfirmed(FName DialogueID, FName NodeID)
+{
+	OnDialogueNodeConfirmed.Broadcast(DialogueID, NodeID);
+}
+
 void ULCODialogueSubsystem::HandleDialogueClosed(ALCONPCBase* NPC, FName DialogueID, bool bCompletedNormally, bool bCompletedFirstConversation)
 {
 	CommitDialogueProgressTransaction(DialogueID, bCompletedNormally, bCompletedFirstConversation);
@@ -225,6 +235,8 @@ void ULCODialogueSubsystem::TryCreateDialogue(APlayerController* PlayerControlle
 				DialogueWidget = ExistingDialogueWidget;
 				DialogueWidget->OnDialogueWidgetClosed.RemoveDynamic(this, &ThisClass::HandleDialogueClosed);
 				DialogueWidget->OnDialogueWidgetClosed.AddDynamic(this, &ThisClass::HandleDialogueClosed);
+				DialogueWidget->OnDialogueNodeEntered.AddUniqueDynamic(this, &ThisClass::HandleDialogueNodeEntered);
+				DialogueWidget->OnDialogueNodeConfirmed.AddUniqueDynamic(this, &ThisClass::HandleDialogueNodeConfirmed);
 				return;
 			}
 		}
@@ -235,6 +247,8 @@ void ULCODialogueSubsystem::TryCreateDialogue(APlayerController* PlayerControlle
 	{
 		DialogueWidget->OnDialogueWidgetClosed.RemoveDynamic(this, &ThisClass::HandleDialogueClosed);
 		DialogueWidget->OnDialogueWidgetClosed.AddDynamic(this, &ThisClass::HandleDialogueClosed);
+		DialogueWidget->OnDialogueNodeEntered.AddUniqueDynamic(this, &ThisClass::HandleDialogueNodeEntered);
+		DialogueWidget->OnDialogueNodeConfirmed.AddUniqueDynamic(this, &ThisClass::HandleDialogueNodeConfirmed);
 	}
 }
 
@@ -257,6 +271,8 @@ void ULCODialogueSubsystem::CleanupDialogue()
 
 	DialogueWidget->OnDialogueWidgetClosed.RemoveDynamic(this, &ThisClass::HandleDialogueClosed);
 	DialogueWidget->UnbindFromOptionsInput();
+	DialogueWidget->OnDialogueNodeEntered.RemoveDynamic(this, &ThisClass::HandleDialogueNodeEntered);
+	DialogueWidget->OnDialogueNodeConfirmed.RemoveDynamic(this, &ThisClass::HandleDialogueNodeConfirmed);
 	if (DialogueWidget->IsInViewport())
 	{
 		DialogueWidget->CloseDialogue(true);

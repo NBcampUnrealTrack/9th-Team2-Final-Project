@@ -15,6 +15,7 @@ class UTexture2D;
 class ULCODialogueChoiceWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnLCODialogueWidgetClosed, ALCONPCBase*, NPC, FName, DialogueID, bool, bCompletedNormally, bool, bCompletedFirstConversation);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCODialogueWidgetNodeEvent, FName, DialogueID, FName, NodeID);
 
 USTRUCT(BlueprintType)
 struct LASTCHECKOUT_API FLCODialogueVoiceSettings
@@ -106,6 +107,14 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
 	FOnLCODialogueWidgetClosed OnDialogueWidgetClosed;
 
+	// Once per actual node entry, before presenting the node.
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
+	FOnLCODialogueWidgetNodeEvent OnDialogueNodeEntered;
+
+	// Player acknowledgement only: not typewriter completion, refresh, or automatic advance.
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
+	FOnLCODialogueWidgetNodeEvent OnDialogueNodeConfirmed;
+
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
@@ -186,7 +195,8 @@ private:
 	bool LoadFlowForDialogueID(FName DialogueID);
 	void StartNode(FName NodeID);
 	void ShowCurrentLine();
-	void AdvanceDialogue();
+	void AdvanceDialogue(bool bPlayerConfirmed = true);
+	bool ConfirmActiveNode();
 	void HandleAutoAdvance();
 	void ClearAutoAdvanceTimer();
 	void CompleteActiveConversation();
@@ -242,6 +252,9 @@ private:
 	FName ActiveNodeID = NAME_None;
 
 	UPROPERTY(Transient)
+	FName LastLineSpeakerID = NAME_None;
+
+	UPROPERTY(Transient)
 	FString FullTypewriterString;
 
 	UPROPERTY(Transient)
@@ -290,4 +303,7 @@ private:
 	bool bActiveDialogueCompletedNormally = false;
 	bool bActiveDialogueIsPostT15 = false;
 	bool bActiveDialogueConfirms407 = false;
+	bool bActiveNodeConfirmed = false;
+	// Also invalidates in-flight event callbacks when they close or replace the dialogue.
+	uint64 NodeActivationSerial = 0;
 };

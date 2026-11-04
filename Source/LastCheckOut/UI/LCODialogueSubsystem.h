@@ -15,6 +15,7 @@ class ULCOStorySubsystem;
 
 // 대화창이 닫힐 때 (NPC / NPC 없는 대화 공통). bCompletedNormally: 끝까지 진행했는지 (ESC 등 중단이면 false)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCODialogueFinished, FName, DialogueID, bool, bCompletedNormally);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCODialogueNodeEvent, FName, DialogueID, FName, NodeID);
 
 USTRUCT()
 struct FLCODialogueProgressTransaction
@@ -119,6 +120,12 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
 	FOnLCODialogueFinished OnDialogueFinished;
 
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
+	FOnLCODialogueNodeEvent OnDialogueNodeEntered;
+
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
+	FOnLCODialogueNodeEvent OnDialogueNodeConfirmed;
+
 private:
 	ULCOStorySubsystem* GetStorySubsystem() const;
 
@@ -139,6 +146,12 @@ private:
 
 	UFUNCTION()
 	void HandleDialogueClosed(ALCONPCBase* NPC, FName DialogueID, bool bCompletedNormally, bool bCompletedFirstConversation);
+
+	UFUNCTION()
+	void HandleDialogueNodeEntered(FName DialogueID, FName NodeID);
+
+	UFUNCTION()
+	void HandleDialogueNodeConfirmed(FName DialogueID, FName NodeID);
 
 	void HandleWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources);
 	void HandlePostLoadMapWithWorld(UWorld* LoadedWorld);

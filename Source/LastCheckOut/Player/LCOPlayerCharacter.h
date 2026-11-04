@@ -34,6 +34,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOCrouchStateChanged, bool, bIsC
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCOSenseChargesChanged, int32, CurrentCharges, int32, MaxCharges);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOSenseUsed, bool, bSuccess);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOFlashlightToggled, bool, bIsOn);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLCOViewfinderChanged, bool, bInViewfinder);
 
 UENUM(BlueprintType)
 enum class ELCOViewMode : uint8
@@ -60,6 +61,13 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category = "LCO|Camera")
 	bool IsCameraEquipped() const { return bCameraEquipped; }
+	// 카메라를 다 들고 뷰파인더 화면에 들어가 있는지 (드는 중에는 false)
+	UFUNCTION(BlueprintPure, Category = "LCO|Camera")
+	bool IsInViewfinder() const { return bInViewfinder; }
+
+	// 뷰파인더에 들어가거나 나올 때 (카메라 UI 표시용)
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Camera")
+	FOnLCOViewfinderChanged OnViewfinderChanged;
 	// ---------- 시점 ----------
 
 	// 시점 변경 (컷신, 특정 구역에서 강제 전환할 때도 사용)
@@ -359,6 +367,10 @@ protected:
 	void UpdateFlashlightVisuals();
 	// 카메라를 들고 1인칭이면(뷰파인더) 내 화면에서 팔 / 손 카메라 숨김
 	void UpdateViewfinderVisuals();
+	// 카메라를 다 들었을 때 뷰파인더로 들어감 (타이머로 호출)
+	void EnterViewfinder();
+	// 뷰파인더 상태 변경 (팔 숨김 / 이벤트 알림)
+	void SetInViewfinder(bool bNewInViewfinder);
 	// 대화 중이면 시점을 대화 상대 얼굴 쪽으로 부드럽게 돌림
 	void UpdateConversationFocus(float DeltaSeconds);
 	// 달리기 조건(Shift, 이동 중, 지면, 스태미나)을 확인해서 상태 갱신
@@ -546,6 +558,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Viewfinder", meta = (ClampMin = "0.0"))
 	float ViewfinderFadeTime = 0.2f;
 	
+	// 카메라를 눈앞으로 드는 동작을 보여주는 시간 (이후 뷰파인더로 들어감, 0이면 바로 들어감)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Viewfinder", meta = (ClampMin = "0.0"))
+	float CameraRaiseTime = 0.35f;
+	
 	// 대화 시 시점이 NPC 쪽으로 돌아가는 속도 (작을수록 천천히)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Conversation")
 	float ConversationTurnSpeed = 5.f;
@@ -718,6 +734,9 @@ private:
 	
 	// 뷰파인더 줌 진행도 0 ~ 1
 	float ViewfinderAlpha = 0.f;
+	// 뷰파인더 화면에 들어가 있는지 (카메라를 다 든 뒤 true)
+	bool bInViewfinder = false;
+	FTimerHandle ViewfinderTimerHandle;
 
 	// 카메라를 들기 전 시점 (내리면 이 시점으로 복귀)
 	ELCOViewMode ViewModeBeforeCamera = ELCOViewMode::FirstPerson;

@@ -71,6 +71,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "LCO|TaxiIntro")
 	bool bLockPlayerLook = false;
 
+	// 인트로를 본 기록 (상태 플래그, 세이브에 저장), 있으면 연출 전체를 건너뜀, 비우면 매번 실행
+	UPROPERTY(EditAnywhere, Category = "LCO|TaxiIntro")
+	FName PlayedStateFlag;
+
 	// ---------- 호텔 도착 ----------
 
 	// 맵 시작부터 검은 화면 유지 → StartDelay 뒤 페이드 인 → 끝나면 대화 시작

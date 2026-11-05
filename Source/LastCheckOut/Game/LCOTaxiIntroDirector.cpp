@@ -2,6 +2,8 @@
 #include "Game/LCOGameMode.h"
 #include "UI/LCODialogueSubsystem.h"
 #include "UI/LCOLoadingSubsystem.h"
+#include "QuickSlot/LCOQuickSlotComponent.h"
+#include "Story/LCOStorySubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerController.h"
@@ -19,6 +21,16 @@ namespace
 		ULocalPlayer* LocalPlayer = PlayerController ? PlayerController->GetLocalPlayer() : nullptr;
 		return LocalPlayer ? LocalPlayer->GetSubsystem<ULCODialogueSubsystem>() : nullptr;
 	}
+
+	// 인트로 동안 퀵슬롯 HUD 숨김
+	void SetQuickSlotHUDHidden(const UObject* WorldContextObject, bool bHidden)
+	{
+		APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(WorldContextObject, 0);
+		if (ULCOQuickSlotComponent* QuickSlot = PlayerPawn ? PlayerPawn->FindComponentByClass<ULCOQuickSlotComponent>() : nullptr)
+		{
+			QuickSlot->SetHUDHiddenByCutscene(bHidden);
+		}
+	}
 }
 
 ALCOTaxiIntroDirector::ALCOTaxiIntroDirector()
@@ -31,6 +43,17 @@ ALCOTaxiIntroDirector::ALCOTaxiIntroDirector()
 void ALCOTaxiIntroDirector::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// 이미 본 인트로면 건너뜀
+	ULCOStorySubsystem* StorySubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<ULCOStorySubsystem>() : nullptr;
+	if (!PlayedStateFlag.IsNone() && StorySubsystem && StorySubsystem->HasStateFlag(PlayedStateFlag))
+	{
+		// Log Test
+		UE_LOG(LogTemp, Warning, TEXT("[LCOTaxiIntroDirector] Already played (%s) -> skip"), *PlayedStateFlag.ToString());
+		return;
+	}
+
+	SetQuickSlotHUDHidden(this, true);
 
 	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0))
 	{
@@ -88,6 +111,9 @@ void ALCOTaxiIntroDirector::ScheduleIntroDialogue()
 
 void ALCOTaxiIntroDirector::BeginIntroSequence()
 {
+	// BeginPlay 때 폰이 아직 없었을 수 있어서 한 번 더
+	SetQuickSlotHUDHidden(this, true);
+
 	// 검은 화면에서 위치 자막 먼저 (한 번만)
 	if (bStartScreenBlack && !bLocationCaptionShown && LocationCaptionClass && LocationCaptionLines.Num() > 0)
 	{
@@ -251,6 +277,8 @@ void ALCOTaxiIntroDirector::PlayTaxiDepartureSound_Implementation()
 
 void ALCOTaxiIntroDirector::UnlockPlayerInput()
 {
+	SetQuickSlotHUDHidden(this, false);
+
 	if (!bInputLocked)
 	{
 		return;
@@ -338,6 +366,18 @@ void ALCOTaxiIntroDirector::HandleDialogueFinished(FName FinishedDialogueID, boo
 	if (ULCODialogueSubsystem* DialogueSubsystem = GetDialogueSubsystem(this))
 	{
 		DialogueSubsystem->OnDialogueFinished.RemoveDynamic(this, &ThisClass::HandleDialogueFinished);
+	}
+
+	// 인트로를 본 기록
+	if (!PlayedStateFlag.IsNone())
+	{
+		if (ULCOStorySubsystem* StorySubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<ULCOStorySubsystem>() : nullptr)
+		{
+			StorySubsystem->SetStateFlag(PlayedStateFlag);
+
+			// Log Test
+			UE_LOG(LogTemp, Warning, TEXT("[LCOTaxiIntroDirector] Intro played flag set: %s"), *PlayedStateFlag.ToString());
+		}
 	}
 
 	// 다음 맵이 없으면 (호텔 도착 맵) 여기서 잠금 해제

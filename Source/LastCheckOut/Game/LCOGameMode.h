@@ -118,6 +118,9 @@ private:
 	
 	void RestorePlayerCarryData();
 
+	// 이어하기: 저장한 위치 / 방향으로 플레이어 이동 (위치 정보가 없으면 PlayerStart 그대로)
+	void RestoreSavedPlayerTransform();
+
 	// 지배인 보고 결과 처리 (1막 클리어 → 2막 시작 맵으로 이동 + 도착 후 자동 저장)
 	UFUNCTION()
 	void HandleReportResolved(ELCOStoryFlag PresentedKeyword, ELCOReportResult Result);

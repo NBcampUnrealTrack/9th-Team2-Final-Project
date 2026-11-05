@@ -9,6 +9,7 @@
 #include "QuickSlot/LCOQuickSlotComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerStart.h"
+#include "GameFramework/Controller.h"
 #include "EngineUtils.h"
 #include "Save/LCOSaveManager.h"
 #include "Save/LCOWorldStateSubsystem.h"
@@ -249,6 +250,9 @@ void ALCOGameMode::HandleMatchHasStarted()
 	// 캐릭터 BeginPlay의 SetViewMode(DefaultViewMode) 이후에 복원해야 시점이 덮어써지지 않음
 	RestorePlayerCarryData();
 
+	// 이어하기면 저장한 자리로 이동 (전화기 저장 → 전화기 앞)
+	RestoreSavedPlayerTransform();
+
 	// 저장된 게임플레이 설정(감도 / Y축 반전)을 새 캐릭터에 적용 (새 게임 / 맵 이동 / 이어하기 공통)
 	if (const ULCOGameSettingsSubsystem* GameSettings = GetGameInstance()->GetSubsystem<ULCOGameSettingsSubsystem>())
 	{
@@ -406,6 +410,40 @@ void ALCOGameMode::RestorePlayerCarryData()
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] RestorePlayerCarryData: Items = %d, MoveSpeedBuff = %.1fs, MaxStaminaBuff = %.1fs, SenseCharges = %d, PermMoveSpeed = %.2f, PermRegen = %.2f"),
 		Data.InventorySlots.Num(), Data.MoveSpeedBuffRemainingTime, Data.MaxStaminaBuffRemainingTime,
 		Data.SenseCharges, Data.PermanentMoveSpeedMultiplier, Data.PermanentRegenMultiplier);
+}
+
+void ALCOGameMode::RestoreSavedPlayerTransform()
+{
+	ULCOSaveManager* SaveManager = GetGameInstance()->GetSubsystem<ULCOSaveManager>();
+	FVector SavedLocation;
+	FRotator SavedRotation;
+	if (!SaveManager || !SaveManager->ConsumePendingPlayerTransform(SavedLocation, SavedRotation))
+	{
+		return;
+	}
+
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!PlayerPawn)
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] RestoreSavedPlayerTransform: Player not found"));
+		return;
+	}
+
+	// 캐릭터는 좌우 방향만, 카메라는 저장할 때 보던 방향 그대로
+	if (!PlayerPawn->TeleportTo(SavedLocation, FRotator(0.f, SavedRotation.Yaw, 0.f)))
+	{
+		// 저장한 자리가 막혀 있으면 (맵 수정 등) PlayerStart 그대로
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] Continue -> Saved location blocked (%s), keep PlayerStart"), *SavedLocation.ToString());
+		return;
+	}
+
+	if (AController* PlayerController = PlayerPawn->GetController())
+	{
+		PlayerController->SetControlRotation(SavedRotation);
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] Continue -> Player moved to saved location (%s)"), *SavedLocation.ToString());
 }
 
 AActor* ALCOGameMode::ChoosePlayerStart_Implementation(AController* Player)

@@ -54,6 +54,17 @@ public:
 	UPROPERTY()
 	FLCOPlayerCarryData PlayerData;
 
+	// [Player] 저장 당시 위치 / 바라보는 방향 (이어하기 시 이 자리에서 시작, 세이브 버전 2부터)
+	UPROPERTY()
+	bool bHasPlayerTransform = false;
+
+	UPROPERTY()
+	FVector PlayerLocation = FVector::ZeroVector;
+
+	// 컨트롤러 회전 (카메라가 보던 방향)
+	UPROPERTY()
+	FRotator PlayerRotation = FRotator::ZeroRotator;
+
 	// 저장 당시 플레이어가 있었는지 (메뉴 등 플레이어 없는 곳에서 저장하면 false)
 	UPROPERTY()
 	bool bHasPlayerData = false;

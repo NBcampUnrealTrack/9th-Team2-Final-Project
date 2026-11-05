@@ -691,7 +691,7 @@ void ULCOQuickSlotComponent::UpdateHUDVisibility()
 	// - 휠이 열려 있을 때 (휠이 대신 보임)
 	// - 인벤토리 / 대화창이 열려 있을 때
 	// 카메라를 든 상태(촬영 모드)에서도 숨김 - 뷰파인더 화면을 가리지 않도록
-	const bool bShouldShow = !bIsSprinting && !bWheelOpen && !bCameraEquipped && !IsHUDBlockingMenuOpen();
+	const bool bShouldShow = !bHUDHiddenByCutscene && !bIsSprinting && !bWheelOpen && !bCameraEquipped && !IsHUDBlockingMenuOpen();
 
 	// 상태가 바뀔 때만 처리 (타이머로 자주 불리므로)
 	if (bShouldShow == bHUDShown)
@@ -710,6 +710,12 @@ void ULCOQuickSlotComponent::UpdateHUDVisibility()
 	{
 		HUDWidget->HideQuickSlot();
 	}
+}
+
+void ULCOQuickSlotComponent::SetHUDHiddenByCutscene(bool bHidden)
+{
+	bHUDHiddenByCutscene = bHidden;
+	UpdateHUDVisibility();
 }
 
 bool ULCOQuickSlotComponent::IsHUDBlockingMenuOpen()

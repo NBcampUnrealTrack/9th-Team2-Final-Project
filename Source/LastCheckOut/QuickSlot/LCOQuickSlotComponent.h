@@ -142,6 +142,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
 	void RefreshWidgets();
 
+	// 연출(인트로, 컷신) 중 HUD 숨김. true면 다른 조건과 상관없이 숨김
+	UFUNCTION(BlueprintCallable, Category = "LCO|QuickSlot")
+	void SetHUDHiddenByCutscene(bool bHidden);
+
 	// ---------- 델리게이트 ----------
 
 	// 슬롯 등록/교체/해제 시
@@ -346,6 +350,9 @@ private:
 
 	// HUD가 지금 보이는 상태인지 (바뀔 때만 Show / Hide 호출해서 BP 애니메이션이 반복 재생되지 않게)
 	bool bHUDShown = false;
+
+	// 연출 중 HUD 숨김
+	bool bHUDHiddenByCutscene = false;
 
 	// 인벤토리 / 대화창 열림 확인용 타이머
 	FTimerHandle HUDCheckTimerHandle;

@@ -11,6 +11,25 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNPCConversationEnded);
 class ALCOActivitySpot;
 class UBehaviorTree;
 
+// 이동 위에 상체만 덧씌우는 동작의 종류. 한 번에 하나만 적용된다.
+// 새 동작은 값을 추가하고 애님 블루프린트에서 해당 값에 에셋만 연결한다. (동작마다 bool을 늘리지 않는다)
+UENUM(BlueprintType)
+enum class ENPCUpperBodyState : uint8
+{
+	None,      // 기본 상체 (이동 모션 그대로)
+	CarryBag,  // 한 손에 가방 들기
+	PushCart,  // 두 손으로 카트 밀기
+	Talk       // 대화 중 안내 동작 (대화가 시작되면 자동으로 적용된다)
+};
+
+// 이동 대신 몸 전체의 기본 자세를 정하는 값. (서기/앉기) 애님 블루프린트는 이 값으로 이동 모션과 자세 모션을 고른다.
+UENUM(BlueprintType)
+enum class ENPCPosture : uint8
+{
+	Standing,  // 서 있기 (이동 모션)
+	Sitting    // 의자에 앉기 (앉은 자세 모션, 이동 불가)
+};
+
 // 호텔 NPC 공용 베이스 (관리인, 직원 등이 상속)
 // 대화 가능한 NPC는 상호작용(F)을 받으면 이동을 멈추고 플레이어를 바라본다
 UCLASS()
@@ -65,8 +84,9 @@ protected:
 public:
 	// 물건(예: 짐 카트)을 NPC 앞에 붙여 함께 움직이게 한다. Offset은 NPC 기준 위치(Z는 발바닥 기준), Yaw는 정면에서 더 돌릴 각도이다.
 	// 붙어 있는 동안 물건의 충돌은 꺼서 NPC나 플레이어가 막히지 않게 한다. 이미 들고 있으면 먼저 놓는다.
+	// Socket을 지정하면(예: hand_r) 메시의 그 소켓/본에 붙고 Offset/Yaw는 그 소켓 기준이다(가방 등 손에 드는 물건).
 	UFUNCTION(BlueprintCallable, Category = "NPC|Prop")
-	void AttachCarriedProp(AActor* Prop, FVector Offset, float Yaw);
+	void AttachCarriedProp(AActor* Prop, FVector Offset, float Yaw, FName Socket = NAME_None);
 
 	// 들고 있던 물건을 현재 위치에 놓는다. 충돌을 다시 켠다.
 	UFUNCTION(BlueprintCallable, Category = "NPC|Prop")
@@ -85,6 +105,34 @@ protected:
 
 private:
 	TWeakObjectPtr<AActor> CarriedProp;
+#pragma endregion
+
+#pragma region 상체 상태
+public:
+	// 상체 동작을 지정한다. 물건을 놓으면 None으로 돌아간다.
+	UFUNCTION(BlueprintCallable, Category = "NPC|Pose")
+	void SetUpperBodyState(ENPCUpperBodyState NewState) { UpperBodyState = NewState; }
+
+	// 현재 상체 동작. 대화 중이면 항상 Talk이다. 애님 블루프린트는 이 값만 읽는다.
+	UFUNCTION(BlueprintPure, Category = "NPC|Pose")
+	ENPCUpperBodyState GetUpperBodyState() const { return bInConversation ? ENPCUpperBodyState::Talk : UpperBodyState; }
+
+private:
+	ENPCUpperBodyState UpperBodyState = ENPCUpperBodyState::None;
+#pragma endregion
+
+#pragma region 자세
+public:
+	// 기본 자세를 지정한다. (서기/앉기) 앉기/일어서기 몽타주의 SetPosture 노티파이(ULCOAnimNotify_SetPosture)가 호출한다.
+	UFUNCTION(BlueprintCallable, Category = "NPC|Pose")
+	void SetPosture(ENPCPosture NewPosture) { Posture = NewPosture; }
+
+	// 현재 자세. 애님 블루프린트는 이 값만 읽는다.
+	UFUNCTION(BlueprintPure, Category = "NPC|Pose")
+	ENPCPosture GetPosture() const { return Posture; }
+
+private:
+	ENPCPosture Posture = ENPCPosture::Standing;
 #pragma endregion
 
 #pragma region 대화

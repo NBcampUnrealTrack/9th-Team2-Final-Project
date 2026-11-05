@@ -295,7 +295,8 @@ void ULCOBTTask_DoActivity::RunNextStep()
 		// 지점에 연결된 물건(카트 등)을 NPC 앞에 붙인다. 물건이 없으면 경고만 남기고 넘어간다.
 		if (AActor* Prop = Spot->GetLinkedProp())
 		{
-			NPC->AttachCarriedProp(Prop, Step.PropOffset, Step.PropYaw);
+			NPC->AttachCarriedProp(Prop, Step.PropOffset, Step.PropYaw, Step.PropSocket);
+			NPC->SetUpperBodyState(Step.GrabState);
 		}
 		else
 		{

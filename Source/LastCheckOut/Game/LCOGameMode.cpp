@@ -19,6 +19,18 @@
 #include "Core/LCOGameSettingsSubsystem.h"
 #include "Game/LCOTimeOfDayManager.h"
 #include "AI/Chasing/LCOChasingManager.h"
+#include "Game/LCOTimeOfDayPresetAsset.h"
+#include "Story/LCOStoryIDs.h"
+
+namespace
+{
+	// 맵 이동 URL 옵션 (TravelToLevel에서 붙이고, 도착한 맵에서 읽음)
+	const TCHAR* const EntryOption = TEXT("Entry");
+	const TCHAR* const AutoSaveOption = TEXT("AutoSave");
+
+	// 도착 태그가 없을 때 찾는 PlayerStart 태그
+	const FName DefaultPlayerStartTag(TEXT("Start"));
+}
 
 ALCOGameMode::ALCOGameMode()
 {
@@ -210,11 +222,11 @@ void ALCOGameMode::TravelToLevel(TSoftObjectPtr<UWorld> Level, FName PlayerStart
 	FString Options;
 	if (!PlayerStartTag.IsNone())
 	{
-		Options = FString::Printf(TEXT("Entry=%s"), *PlayerStartTag.ToString());
+		Options = FString::Printf(TEXT("%s=%s"), EntryOption, *PlayerStartTag.ToString());
 	}
 	if (bAutoSaveOnArrival)
 	{
-		Options += Options.IsEmpty() ? TEXT("AutoSave") : TEXT("?AutoSave");
+		Options += Options.IsEmpty() ? FString(AutoSaveOption) : FString::Printf(TEXT("?%s"), AutoSaveOption);
 	}
 
 	// Log Test
@@ -409,10 +421,10 @@ AActor* ALCOGameMode::ChoosePlayerStart_Implementation(AController* Player)
 	}
 
 	// 맵 이동 시 전달된 도착 태그 (예시: ?Entry=FromMain)
-	const FString EntryTag = UGameplayStatics::ParseOption(OptionsString, TEXT("Entry"));
+	const FString EntryTag = UGameplayStatics::ParseOption(OptionsString, EntryOption);
 
 	// 도착 태그가 없으면(새 게임 / 이어하기 / 메뉴 없이 Play) 기본 시작 위치 태그 "Start" 사용
-	const FName SearchTag = EntryTag.IsEmpty() ? FName(TEXT("Start")) : FName(*EntryTag);
+	const FName SearchTag = EntryTag.IsEmpty() ? DefaultPlayerStartTag : FName(*EntryTag);
 
 	for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
 	{
@@ -463,7 +475,7 @@ void ALCOGameMode::HandleReportResolved(ELCOStoryFlag PresentedKeyword, ELCORepo
 
 	case ELCOReportResult::End3:
 		// 진행 상태를 바꾸지 않았으므로 이어하기 = 마지막 저장 시점
-		ReachEnding(TEXT("End3"));
+		ReachEnding(LCOStoryIDs::End3);
 		break;
 
 	default:
@@ -494,16 +506,17 @@ void ALCOGameMode::HandleCaughtSequenceFinished(AActor* Player)
 		return;
 	}
 
-	// 1막에서는 압수하지 않음 (2막부터)
+	// 챕터 설정에서 압수를 켠 챕터만 (목록에 없는 1막은 압수 안 함)
 	const FName ChapterID = StorySubsystem->GetCurrentChapterID();
-	if (ChapterID.IsNone() || ChapterID == FName(TEXT("Chapter1")))
+	const FLCOChapterStartInfo* ChapterInfo = ChapterStartInfos.Find(ChapterID);
+	if (!ChapterInfo || !ChapterInfo->bConfiscateNotebookOnCaught)
 	{
 		return;
 	}
 
 	// Log Test
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] Caught -> Notebook confiscated (Chapter = %s)"), *ChapterID.ToString());
-	StorySubsystem->SetStateFlag(TEXT("C2_NotebookConfiscated"));
+	StorySubsystem->SetStateFlag(LCOStoryIDs::NotebookConfiscatedFlag);
 }
 
 void ALCOGameMode::StartChapterTransition(FName NewChapterID)
@@ -645,7 +658,7 @@ void ALCOGameMode::ReturnToMainMenu()
 
 void ALCOGameMode::TryAutoSaveOnArrival()
 {
-	if (!UGameplayStatics::HasOption(OptionsString, TEXT("AutoSave")))
+	if (!UGameplayStatics::HasOption(OptionsString, AutoSaveOption))
 	{
 		return;
 	}
@@ -723,17 +736,10 @@ void ALCOGameMode::AdvanceTimeOfDay(ELCOTimeOfDay NewTimeOfDay)
 	}
 }
 
-ELCOTimeOfDay ALCOGameMode::GetTimeOfDayForChapter(FName ChapterID)
+ELCOTimeOfDay ALCOGameMode::GetTimeOfDayForChapter(FName ChapterID) const
 {
-	if (ChapterID == FName(TEXT("Chapter2")))
-	{
-		return ELCOTimeOfDay::Sunset;
-	}
-	if (ChapterID == FName(TEXT("Chapter3")))
-	{
-		return ELCOTimeOfDay::Evening;
-	}
-	return ELCOTimeOfDay::Noon;
+	const FLCOChapterStartInfo* ChapterInfo = ChapterStartInfos.Find(ChapterID);
+	return ChapterInfo ? ChapterInfo->TimeOfDay : ELCOTimeOfDay::Noon;
 }
 
 void ALCOGameMode::ApplyTimeOfDayForTest(ELCOTimeOfDay TimeOfDay)
@@ -754,6 +760,8 @@ ALCOTimeOfDayManager* ALCOGameMode::FindTimeOfDayManager() const
 {
 	for (TActorIterator<ALCOTimeOfDayManager> It(GetWorld()); It; ++It)
 	{
+		// 공용 조명 값 전달 (비어 있으면 매니저가 맵 값 사용)
+		It->SetSharedPresets(TimeOfDayPresets);
 		return *It;
 	}
 	return nullptr;

@@ -61,6 +61,7 @@ bool ULCOSaveManager::SaveGame()
 		return false;
 	}
 
+	SaveData->SaveVersion = CurrentSaveVersion;
 	SaveData->SavedTime = FDateTime::Now();
 
 	UWorld* World = GetGameInstance()->GetWorld();
@@ -222,9 +223,11 @@ bool ULCOSaveManager::LoadSaveFile()
 	}
 
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] LoadSaveFile: Map = %s, Chapter = %s, Objective = %s, SavedTime = %s"),
-		*LoadedSaveGame->MapName, *LoadedSaveGame->ChapterID.ToString(), *LoadedSaveGame->ObjectiveID.ToString(),
-		*LoadedSaveGame->SavedTime.ToString());
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] LoadSaveFile: Version = %d, Map = %s, Chapter = %s, Objective = %s, SavedTime = %s"),
+		LoadedSaveGame->SaveVersion, *LoadedSaveGame->MapName, *LoadedSaveGame->ChapterID.ToString(),
+		*LoadedSaveGame->ObjectiveID.ToString(), *LoadedSaveGame->SavedTime.ToString());
+
+	UpgradeSaveData(LoadedSaveGame);
 
 	return true;
 }
@@ -298,6 +301,29 @@ bool ULCOSaveManager::ApplyLoadedData()
 		LoadedSaveGame->NotebookEntries.Num(), LoadedSaveGame->bHasPlayerData ? TEXT("true") : TEXT("false"),
 		LoadedSaveGame->CompletedFirstConversations.Num(), *UEnum::GetValueAsString(LoadedSaveGame->TimeOfDay));
 	return true;
+}
+
+void ULCOSaveManager::UpgradeSaveData(ULCOSaveGame* SaveData) const
+{
+	if (!SaveData || SaveData->SaveVersion == CurrentSaveVersion)
+	{
+		return;
+	}
+
+	// 게임보다 새 버전의 세이브 (다운그레이드 등): 읽을 수 있는 값만 사용
+	if (SaveData->SaveVersion > CurrentSaveVersion)
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOSaveManager] UpgradeSaveData: save version %d is newer than game (%d)"),
+			SaveData->SaveVersion, CurrentSaveVersion);
+		return;
+	}
+
+	// 버전별 보정은 여기에 순서대로 추가
+	// 예: if (SaveData->SaveVersion < 2) { 2에서 추가된 항목 기본값 채우기 }
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] UpgradeSaveData: %d -> %d"), SaveData->SaveVersion, CurrentSaveVersion);
+	SaveData->SaveVersion = CurrentSaveVersion;
 }
 
 FString ULCOSaveManager::GetLoadedMapName() const

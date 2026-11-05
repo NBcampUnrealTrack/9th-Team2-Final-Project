@@ -1,4 +1,5 @@
 #include "LCOStorySubsystem.h"
+#include "Story/LCOStoryIDs.h"
 #include "LastCheckOut.h"
 #include "Notebook/LCONotebookSubsystem.h"
 #include "Engine/DataTable.h"
@@ -10,14 +11,6 @@ namespace
 	{
 		return StaticEnum<ELCOStoryFlag>()->GetNameStringByValue(static_cast<int64>(Flag));
 	}
-
-	// 1막 / 2막 챕터 ID
-	const FName Chapter1ID(TEXT("Chapter1"));
-	const FName Chapter2ID(TEXT("Chapter2"));
-	const FName Chapter3ID(TEXT("Chapter3"));
-
-	// 2막 시작 ~ 별관 도착까지 관리인을 따라가는 중
-	const FName FollowCaretakerObjectiveID(TEXT("C2_FollowCaretaker"));
 }
 
 void ULCOStorySubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -45,9 +38,7 @@ void ULCOStorySubsystem::StartNewStory()
 	StateFlags.Empty();
 
 	// 첫 챕터 시작
-	// 첫 챕터 ID는 DataTable(DataManager)이 생기기 전까지 임시로 여기에서 지정
-	const FName FirstChapterID(TEXT("Chapter1"));
-	StartChapter(FirstChapterID);
+	StartChapter(LCOStoryIDs::FirstChapter);
 }
 
 void ULCOStorySubsystem::StartChapter(FName ChapterID)
@@ -282,7 +273,7 @@ FName ULCOStorySubsystem::GetFlagName(ELCOStoryFlag Flag)
 
 bool ULCOStorySubsystem::IsDeductionFlag(ELCOStoryFlag Flag)
 {
-	return FlagToString(Flag).StartsWith(TEXT("K"));
+	return FlagToString(Flag).StartsWith(LCOStoryIDs::DeductionFlagPrefix);
 }
 
 ELCODeductionResult ULCOStorySubsystem::TryDeduce(const TArray<FName>& SelectedIDs, ELCOStoryFlag& OutFlag)
@@ -343,7 +334,7 @@ ELCODeductionResult ULCOStorySubsystem::TryDeduce(const TArray<FName>& SelectedI
 bool ULCOStorySubsystem::CanReportToManager(ELCOStoryFlag PresentedKeyword) const
 {
 	// 1막 진행 중에만 (클리어 후 다시 보고하는 것 방지)
-	if (CurrentChapterID != Chapter1ID)
+	if (CurrentChapterID != LCOStoryIDs::Chapter1)
 	{
 		return false;
 	}
@@ -362,9 +353,9 @@ ELCOReportResult ULCOStorySubsystem::ReportToManager(ELCOStoryFlag PresentedKeyw
 		if (PresentedKeyword == ELCOStoryFlag::K05)
 		{
 			// 407호 조사 허가 → 1막 클리어, 바로 2막 시작 (이동·저장은 GameMode가 처리)
-			CompleteChapter(Chapter1ID);
-			StartChapter(Chapter2ID);
-			StartObjective(FollowCaretakerObjectiveID);
+			CompleteChapter(LCOStoryIDs::Chapter1);
+			StartChapter(LCOStoryIDs::Chapter2);
+			StartObjective(LCOStoryIDs::FollowCaretakerObjective);
 			Result = ELCOReportResult::Chapter1Clear;
 		}
 		else
@@ -385,7 +376,7 @@ ELCOReportResult ULCOStorySubsystem::ReportToManager(ELCOStoryFlag PresentedKeyw
 
 bool ULCOStorySubsystem::CanCompleteChapter2() const
 {
-	return CurrentChapterID == Chapter2ID && HasFlag(ELCOStoryFlag::K11);
+	return CurrentChapterID == LCOStoryIDs::Chapter2 && HasFlag(ELCOStoryFlag::K11);
 }
 
 bool ULCOStorySubsystem::TryCompleteChapter2()
@@ -399,10 +390,10 @@ bool ULCOStorySubsystem::TryCompleteChapter2()
 	}
 
 	// 2막 클리어 → 3막 시작 (이동·저장은 GameMode가 처리)
-	CompleteChapter(Chapter2ID);
-	StartChapter(Chapter3ID);
+	CompleteChapter(LCOStoryIDs::Chapter2);
+	StartChapter(LCOStoryIDs::Chapter3);
 
-	OnChapterAdvanced.Broadcast(Chapter2ID, Chapter3ID);
+	OnChapterAdvanced.Broadcast(LCOStoryIDs::Chapter2, LCOStoryIDs::Chapter3);
 	return true;
 }
 
@@ -441,7 +432,7 @@ void ULCOStorySubsystem::RecordFlagToNotebook(ELCOStoryFlag Flag) const
 	// 추리 후 새 목표 (선택)
 	if (bIsDeduction)
 	{
-		const FName ObjectiveRowName(*(FlagName.ToString() + TEXT("_OBJ")));
+		const FName ObjectiveRowName(*(FlagName.ToString() + LCOStoryIDs::ObjectiveRowSuffix));
 		if (const FLCONotebookEntry* ObjectiveRow = Table->FindRow<FLCONotebookEntry>(ObjectiveRowName, TEXT(""), false))
 		{
 			FLCONotebookEntry Objective = *ObjectiveRow;

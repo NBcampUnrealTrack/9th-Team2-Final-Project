@@ -79,6 +79,13 @@ private:
 	static const FString SaveSlotName;
 	static constexpr int32 SaveUserIndex = 0;
 
+	// 현재 세이브 형식 버전. 저장 항목을 추가 / 변경하면 1 올리고 UpgradeSaveData에 보정 추가
+	// 1: 출시 버전 (1막 · 2막)
+	static constexpr int32 CurrentSaveVersion = 1;
+
+	// 예전 버전 세이브의 빠진 값 보정 (불러온 직후 호출)
+	void UpgradeSaveData(ULCOSaveGame* SaveData) const;
+
 	// LoadSaveFile로 읽어온 데이터
 	UPROPERTY()
 	TObjectPtr<ULCOSaveGame> LoadedSaveGame;

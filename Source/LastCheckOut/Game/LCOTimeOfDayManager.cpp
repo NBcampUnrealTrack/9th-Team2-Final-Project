@@ -1,5 +1,6 @@
 #include "Game/LCOTimeOfDayManager.h"
 #include "LastCheckOut.h"
+#include "Game/LCOTimeOfDayPresetAsset.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/SkyLight.h"
 #include "Engine/PostProcessVolume.h"
@@ -12,27 +13,10 @@ ALCOTimeOfDayManager::ALCOTimeOfDayManager()
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
-	// 기본값 (맵에서 보면서 조절)
-	// 정오 이후: 높이 뜬 밝은 태양
-	NoonPreset.SunElevation = 50.f;
-	NoonPreset.SunIntensity = 10.f;
-	NoonPreset.SunColor = FLinearColor(1.f, 0.97f, 0.92f);
-	NoonPreset.SkyLightIntensity = 1.f;
-	NoonPreset.ExposureBias = 0.f;
-
-	// 해질녘: 지평선 근처 주황빛
-	SunsetPreset.SunElevation = 4.f;
-	SunsetPreset.SunIntensity = 6.f;
-	SunsetPreset.SunColor = FLinearColor(1.f, 0.55f, 0.3f);
-	SunsetPreset.SkyLightIntensity = 0.6f;
-	SunsetPreset.ExposureBias = -0.5f;
-
-	// 저녁: 태양이 지평선 아래, 어둡고 푸른빛
-	EveningPreset.SunElevation = -6.f;
-	EveningPreset.SunIntensity = 0.5f;
-	EveningPreset.SunColor = FLinearColor(0.45f, 0.55f, 0.85f);
-	EveningPreset.SkyLightIntensity = 0.3f;
-	EveningPreset.ExposureBias = -1.5f;
+	// 기본값 (LCOTimeOfDayTypes.h). 공용 값이 없을 때 / bUseMapPreset일 때 사용
+	NoonPreset = LCOTimeOfDayDefaults::Noon();
+	SunsetPreset = LCOTimeOfDayDefaults::Sunset();
+	EveningPreset = LCOTimeOfDayDefaults::Evening();
 }
 
 void ALCOTimeOfDayManager::ApplyTimeOfDay(ELCOTimeOfDay TimeOfDay)
@@ -81,8 +65,9 @@ void ALCOTimeOfDayManager::ApplyTimeOfDay(ELCOTimeOfDay TimeOfDay)
 	}
 
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOTimeOfDay] %s: Apply %s (Elevation = %.1f, Sun = %.1f, Sky = %.2f)"),
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOTimeOfDay] %s: Apply %s (Preset = %s, Elevation = %.1f, Sun = %.1f, Sky = %.2f)"),
 		*GetName(), *UEnum::GetValueAsString(TimeOfDay),
+		(SharedPresets && !bUseMapPreset) ? *SharedPresets->GetName() : TEXT("Map"),
 		Preset.SunElevation, Preset.SunIntensity, Preset.SkyLightIntensity);
 
 	OnTimeOfDayApplied(TimeOfDay);
@@ -90,6 +75,12 @@ void ALCOTimeOfDayManager::ApplyTimeOfDay(ELCOTimeOfDay TimeOfDay)
 
 const FLCOTimeOfDayPreset& ALCOTimeOfDayManager::GetPreset(ELCOTimeOfDay TimeOfDay) const
 {
+	// 공용 값 우선 (이 맵만 다르게 쓰려면 bUseMapPreset)
+	if (SharedPresets && !bUseMapPreset)
+	{
+		return SharedPresets->GetPreset(TimeOfDay);
+	}
+
 	switch (TimeOfDay)
 	{
 	case ELCOTimeOfDay::Sunset:

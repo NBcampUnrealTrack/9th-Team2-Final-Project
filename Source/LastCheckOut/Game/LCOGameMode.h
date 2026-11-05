@@ -8,20 +8,30 @@
 
 class ULCOGameInstance;
 class ALCOTimeOfDayManager;
+class ULCOTimeOfDayPresetAsset;
 struct FLCOPlayerCarryData;
 
-// 챕터 시작 위치 (챕터가 시작되면 이 맵의 이 PlayerStart로 이동)
+// 챕터 설정 (시작 위치 / 시간대 / 수첩 압수)
+// 목록에 없는 챕터(Chapter1)는 정오 이후, 이동 없음, 압수 없음
 USTRUCT(BlueprintType)
 struct FLCOChapterStartInfo
 {
 	GENERATED_BODY()
 
-	// 비우면 이동 없이 그 자리에서 자동 저장
+	// 챕터가 시작되면 이동할 맵. 비우면 이동 없이 그 자리에서 자동 저장
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chapter")
 	TSoftObjectPtr<UWorld> Level;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chapter")
 	FName PlayerStartTag;
+
+	// 이 챕터의 시간대 (앞으로만 진행)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chapter")
+	ELCOTimeOfDay TimeOfDay = ELCOTimeOfDay::Noon;
+
+	// 추격에서 잡히면 수첩 압수
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chapter")
+	bool bConfiscateNotebookOnCaught = true;
 };
 
 // 엔딩 도달 (UI: 엔딩 화면 표시 후 FinishEnding 호출)
@@ -54,8 +64,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|TimeOfDay")
 	void AdvanceTimeOfDay(ELCOTimeOfDay NewTimeOfDay);
 
-	// 챕터별 시간대 (Chapter1: 정오 이후 / Chapter2: 해질녘 / Chapter3: 저녁)
-	static ELCOTimeOfDay GetTimeOfDayForChapter(FName ChapterID);
+	// 챕터별 시간대 (ChapterStartInfos의 TimeOfDay, 목록에 없으면 정오 이후)
+	ELCOTimeOfDay GetTimeOfDayForChapter(FName ChapterID) const;
 
 	// 엔딩 도달. OnEndingReached에 연결된 화면이 없으면 EndingReturnDelay 후 메인 메뉴로
 	UFUNCTION(BlueprintCallable, Category = "LCO|Ending")
@@ -81,9 +91,13 @@ protected:
 	// 맵을 떠날 때: 스토리 알림 연결 해제
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	// 챕터 ID(Chapter2, Chapter3 ...) → 시작 맵 + 도착 PlayerStart 태그
+	// 챕터 ID(Chapter2, Chapter3 ...) → 시작 맵 + 도착 PlayerStart 태그 + 시간대 + 수첩 압수
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|Story")
 	TMap<FName, FLCOChapterStartInfo> ChapterStartInfos;
+
+	// 모든 맵 공용 시간대 조명 값 (DA_TimeOfDayPresets). 비우면 맵마다 배치된 매니저의 값 사용
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|TimeOfDay")
+	TObjectPtr<ULCOTimeOfDayPresetAsset> TimeOfDayPresets;
 
 	// 엔딩 후 돌아갈 메인 메뉴 맵
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|Story")

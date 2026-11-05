@@ -39,3 +39,43 @@ struct FLCOTimeOfDayPreset
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LCO|TimeOfDay", meta = (ClampMin = "-5.0", ClampMax = "5.0"))
 	float ExposureBias = 0.f;
 };
+
+// 시간대별 기본 조명 값 (LCOTimeOfDayManager / LCOTimeOfDayPresetAsset 공용)
+namespace LCOTimeOfDayDefaults
+{
+	// 정오 이후: 높이 뜬 밝은 태양
+	inline FLCOTimeOfDayPreset Noon()
+	{
+		FLCOTimeOfDayPreset Preset;
+		Preset.SunElevation = 50.f;
+		Preset.SunIntensity = 10.f;
+		Preset.SunColor = FLinearColor(1.f, 0.97f, 0.92f);
+		Preset.SkyLightIntensity = 1.f;
+		Preset.ExposureBias = 0.f;
+		return Preset;
+	}
+
+	// 해질녘: 지평선 근처 주황빛
+	inline FLCOTimeOfDayPreset Sunset()
+	{
+		FLCOTimeOfDayPreset Preset;
+		Preset.SunElevation = 4.f;
+		Preset.SunIntensity = 6.f;
+		Preset.SunColor = FLinearColor(1.f, 0.55f, 0.3f);
+		Preset.SkyLightIntensity = 0.6f;
+		Preset.ExposureBias = -0.5f;
+		return Preset;
+	}
+
+	// 저녁: 태양이 지평선 아래, 어둡고 푸른빛
+	inline FLCOTimeOfDayPreset Evening()
+	{
+		FLCOTimeOfDayPreset Preset;
+		Preset.SunElevation = -6.f;
+		Preset.SunIntensity = 0.5f;
+		Preset.SunColor = FLinearColor(0.45f, 0.55f, 0.85f);
+		Preset.SkyLightIntensity = 0.3f;
+		Preset.ExposureBias = -1.5f;
+		return Preset;
+	}
+}

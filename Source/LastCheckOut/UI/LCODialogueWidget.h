@@ -13,8 +13,10 @@ class USoundBase;
 class UTextBlock;
 class UTexture2D;
 class ULCODialogueChoiceWidget;
+class ULCOPhoneOverlayWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnLCODialogueWidgetClosed, ALCONPCBase*, NPC, FName, DialogueID, bool, bCompletedNormally, bool, bCompletedFirstConversation);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCODialogueWidgetNodeEvent, FName, DialogueID, FName, NodeID);
 
 USTRUCT(BlueprintType)
 struct LASTCHECKOUT_API FLCODialogueVoiceSettings
@@ -92,8 +94,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
 	bool OpenDialogueByID(FName DialogueID, FName StartNodeID, AActor* InInteractor, bool bPlayFirstConversation = false);
 
+	// Shared NPC replacement; no NPC CSV or first-conversation progress is used.
+	bool OpenNotebookConfiscatedDialogue(ALCONPCBase* InNPC, AActor* InInteractor);
+
 	UFUNCTION(BlueprintPure, Category = "LCO|Dialogue")
 	bool IsDialogueActive() const { return !ActiveDialogueID.IsNone(); }
+
+	void RefreshSeniorCleanerChoices();
+	void RefreshNotebookConfiscationState();
 
 	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
 	void CloseDialogue(bool bEndNPCConversation = true);
@@ -103,10 +111,36 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
 	FOnLCODialogueWidgetClosed OnDialogueWidgetClosed;
 
+	// Once per actual node entry, before presenting the node.
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
+	FOnLCODialogueWidgetNodeEvent OnDialogueNodeEntered;
+
+	// Player acknowledgement only: not typewriter completion, refresh, or automatic advance.
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
+	FOnLCODialogueWidgetNodeEvent OnDialogueNodeConfirmed;
+
 protected:
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual FReply NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply NativeOnPreviewMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Phone", meta = (ClampMin = "0.01"))
+	float PhoneReportFadeSeconds = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Phone", meta = (ClampMin = "0.01"))
+	float TutorialHoldSeconds = 0.7f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Dialogue", meta = (ClampMin = "0.01"))
+	float FastForwardInterval = 0.05f;
+
+	// Optional future artwork: Camera, Sense, Notebook. Missing images use a text card.
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Phone")
+	TMap<FName, TObjectPtr<UTexture2D>> PhoneTutorialImages;
+
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
@@ -170,6 +204,33 @@ protected:
 	TObjectPtr<UTextBlock> Text_ContinueHint;
 
 private:
+	void StopFastForward();
+	void TickFastForward(float DeltaSeconds);
+	bool bLeftControlHeld = false;
+	bool bRightControlHeld = false;
+	float FastForwardElapsed = 0.f;
+
+	UFUNCTION()
+	void HandlePhoneNodeEntered(FName DialogueID, FName NodeID);
+	UFUNCTION()
+	void HandlePhoneNodeConfirmed(FName DialogueID, FName NodeID);
+	bool IsPhoneProgressBlocked() const;
+	void ResetPhonePresentation();
+	void ReleaseTutorialInput();
+	UPROPERTY(Transient)
+	TObjectPtr<ULCOPhoneOverlayWidget> PhoneOverlay;
+	bool bTutorialOpen = false;
+	bool bPhoneFDown = false;
+	bool bTutorialAwaitRelease = false;
+	bool bTutorialHolding = false;
+	bool bTutorialNeedsFreshPress = false;
+	bool bTutorialAdvancePending = false;
+	float TutorialHeldSeconds = 0.f;
+	bool bPhoneReport = false;
+	bool bPhoneFadeActive = false;
+	bool bPhoneFadeIn = false;
+	float PhoneFadeElapsed = 0.f;
+
 	UFUNCTION()
 	void HandleLanguageChanged(FName NewLanguage);
 
@@ -182,7 +243,8 @@ private:
 	bool LoadFlowForDialogueID(FName DialogueID);
 	void StartNode(FName NodeID);
 	void ShowCurrentLine();
-	void AdvanceDialogue();
+	void AdvanceDialogue(bool bPlayerConfirmed = true);
+	bool ConfirmActiveNode();
 	void HandleAutoAdvance();
 	void ClearAutoAdvanceTimer();
 	void CompleteActiveConversation();
@@ -197,11 +259,14 @@ private:
 	bool HasAvailableQuestions(const FLCODialogueNode& ChoiceNode) const;
 	bool IsExitChoice(const FLCODialogueChoiceRow& Choice) const;
 	bool TryStartNoQuestionsDialogue(const FLCODialogueNode& Node);
+	bool IsNotebookConfiscated() const;
+	bool TryStartNotebookConfiscatedDialogue(const FLCODialogueNode& Node);
 	void RefreshVisibleText();
 	void RefreshSpeakerPresentation(FName SpeakerID);
 	void SetChoicesVisible(bool bVisible);
 	bool IsEndNode(FName NodeID) const;
 	bool IsConditionMet(FName Condition) const;
+	bool IsSingleConditionMet(FName Condition) const;
 	bool UsesActOneNotebookConditions() const;
 	bool ValidateDialogueTextKey(FName TextKey, const FString& Context) const;
 	bool ValidateSpeakerNameKey(FName SpeakerID, const FString& Context) const;
@@ -233,6 +298,9 @@ private:
 
 	UPROPERTY(Transient)
 	FName ActiveNodeID = NAME_None;
+
+	UPROPERTY(Transient)
+	FName LastLineSpeakerID = NAME_None;
 
 	UPROPERTY(Transient)
 	FString FullTypewriterString;
@@ -281,4 +349,9 @@ private:
 
 	UPROPERTY(Transient)
 	bool bActiveDialogueCompletedNormally = false;
+	bool bActiveDialogueIsPostT15 = false;
+	bool bActiveDialogueConfirms407 = false;
+	bool bActiveNodeConfirmed = false;
+	// Also invalidates in-flight event callbacks when they close or replace the dialogue.
+	uint64 NodeActivationSerial = 0;
 };

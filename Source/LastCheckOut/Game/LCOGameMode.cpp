@@ -18,6 +18,7 @@
 #include "UI/LCOLoadingSubsystem.h"
 #include "Core/LCOGameSettingsSubsystem.h"
 #include "Game/LCOTimeOfDayManager.h"
+#include "AI/Chasing/LCOChasingManager.h"
 
 ALCOGameMode::ALCOGameMode()
 {
@@ -31,10 +32,11 @@ void ALCOGameMode::StartPlay()
 	InitializeCurrentMap();
 	StartGame();
 
-	// 지배인 보고 결과 알림 받기 (1막 클리어 처리)
+	// 지배인 보고 결과 / 챕터 클리어 알림 받기
 	if (ULCOStorySubsystem* StorySubsystem = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>())
 	{
 		StorySubsystem->OnReportResolved.AddUniqueDynamic(this, &ThisClass::HandleReportResolved);
+		StorySubsystem->OnChapterAdvanced.AddUniqueDynamic(this, &ThisClass::HandleChapterAdvanced);
 	}
 
 	// 여기서 HandleMatchHasStarted → 플레이어 생성 → 모든 액터 BeginPlay 진행
@@ -241,6 +243,9 @@ void ALCOGameMode::HandleMatchHasStarted()
 		GameSettings->ApplyGameplaySettingsToPlayer(Cast<ALCOPlayerCharacter>(UGameplayStatics::GetPlayerPawn(this, 0)));
 	}
 
+	// 잡혔을 때 수첩 압수
+	BindChasingManager();
+
 	// 이 맵 도착으로 시간대 갱신 → 조명 적용 (아래 자동 저장에 갱신된 시간대가 들어가도록 먼저 처리)
 	RefreshTimeOfDay();
 
@@ -437,6 +442,7 @@ void ALCOGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		if (ULCOStorySubsystem* StorySubsystem = GameInstance->GetSubsystem<ULCOStorySubsystem>())
 		{
 			StorySubsystem->OnReportResolved.RemoveDynamic(this, &ThisClass::HandleReportResolved);
+			StorySubsystem->OnChapterAdvanced.RemoveDynamic(this, &ThisClass::HandleChapterAdvanced);
 		}
 	}
 
@@ -448,47 +454,121 @@ void ALCOGameMode::HandleReportResolved(ELCOStoryFlag PresentedKeyword, ELCORepo
 	switch (Result)
 	{
 	case ELCOReportResult::Chapter1Clear:
-		// 1막 끝 → 2막 시간대(해질녘)로 진행. 맵 이동 전에 바꿔야 도착 자동 저장에 같이 저장됨
+		// 1막 끝 → 2막 시작 (StorySubsystem이 이미 Chapter2로 바꿔 둠)
 		if (const ULCOStorySubsystem* StorySubsystem = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>())
 		{
-			AdvanceTimeOfDay(GetTimeOfDayForChapter(StorySubsystem->GetCurrentChapterID()));
-		}
-
-		if (!Chapter2StartLevel.IsNull())
-		{
-			// 2막 시작 맵으로 이동 → 도착 후 자동 저장
-			UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] Chapter1 clear -> Travel to Chapter2 start"));
-			TravelToLevel(Chapter2StartLevel, Chapter2StartTag, true);
-		}
-		else
-		{
-			// 2막 시작 맵 미설정: 이동 없이 그 자리에서 자동 저장
-			UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] Chapter1 clear: Chapter2StartLevel not set -> AutoSave here"));
-			if (ULCOSaveManager* SaveManager = GetGameInstance()->GetSubsystem<ULCOSaveManager>())
-			{
-				SaveManager->SaveGame();
-			}
+			StartChapterTransition(StorySubsystem->GetCurrentChapterID());
 		}
 		break;
 
 	case ELCOReportResult::End3:
-		// 프로토타입: 엔딩 화면 대신 End3ReturnDelay 후 메인 메뉴로 이동 (저장하지 않음)
 		// 진행 상태를 바꾸지 않았으므로 이어하기 = 마지막 저장 시점
-		// TODO: UI 담당 END 3 화면이 완성되면 화면 표시 후 이동으로 변경
-		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] END 3 reached -> Return to main menu in %.1fs"), End3ReturnDelay);
-		if (End3ReturnDelay > 0.f)
-		{
-			GetWorldTimerManager().SetTimer(ReturnToMainMenuTimer, this, &ThisClass::ReturnToMainMenu, End3ReturnDelay, false);
-		}
-		else
-		{
-			ReturnToMainMenu();
-		}
+		ReachEnding(TEXT("End3"));
 		break;
 
 	default:
 		break;
 	}
+}
+
+void ALCOGameMode::HandleChapterAdvanced(FName CompletedChapterID, FName NewChapterID)
+{
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] Chapter advanced: %s -> %s"), *CompletedChapterID.ToString(), *NewChapterID.ToString());
+	StartChapterTransition(NewChapterID);
+}
+
+void ALCOGameMode::BindChasingManager()
+{
+	for (TActorIterator<ALCOChasingManager> It(GetWorld()); It; ++It)
+	{
+		It->OnCaughtSequenceFinished.AddUniqueDynamic(this, &ThisClass::HandleCaughtSequenceFinished);
+	}
+}
+
+void ALCOGameMode::HandleCaughtSequenceFinished(AActor* Player)
+{
+	ULCOStorySubsystem* StorySubsystem = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>();
+	if (!StorySubsystem)
+	{
+		return;
+	}
+
+	// 1막에서는 압수하지 않음 (2막부터)
+	const FName ChapterID = StorySubsystem->GetCurrentChapterID();
+	if (ChapterID.IsNone() || ChapterID == FName(TEXT("Chapter1")))
+	{
+		return;
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] Caught -> Notebook confiscated (Chapter = %s)"), *ChapterID.ToString());
+	StorySubsystem->SetStateFlag(TEXT("C2_NotebookConfiscated"));
+}
+
+void ALCOGameMode::StartChapterTransition(FName NewChapterID)
+{
+	// 시간대 먼저 진행. 맵 이동 전에 바꿔야 도착 자동 저장에 같이 저장됨
+	AdvanceTimeOfDay(GetTimeOfDayForChapter(NewChapterID));
+
+	const FLCOChapterStartInfo* StartInfo = ChapterStartInfos.Find(NewChapterID);
+	if (StartInfo && !StartInfo->Level.IsNull())
+	{
+		// Log Test
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartChapterTransition: %s -> Travel to %s (Tag = %s)"),
+			*NewChapterID.ToString(), *StartInfo->Level.ToString(), *StartInfo->PlayerStartTag.ToString());
+		TravelToLevel(StartInfo->Level, StartInfo->PlayerStartTag, true);
+		return;
+	}
+
+	// 시작 맵 미설정: 이동 없이 그 자리에서 자동 저장
+	UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] StartChapterTransition: %s start level not set (ChapterStartInfos) -> AutoSave here"),
+		*NewChapterID.ToString());
+	if (ULCOSaveManager* SaveManager = GetGameInstance()->GetSubsystem<ULCOSaveManager>())
+	{
+		SaveManager->SaveGame();
+	}
+}
+
+void ALCOGameMode::ReachEnding(FName EndingID)
+{
+	if (bEndingInProgress)
+	{
+		return;
+	}
+	bEndingInProgress = true;
+
+	// 엔딩 화면이 연결되어 있으면 화면이 FinishEnding을 호출
+	if (OnEndingReached.IsBound())
+	{
+		// Log Test
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ReachEnding: %s -> Ending screen"), *EndingID.ToString());
+		OnEndingReached.Broadcast(EndingID);
+		return;
+	}
+
+	// 엔딩 화면 미연결: 잠시 후 메인 메뉴로
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ReachEnding: %s -> No ending screen, return to main menu in %.1fs"),
+		*EndingID.ToString(), EndingReturnDelay);
+	if (EndingReturnDelay > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(ReturnToMainMenuTimer, this, &ThisClass::ReturnToMainMenu, EndingReturnDelay, false);
+	}
+	else
+	{
+		ReturnToMainMenu();
+	}
+}
+
+void ALCOGameMode::FinishEnding()
+{
+	if (!bEndingInProgress)
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] FinishEnding ignored: no ending in progress"));
+		return;
+	}
+
+	ReturnToMainMenu();
 }
 
 void ALCOGameMode::ApplyPendingBuffsWhenLoaded()

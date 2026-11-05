@@ -1,15 +1,15 @@
-Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
+﻿Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
 INTERACT_USE_PHONE,전화기 사용,Use Phone,電話を使う,使用电话,使用電話,Usar teléfono,Utiliser le téléphone,Telefon benutzen,Usar telefone,Käytä puhelinta
 PHONE_DESCRIPTION,평범한 전화기다.,An ordinary telephone.,普通の電話だ。,一部普通的电话。,一部普通的電話。,Un teléfono corriente.,Un téléphone ordinaire.,Ein gewöhnliches Telefon.,Um telefone comum.,Tavallinen puhelin.
 PHONE_TITLE,전화기,Telephone,電話,电话,電話,Teléfono,Téléphone,Telefon,Telefone,Puhelin
 PHONE_CALL_OFFICE,회사에 전화하기,Call the Office,会社に電話する,致电公司,致電公司,Llamar a la oficina,Appeler le bureau,Im Büro anrufen,Ligar para o escritório,Soita toimistolle
-PHONE_HANG_UP,수화기 내려놓기,Hang Up,受話器を置く,放下听筒,放下聽筒,Colgar,Raccrocher,Auflegen,Desligar,Laske luuri
+PHONE_HANG_UP,수화기를 내려놓는다,Hang up,受話器を置く,放下听筒,放下聽筒,Colgar,Raccrocher,Auflegen,Desligar,Laske luuri
 PHONE_SAVE_PENDING_ONE_DOT,보고 중.,Reporting.,報告中.,正在报告.,正在報告.,Informando.,Rapport en cours.,Bericht wird erstattet.,Relatando.,Raportoidaan.
 PHONE_SAVE_PENDING_TWO_DOTS,보고 중..,Reporting..,報告中..,正在报告..,正在報告..,Informando..,Rapport en cours..,Bericht wird erstattet..,Relatando..,Raportoidaan..
 PHONE_SAVE_PENDING,보고 중...,Reporting...,報告中...,正在报告...,正在報告...,Informando...,Rapport en cours...,Bericht wird erstattet...,Relatando...,Raportoidaan...
-PHONE_SAVE_SUCCESS,회사에 조사 상황을 보고했다.,I reported the investigation's progress to the company.,会社に調査状況を報告した。,已向公司报告调查情况。,已向公司報告調查情況。,Informé a la empresa del progreso de la investigación.,J'ai fait mon rapport à l'entreprise sur l'enquête.,Ich habe der Firma den Stand der Untersuchung gemeldet.,Relatei o andamento da investigação à empresa.,Raportoin tutkinnan edistymisestä yritykselle.
-PHONE_SAVE_FAILED,회사에 보고하지 못했다. 다시 시도해야겠다.,I couldn't report to the company. I'll have to try again.,会社に報告できなかった。もう一度試そう。,未能向公司报告。得再试一次。,未能向公司報告。得再試一次。,No pude informar a la empresa. Tendré que intentarlo de nuevo.,Je n'ai pas pu faire mon rapport à l'entreprise. Je devrai réessayer.,Ich konnte der Firma keinen Bericht erstatten. Ich muss es erneut versuchen.,Não consegui relatar à empresa. Terei que tentar novamente.,En saanut raportoitua yritykselle. Minun on yritettävä uudelleen.
-PHONE_REPORT_REST,그리고 당신은 잠시 숨을 고르며 피로를 풀었다.,And you took a moment to catch your breath and recover.,少し息を整えて疲れを癒やした。,稍作喘息缓解了疲劳。,稍作喘息緩解了疲勞。,Recuperé el aliento y descansé un momento.,J'ai repris mon souffle et me suis reposé un instant.,Ich habe kurz durchgeatmet und mich ausgeruht.,Recuperei o fôlego e descansei por um momento.,Vedähdin henkeä ja lepäsin hetken.
+PHONE_SAVE_SUCCESS,회사에 조사 상황을 보고했다.,I reported the investigation's progress to the office.,会社に調査状況を報告した。,已向公司报告调查情况。,已向公司報告調查情況。,Informé a la oficina del progreso de la investigación.,J'ai fait mon rapport au bureau sur l'avancement de l'enquête.,Ich habe der Firma den Stand der Untersuchung gemeldet.,Relatei o andamento da investigação à empresa.,Raportoin tutkinnan edistymisestä toimistolle.
+PHONE_SAVE_FAILED,회사에 보고하지 못했다. 다시 시도해야겠다.,I couldn't report to the office. I'll have to try again.,会社に報告できなかった。もう一度試そう。,未能向公司报告。得再试一次。,未能向公司報告。得再試一次。,No pude informar a la oficina. Tendré que intentarlo de nuevo.,Je n'ai pas pu faire mon rapport au bureau. Je devrai réessayer.,Ich konnte der Firma keinen Bericht erstatten. Ich muss es erneut versuchen.,Não consegui relatar à empresa. Terei que tentar novamente.,En saanut raportoitua toimistolle. Minun on yritettävä uudelleen.
+PHONE_REPORT_REST,잠시 숨을 고르며 피로를 풀었다.,I took a moment to catch my breath and recover.,少し息を整えて疲れを癒やした。,稍作喘息缓解了疲劳。,稍作喘息緩解了疲勞。,Recuperé el aliento y descansé un momento.,J'ai repris mon souffle et me suis reposé un instant.,Ich habe kurz durchgeatmet und mich ausgeruht.,Recuperei o fôlego e descansei por um momento.,Vedähdin henkeä ja lepäsin hetken.
 INTERACT_OPEN_DOOR,문 열기,Open Door,ドアを開ける,开门,開門,Abrir puerta,Ouvrir la porte,Tür öffnen,Abrir porta,Avaa ovi
 INTERACT_CLOSE_DOOR,문 닫기,Close Door,ドアを閉める,关门,關門,Cerrar puerta,Fermer la porte,Tür schließen,Fechar porta,Sulje ovi
 INTERACT_EXAMINE,조사하기,Examine,調べる,调查,調查,Examinar,Examiner,Untersuchen,Examinar,Tutki
@@ -26,15 +26,15 @@ SETTINGS_LANGUAGE,언어,Language,言語,语言,語言,Idioma,Langue,Sprache,Idi
 SETTINGS_GAMEPLAY,게임 플레이,Gameplay,ゲームプレイ,游戏,遊戲,Jugabilidad,Jeu,Gameplay,Jogabilidade,Peli
 SETTINGS_GRAPHICS,그래픽,Graphics,グラフィック,图形,圖形,Gráficos,Graphismes,Grafik,Gráficos,Grafiikka
 SETTINGS_AUDIO,오디오,Audio,オーディオ,音频,音訊,Audio,Audio,Audio,Áudio,Ääni
-SETTINGS_CONTROLS,조작,Controls,操作,控制,控制,Controles,Commandes,Steuerung,Controles,Ohjaus
+SETTINGS_CONTROLS,조작,Controls,操作,操作,操作,Controles,Commandes,Steuerung,Controles,Ohjaus
 COMMON_BACK,돌아가기,Back,戻る,返回,返回,Volver,Retour,Zurück,Voltar,Takaisin
 SETTINGS_GAMEPLAY_TITLE,게임 플레이 설정,Gameplay Settings,ゲームプレイ設定,游戏设置,遊戲設定,Ajustes de jugabilidad,Paramètres de jeu,Gameplay-Einstellungen,Configurações de jogabilidade,Peliasetukset
 SETTINGS_GRAPHICS_TITLE,그래픽 설정,Graphics Settings,グラフィック設定,图形设置,圖形設定,Ajustes gráficos,Paramètres graphiques,Grafikeinstellungen,Configurações gráficas,Grafiikka-asetukset
 SETTINGS_AUDIO_TITLE,오디오 설정,Audio Settings,オーディオ設定,音频设置,音訊設定,Ajustes de audio,Paramètres audio,Audioeinstellungen,Configurações de áudio,Ääniasetukset
-SETTINGS_CONTROLS_TITLE,조작 설정,Controls Settings,操作設定,控制设置,控制設定,Ajustes de controles,Paramètres des commandes,Steuerungseinstellungen,Configurações de controles,Ohjausasetukset
+SETTINGS_CONTROLS_TITLE,조작 설정,Control Settings,操作設定,操作设置,操作設定,Ajustes de controles,Paramètres des commandes,Steuerungseinstellungen,Configurações de controles,Ohjausasetukset
 SETTINGS_MASTER_VOLUME,전체 음량,Master Volume,マスター音量,主音量,主音量,Volumen general,Volume principal,Gesamtlautstärke,Volume geral,Pää-äänenvoimakkuus
-SETTINGS_BGM_VOLUME,배경음,BGM,BGM,背景音乐,背景音樂,Música,Musique,Musik,Música,Musiikki
-SETTINGS_SFX_VOLUME,효과음,SFX,効果音,音效,音效,Efectos de sonido,Effets sonores,Soundeffekte,Efeitos sonoros,Äänitehosteet
+SETTINGS_BGM_VOLUME,배경음,Music,BGM,背景音乐,背景音樂,Música,Musique,Musik,Música,Musiikki
+SETTINGS_SFX_VOLUME,효과음,Sound Effects,効果音,音效,音效,Efectos de sonido,Effets sonores,Soundeffekte,Efeitos sonoros,Äänitehosteet
 SETTINGS_VOICE_VOLUME,음성,Voice,ボイス,语音,語音,Voces,Voix,Sprachausgabe,Voz,Puhe
 MENU_MAIN_MENU,메인 메뉴로,Main Menu,メインメニューへ,返回主菜单,返回主選單,Menú principal,Menu principal,Hauptmenü,Menu principal,Päävalikkoon
 CONTAINER_EMPTY,비어 있는 듯하다.,It appears to be empty.,何も入っていないようだ。,里面似乎是空的。,裡面似乎是空的。,Parece estar vacío.,Il semble vide.,Es scheint leer zu sein.,Parece estar vazio.,Se näyttää olevan tyhjä.
@@ -47,7 +47,7 @@ INVENTORY_TITLE,인벤토리,Inventory,インベントリ,物品栏,物品欄,In
 INVENTORY_EMPTY,소지품이 없다.,No items in inventory.,持ち物は何もない。,没有携带任何物品。,沒有攜帶任何物品。,No llevas ningún objeto.,Vous ne portez aucun objet.,Du hast keine Gegenstände dabei.,Você não possui nenhum item.,Sinulla ei ole esineitä.
 NOTEBOOK_OBJECTIVES,목표,Objectives,目標,目标,目標,Objetivos,Objectifs,Ziele,Objetivos,Tavoitteet
 NOTEBOOK_CLUES,단서,Clues,手がかり,线索,線索,Pistas,Indices,Hinweise,Pistas,Vihjeet
-NOTEBOOK_TESTIMONIES,증언,Testimonies,証言,证言,證言,Testimonios,Témoignages,Zeugenaussagen,Depoimentos,Todistajanlausunnot
+NOTEBOOK_TESTIMONIES,증언,Testimonies,証言,证词,證詞,Testimonios,Témoignages,Aussagen,Depoimentos,Todistukset
 NOTEBOOK_PHOTOS,사진,Photos,写真,照片,照片,Fotos,Photos,Fotos,Fotos,Valokuvat
 NOTEBOOK_MAPS,지도,Maps,地図,地图,地圖,Mapas,Cartes,Karten,Mapas,Kartat
 NOTEBOOK_EMPTY,아직 기록이 없습니다,No entries yet.,まだ記録がありません。,暂无记录,尚無記錄,Aún no hay registros.,Aucune entrée pour le moment.,Noch keine Einträge vorhanden.,Ainda não há registros.,Ei vielä merkintöjä.
@@ -60,20 +60,20 @@ NOTEBOOK_DEDUCTION_ALREADY,이건 이미 정리한 내용이다.,I've already wo
 NOTEBOOK_DEDUCTION_FAIL_01,아니야. 이 둘은 이어지지 않는다.,No... these don't connect.,いや。これらは繋がらない。,不对。这些联系不上。,不對。這些聯繫不上。,No... esto no encaja.,Non... ça ne colle pas.,Nein... das passt nicht zusammen.,Não... isso não se conecta.,Ei... nämä eivät liity toisiinsa.
 NOTEBOOK_DEDUCTION_FAIL_02,뭔가 빠진 것 같다.,Something's missing.,何かが足りない気がする。,好像缺了点什么。,好像缺了點什麼。,Falta algo.,Il manque quelque chose.,Da fehlt noch etwas.,Está faltando algo.,Jotain puuttuu.
 NOTEBOOK_DEDUCTION_FAIL_03,억지로 끼워 맞추는 건 의미 없다.,Forcing it won't get me anywhere.,無理にこじつけても意味がない。,硬凑在一起没有意义。,硬湊在一起沒有意義。,Forzarlo no me llevará a ninguna parte.,Forcer les choses ne mènera à rien.,Es zu erzwingen bringt nichts.,Forçar não vai me levar a lugar nenhum.,Väkisin yhdistäminen ei johda mihinkään.
-LOADING_TIP_001,수집한 증거는 수첩에서 다시 확인할 수 있습니다.,You can review collected evidence in your notebook.,集めた証拠は手帳で再確認できます。,收集到的证据可以在笔记本中再次查看。,收集到的證據可以在筆記本中再次查看。,Puedes revisar las pruebas recopiladas en tu cuaderno.,Vous pouvez consulter les indices recueillis dans votre carnet.,Gesammelte Beweise kannst du in deinem Notizbuch erneut ansehen.,Você pode consultar as evidências coletadas no seu caderno.,Voit tarkastella keräämiäsi todisteita uudelleen muistikirjassasi.
+LOADING_TIP_001,수집한 증거는 수첩에서 다시 확인할 수 있습니다.,You can review collected evidence in your notebook.,集めた証拠は手帳で再確認できます。,收集到的证据可以在笔记本中再次查看。,收集到的證據可以在筆記本中再次查看。,Puedes revisar las pruebas recopiladas en tu libreta.,Vous pouvez consulter les indices recueillis dans votre carnet.,Gesammelte Beweise kannst du in deinem Notizbuch erneut ansehen.,Você pode consultar as evidências coletadas no seu caderno.,Voit tarkastella keräämiäsi todisteita uudelleen muistikirjassasi.
 LOADING_TIP_002,여러 증거가 모이면 새로운 사실을 알아낼 수 있습니다.,Gathering multiple pieces of evidence may reveal new facts.,複数の証拠が集まると新たな事実が明らかになることがあります。,收集到多项证据后可能会发现新的事实。,收集到多項證據後可能會發現新的事實。,Reunir varias pruebas puede revelar nuevos hechos.,Réunir plusieurs indices peut révéler de nouveaux faits.,Mehrere Beweise können neue Erkenntnisse ans Licht bringen.,Reunir várias evidências pode revelar novos fatos.,Useiden todisteiden kerääminen voi paljastaa uusia tosiasioita.
-LOADING_TIP_003,같은 인물이라도 새로운 증거를 확보한 뒤에는 다른 이야기를 들려줄 수 있습니다.,People may have something different to say once you find new evidence.,新たな証拠を手に入れると同じ人物から違う話を聞けることがあります。,获得新证据后同一个人也可能告诉你不同的事情。,獲得新證據後同一個人也可能告訴你不同的事情。,Al encontrar nuevas pruebas puede que una misma persona tenga algo diferente que contar.,Après avoir trouvé de nouveaux indices une même personne pourrait avoir autre chose à raconter.,Mit neuen Beweisen erzählen dir dieselben Personen möglicherweise etwas anderes.,Ao encontrar novas evidências a mesma pessoa pode ter algo diferente a contar.,Uusien todisteiden löydyttyä sama henkilö saattaa kertoa jotain uutta.
-LOADING_TIP_004,중요한 선택을 내리기 전에 놓친 단서가 없는지 확인해 보세요.,Before making an important decision check whether you have missed any clues.,重要な選択をする前に見落とした手がかりがないか確認しましょう。,做出重要选择前请确认是否遗漏了线索。,做出重要選擇前請確認是否遺漏了線索。,Antes de tomar una decisión importante comprueba si has pasado por alto alguna pista.,Avant de prendre une décision importante vérifiez que vous n'avez manqué aucun indice.,Prüfe vor einer wichtigen Entscheidung ob du Hinweise übersehen hast.,Antes de tomar uma decisão importante verifique se deixou passar alguma pista.,Ennen tärkeää päätöstä tarkista ettet ole jättänyt vihjeitä huomaamatta.
+LOADING_TIP_003,같은 인물이라도 새로운 증거를 확보한 뒤에는 다른 이야기를 들려줄 수 있습니다.,People may have something different to say once you find new evidence.,新たな証拠を手に入れると、同じ人物から違う話を聞けることがあります。,获得新证据后同一个人也可能告诉你不同的事情。,獲得新證據後同一個人也可能告訴你不同的事情。,"Al encontrar nuevas pruebas, puede que una misma persona tenga algo diferente que contar.","Après avoir trouvé de nouveaux indices, une même personne pourrait avoir autre chose à raconter.",Mit neuen Beweisen erzählen dir dieselben Personen möglicherweise etwas anderes.,"Ao encontrar novas evidências, a mesma pessoa pode ter algo diferente a contar.",Uusien todisteiden löydyttyä sama henkilö saattaa kertoa jotain uutta.
+LOADING_TIP_004,중요한 선택을 내리기 전에 놓친 단서가 없는지 확인해 보세요.,"Before making an important decision, check whether you have missed any clues.",重要な選択をする前に、見落とした手がかりがないか確認しましょう。,做出重要选择前请确认是否遗漏了线索。,做出重要選擇前請確認是否遺漏了線索。,"Antes de tomar una decisión importante, comprueba si has pasado por alto alguna pista.","Avant de prendre une décision importante, vérifiez que vous n'avez manqué aucun indice.","Prüfe vor einer wichtigen Entscheidung, ob du Hinweise übersehen hast.","Antes de tomar uma decisão importante, verifique se deixou passar alguma pista.","Ennen tärkeää päätöstä tarkista, ettet ole jättänyt vihjeitä huomaamatta."
 CAMERA_FAIL_NO_TARGET,찍을 만한 게 없다,Nothing worth photographing.,撮るものがない,没有值得拍的东西,沒有值得拍的東西,No hay nada que fotografiar.,Rien à photographier.,Nichts zu fotografieren.,Nada para fotografar.,Ei mitään kuvattavaa.
-CAMERA_FAIL_COOLDOWN,필름을 감는 중이다…,Winding the film...,フィルムを巻いている…,正在卷片…,正在捲片…,Rebobinando la película...,J'avance la pellicule...,Film wird transportiert...,Avançando o filme...,Kelataan filmiä...
+CAMERA_FAIL_COOLDOWN,필름을 감는 중이다...,Winding the film...,フィルムを巻いている...,正在卷片...,正在捲片...,Rebobinando la película...,J'avance la pellicule...,Film wird transportiert...,Avançando o filme...,Kelataan filmiä...
 CAMERA_FAIL_ALREADY_CAPTURED,이미 찍어둔 곳이다,I've already photographed this.,もう撮ってある,已经拍过了,已經拍過了,Ya lo he fotografiado.,Je l'ai déjà photographié.,Das habe ich schon fotografiert.,Já fotografei isso.,Olen jo kuvannut tämän.
 CAMERA_FAIL_ERROR,제대로 찍히지 않았다,The shot didn't come out.,うまく撮れなかった,没拍好,沒拍好,La foto no salió bien.,La photo est ratée.,Das Foto ist nichts geworden.,A foto não saiu.,Kuva epäonnistui.
 CAMERA_PHOTO_CLOSE_HINT,[E] 닫기,[E] Close,[E] 閉じる,[E] 关闭,[E] 關閉,[E] Cerrar,[E] Fermer,[E] Schließen,[E] Fechar,[E] Sulje
 QUICKSLOT_BARE_HAND,맨손,Bare Hands,素手,空手,空手,Manos vacías,Mains nues,Leere Hände,Mãos vazias,Paljain käsin
 NOTIFICATION_ITEM_ACQUIRED_FORMAT,{0} 획득,Acquired {0},{0}を入手,获得{0},獲得{0},{0} obtenido,{0} obtenu,{0} erhalten,{0} adquirido,{0} saatu
-MONOLOGUE_SENSE_SUCCESS,여기… 뭔가 중요한 단서가 있는 것 같다.,There's something important here...,ここに…何か重要な手がかりがある気がする。,这里……好像有什么重要的线索。,這裡……好像有什麼重要的線索。,Aquí... hay algo importante.,Il y a quelque chose d'important ici...,Hier... ist etwas Wichtiges.,Aqui... há algo importante.,Täällä... on jotain tärkeää.
-MONOLOGUE_SENSE_FAIL,…아무것도 느껴지지 않는다.,...I don't sense anything.,…何も感じない。,……什么也感觉不到。,……什麼也感覺不到。,...No siento nada.,...Je ne ressens rien.,...Ich spüre nichts.,...Não sinto nada.,...En tunne mitään.
-NOTEBOOK_DEDUCTION_HINT,흠… 뭔가 이어 볼 만한 단서가 있을 것 같은데.,Hmm... I feel like some of these clues connect.,うーん…結びつけられそうな手がかりがある気がする。,嗯……感觉有些线索可以联系起来。,嗯……感覺有些線索可以聯繫起來。,Mmm... creo que algunas pistas encajan.,Hmm... certains indices pourraient se relier.,Hm... einige Hinweise könnten zusammenpassen.,Hmm... acho que algumas pistas se conectam.,Hmm... jotkin vihjeet saattavat liittyä toisiinsa.
+MONOLOGUE_SENSE_SUCCESS,여기... 뭔가 중요한 단서가 있는 것 같다.,There's something important here...,ここに...何か重要な手がかりがある気がする。,这里...好像有什么重要的线索。,這裡...好像有什麼重要的線索。,Aquí... hay algo importante.,Il y a quelque chose d'important ici...,Hier... ist etwas Wichtiges.,Aqui... há algo importante.,Täällä... on jotain tärkeää.
+MONOLOGUE_SENSE_FAIL,...아무것도 느껴지지 않는다.,...I don't sense anything.,...何も感じない。,...什么也感觉不到。,...什麼也感覺不到。,...No siento nada.,...Je ne ressens rien.,...Ich spüre nichts.,...Não sinto nada.,...En tunne mitään.
+NOTEBOOK_DEDUCTION_HINT,흠... 뭔가 이어 볼 만한 단서가 있을 것 같은데.,Hmm... I feel like some of these clues connect.,うーん...結びつけられそうな手がかりがある気がする。,嗯...感觉有些线索可以联系起来。,嗯...感覺有些線索可以聯繫起來。,Mmm... creo que algunas pistas encajan.,Hmm... certains indices pourraient se relier.,Hm... einige Hinweise könnten zusammenpassen.,Hmm... acho que algumas pistas se conectam.,Hmm... jotkin vihjeet saattavat liittyä toisiinsa.
 NOTEBOOK_DEDUCTION_SUCCESS_TITLE,새로운 추리 — {0},New Deduction — {0},新たな推理 — {0},新的推理 — {0},新的推理 — {0},Nueva deducción — {0},Nouvelle déduction — {0},Neue Schlussfolgerung — {0},Nova dedução — {0},Uusi päätelmä — {0}
 NOTEBOOK_DEDUCTION_HEADER_CLUE,증거,Evidence,証拠,证据,證據,Pruebas,Preuves,Beweise,Provas,Todisteet
 NOTEBOOK_DEDUCTION_HEADER_PHOTO,사진,Photos,写真,照片,照片,Fotos,Photos,Fotos,Fotos,Valokuvat
@@ -81,41 +81,41 @@ NOTEBOOK_DEDUCTION_HEADER_TESTIMONY,증언,Testimonies,証言,证词,證詞,Test
 NOTEBOOK_DEDUCTION_HEADER_DEDUCTION,추리,Deductions,推理,推理,推理,Deducciones,Déductions,Schlussfolgerungen,Deduções,Päätelmät
 NOTEBOOK_GROUP_Professor,대학교수,Professor,大学教授,大学教授,大學教授,Profesor,Professeur,Professor,Professor,Professori
 NOTEBOOK_GROUP_Manager,지배인,Manager,支配人,经理,經理,Gerente,Directeur,Direktor,Gerente,Johtaja
-NOTEBOOK_GROUP_Bellboy,벨보이,Bellboy,ベルボーイ,行李员,行李員,Botones,Groom,Page,Mensageiro,Hotellipoika
-NOTEBOOK_GROUP_Caretaker,관리인,Caretaker,管理人,管理员,管理員,Conserje,Gardien,Hausmeister,Zelador,Talonmies
-NOTEBOOK_GROUP_Front,프론트 직원,Front Desk Clerk,フロント係,前台职员,櫃檯人員,Recepcionista,Réceptionniste,Rezeptionist,Recepcionista,Vastaanottovirkailija
-NOTEBOOK_GROUP_Cleaner,청소부,Cleaner,清掃員,清洁工,清潔工,Limpiadora,Agent d'entretien,Reinigungskraft,Faxineira,Siivooja
+NOTEBOOK_GROUP_Bellboy,벨보이,Bellboy,ベルボーイ,行李员,行李員,Botones,Groom,Page,Mensageiro,Pikkolo
+NOTEBOOK_GROUP_Caretaker,관리인,Caretaker,管理人,管理员,管理員,Encargado,Gardien,Hausmeister,Zelador,Talonmies
+NOTEBOOK_GROUP_Front,프론트 직원,Front Desk Clerk,フロント係,前台员工,櫃檯人員,Recepcionista,Réceptionniste,Rezeptionistin,Recepcionista,Vastaanottovirkailija
+NOTEBOOK_GROUP_Cleaner,청소부,Cleaner,清掃員,清洁工,清潔工,Personal de limpieza,Agent d'entretien,Reinigungskraft,Auxiliar de limpeza,Siivooja
 NOTEBOOK_GROUP_Lobby,로비,Lobby,ロビー,大堂,大廳,Vestíbulo,Hall,Lobby,Saguão,Aula
-NOTEBOOK_GROUP_Trail,산책로,Walking Trail,散策路,散步道,散步道,Sendero,Sentier,Wanderweg,Trilha,Kävelypolku
+NOTEBOOK_GROUP_Trail,산책로,Walking Trail,遊歩道,步道,步道,Sendero,Sentier,Wanderweg,Trilha,Polku
 NOTEBOOK_GROUP_Office,사무실,Office,事務室,办公室,辦公室,Oficina,Bureau,Büro,Escritório,Toimisto
 NOTEBOOK_GROUP_RecordRoom,기록실,Records Room,記録室,档案室,檔案室,Sala de archivos,Salle des archives,Archivraum,Sala de arquivos,Arkistohuone
 NOTEBOOK_GROUP_MaintenanceRoom,관리실,Maintenance Room,管理室,管理室,管理室,Sala de mantenimiento,Local technique,Hausmeisterraum,Sala de manutenção,Huoltohuone
 NOTEBOOK_GROUP_Room205,205호,Room 205,205号室,205号房,205號房,Habitación 205,Chambre 205,Zimmer 205,Quarto 205,Huone 205
 "NOTEBOOK_GROUP_Annex, Room 407",별관 407호,"Annex, Room 407",別館407号室,别馆407号房,別館407號房,"Anexo, habitación 407","Annexe, chambre 407","Nebengebäude, Zimmer 407","Anexo, quarto 407","Sivurakennus, huone 407"
-NOTEBOOK_GROUP_Annex Caretaker's Office,별관 관리인실,Annex Caretaker's Office,別館管理人室,别馆管理员室,別館管理員室,Oficina del conserje del anexo,Loge du gardien de l'annexe,Hausmeisterbüro im Nebengebäude,Sala do zelador do anexo,Sivurakennuksen talonmiehen toimisto
-"NOTEBOOK_GROUP_Annex, 4th Floor Hallway",별관 4층 복도,"Annex, 4F Hallway",別館4階廊下,别馆4楼走廊,別館4樓走廊,"Anexo, pasillo de la planta 4","Annexe, couloir de l'étage 4","Nebengebäude, Flur Etage 4","Anexo, corredor do andar 4","Sivurakennus, 4. kerroksen käytävä"
-NOTEBOOK_GROUP_Annex Janitor's Closet,별관 청소 창고,Annex Cleaning Storeroom,別館清掃用具倉庫,别馆清洁仓库,別館清潔倉庫,Almacén de limpieza del anexo,Local de ménage de l'annexe,Putzkammer im Nebengebäude,Depósito de limpeza do anexo,Sivurakennuksen siivousvarasto
+NOTEBOOK_GROUP_Annex Caretaker's Office,별관 관리인실,Annex Caretaker's Office,別館管理人室,别馆管理员室,別館管理員室,Oficina del encargado del anexo,Loge du gardien de l'annexe,Hausmeisterbüro im Nebengebäude,Sala do zelador do anexo,Sivurakennuksen talonmiehen toimisto
+"NOTEBOOK_GROUP_Annex, 4th Floor Hallway",별관 4층 복도,"Annex, 4th Floor Hallway",別館4階廊下,别馆4楼走廊,別館4樓走廊,"Anexo, pasillo de la tercera planta","Annexe, couloir du 3e étage","Nebengebäude, Flur im 3. Stock","Anexo, corredor do 3º andar","Sivurakennus, 4. kerroksen käytävä"
+NOTEBOOK_GROUP_Annex Janitor's Closet,별관 청소 창고,Annex Cleaning Storeroom,別館清掃倉庫,别馆清洁仓库,別館清潔倉庫,Almacén de limpieza del anexo,Réserve de ménage de l'annexe,Putzkammer im Nebengebäude,Depósito de limpeza do anexo,Sivurakennuksen siivousvarasto
 NOTEBOOK_GROUP_ArchiveRoom,기록실,Records Room,記録室,档案室,檔案室,Sala de archivos,Salle des archives,Archivraum,Sala de arquivos,Arkistohuone
 SETTINGS_WINDOW_MODE,화면 모드,Display Mode,画面モード,显示模式,顯示模式,Modo de pantalla,Mode d'affichage,Anzeigemodus,Modo de exibição,Näyttötila
 SETTINGS_WINDOW_FULLSCREEN,전체 화면,Fullscreen,フルスクリーン,全屏,全螢幕,Pantalla completa,Plein écran,Vollbild,Tela cheia,Koko näyttö
 SETTINGS_WINDOW_BORDERLESS,테두리 없는 창,Borderless Window,ボーダーレスウィンドウ,无边框窗口,無邊框視窗,Ventana sin bordes,Fenêtre sans bordure,Rahmenloses Fenster,Janela sem bordas,Reunaton ikkuna
-SETTINGS_WINDOW_WINDOWED,창 모드,Windowed,ウィンドウ,窗口模式,視窗模式,Ventana,Fenêtré,Fenster,Janela,Ikkuna
+SETTINGS_WINDOW_WINDOWED,창 모드,Windowed,ウィンドウモード,窗口模式,視窗模式,Modo ventana,Fenêtré,Fenstermodus,Modo janela,Ikkunoitu
 SETTINGS_RESOLUTION,해상도,Resolution,解像度,分辨率,解析度,Resolución,Résolution,Auflösung,Resolução,Resoluutio
 SETTINGS_QUALITY,그래픽 품질,Graphics Quality,グラフィック品質,画质,畫質,Calidad gráfica,Qualité graphique,Grafikqualität,Qualidade gráfica,Grafiikan laatu
 SETTINGS_QUALITY_LOW,낮음,Low,低,低,低,Baja,Faible,Niedrig,Baixa,Matala
 SETTINGS_QUALITY_MEDIUM,중간,Medium,中,中,中,Media,Moyenne,Mittel,Média,Keskitaso
 SETTINGS_QUALITY_HIGH,높음,High,高,高,高,Alta,Élevée,Hoch,Alta,Korkea
-SETTINGS_QUALITY_EPIC,최고,Epic,最高,极高,極高,Épica,Épique,Episch,Épica,Eeppinen
+SETTINGS_QUALITY_EPIC,최고,Epic,最高,极高,極高,Épica,Épique,Episch,Épica,Erittäin korkea
 SETTINGS_BRIGHTNESS,밝기,Brightness,明るさ,亮度,亮度,Brillo,Luminosité,Helligkeit,Brilho,Kirkkaus
 SETTINGS_LOOK_SENSITIVITY,마우스 감도,Mouse Sensitivity,マウス感度,鼠标灵敏度,滑鼠靈敏度,Sensibilidad del ratón,Sensibilité de la souris,Mausempfindlichkeit,Sensibilidade do mouse,Hiiren herkkyys
 SETTINGS_INVERT_LOOK_Y,Y축 반전,Invert Y-Axis,Y軸反転,反转Y轴,反轉Y軸,Invertir eje Y,Inverser l'axe Y,Y-Achse invertieren,Inverter eixo Y,Käännä Y-akseli
 SETTINGS_RESET_DEFAULTS,기본값으로,Reset to Default,初期設定に戻す,恢复默认,恢復預設,Restablecer valores,Réinitialiser,Zurücksetzen,Restaurar padrão,Palauta oletukset
-COMMON_APPLY,적용,Apply,適用,应用,套用,Aplicar,Appliquer,Übernehmen,Aplicar,Käytä
+COMMON_APPLY,적용,Apply,適用,应用,套用,Aplicar,Appliquer,Übernehmen,Aplicar,Ota käyttöön
 COMMON_CANCEL,취소,Cancel,キャンセル,取消,取消,Cancelar,Annuler,Abbrechen,Cancelar,Peruuta
 SETTINGS_GRAPHICS_CONFIRM,이 디스플레이 설정을 유지하시겠습니까?,Keep these display settings?,この画面設定を維持しますか？,是否保留这些显示设置？,是否保留這些顯示設定？,¿Mantener esta configuración de pantalla?,Conserver ces paramètres d'affichage ?,Diese Anzeigeeinstellungen beibehalten?,Manter estas configurações de exibição?,Säilytetäänkö nämä näyttöasetukset?
 SETTINGS_GRAPHICS_CONFIRM_COUNTDOWN,{0}초 후 이전 설정으로 돌아갑니다,Reverting in {0} seconds,{0}秒後に元の設定に戻ります,{0}秒后恢复之前的设置,{0}秒後恢復先前的設定,Se restablecerá en {0} segundos,Retour dans {0} secondes,Zurücksetzen in {0} Sekunden,Revertendo em {0} segundos,Palautetaan {0} sekunnin kuluttua
 SETTINGS_GRAPHICS_KEEP,유지,Keep,維持,保留,保留,Mantener,Conserver,Beibehalten,Manter,Säilytä
-SETTINGS_GRAPHICS_REVERT,되돌리기,Revert,元に戻す,恢复,還原,Revertir,Annuler,Zurücksetzen,Reverter,Palauta
+SETTINGS_GRAPHICS_REVERT,되돌리기,Revert,元に戻す,恢复,還原,Revertir,Rétablir,Rückgängig,Reverter,Palauta
 KEYBIND_MOVE_FORWARD,앞으로 이동,Move Forward,前進,向前移动,向前移動,Avanzar,Avancer,Vorwärts,Mover para frente,Liiku eteenpäin
 KEYBIND_MOVE_BACKWARD,뒤로 이동,Move Backward,後退,向后移动,向後移動,Retroceder,Reculer,Rückwärts,Mover para trás,Liiku taaksepäin
 KEYBIND_MOVE_LEFT,왼쪽 이동,Move Left,左移動,向左移动,向左移動,Mover a la izquierda,Aller à gauche,Nach links,Mover para a esquerda,Liiku vasemmalle
@@ -127,8 +127,8 @@ KEYBIND_SENSE,감각,Sense,感覚,感知,感知,Sentido,Sens,Sinn,Sentido,Aisti
 KEYBIND_CAPTURE,촬영,Take Photo,撮影,拍照,拍照,Tomar foto,Prendre une photo,Foto aufnehmen,Tirar foto,Ota kuva
 KEYBIND_TOGGLEVIEW,시점 전환,Toggle View,視点切替,切换视角,切換視角,Cambiar vista,Changer de vue,Ansicht wechseln,Alternar visão,Vaihda näkymää
 KEYBIND_INVENTORY,인벤토리,Inventory,インベントリ,物品栏,物品欄,Inventario,Inventaire,Inventar,Inventário,Tavaraluettelo
-KEYBIND_NOTEBOOK,수첩,Notebook,手帳,笔记本,筆記本,Cuaderno,Carnet,Notizbuch,Caderno,Muistikirja
-KEYBIND_QUICKSLOT,퀵슬롯,Quick Slot,クイックスロット,快捷栏,快捷欄,Ranura rápida,Emplacement rapide,Schnellplatz,Atalho rápido,Pikapaikka
+KEYBIND_NOTEBOOK,수첩,Notebook,手帳,笔记本,筆記本,Libreta,Carnet,Notizbuch,Caderno,Muistikirja
+KEYBIND_QUICKSLOT,퀵슬롯,Quick Slot,クイックスロット,快捷栏,快捷欄,Ranura rápida,Emplacement rapide,Schnellzugriff,Atalho rápido,Pikapaikka
 KEYBIND_CAMERAKEY,카메라,Camera,カメラ,相机,相機,Cámara,Appareil photo,Kamera,Câmera,Kamera
 KEYBIND_FLASHLIGHTKEY,손전등,Flashlight,懐中電灯,手电筒,手電筒,Linterna,Lampe torche,Taschenlampe,Lanterna,Taskulamppu
 KEYBIND_UVLIGHTKEY,UV 라이트,UV Light,UVライト,紫外线灯,紫外線燈,Luz UV,Lumière UV,UV-Licht,Luz UV,UV-valo
@@ -137,3 +137,9 @@ KEYBIND_SWAPPED,{0} 키와 교체되었습니다,Swapped with {0},{0}とキー�
 KEYBIND_BLOCKED,사용할 수 없는 키입니다,This key cannot be used,このキーは使用できません,无法使用此按键,無法使用此按鍵,No se puede usar esta tecla,Cette touche ne peut pas être utilisée,Diese Taste kann nicht verwendet werden,Esta tecla não pode ser usada,Tätä näppäintä ei voi käyttää
 KEYBIND_FAILED,키를 변경하지 못했습니다,Failed to change key,キーを変更できませんでした,无法更改按键,無法變更按鍵,No se pudo cambiar la tecla,Impossible de changer la touche,Taste konnte nicht geändert werden,Não foi possível alterar a tecla,Näppäintä ei voitu vaihtaa
 SETTINGS_RESET_KEYS,키 설정 초기화,Reset Key Bindings,キー設定をリセット,重置按键设置,重設按鍵設定,Restablecer controles,Réinitialiser les touches,Tastenbelegung zurücksetzen,Redefinir teclas,Palauta näppäimet
+CAPTION_ARRIVAL_TITLE,"""호스티아 호텔""","""Hotel Hostia""",「ホテル・ホスティア」,“霍斯蒂亚酒店”,「霍斯蒂亞飯店」,"""Hotel Hostia""","""Hôtel Hostia""","""Hotel Hostia""","""Hotel Hostia""","""Hotel Hostia"""
+CAPTION_ARRIVAL_DATE,1993년 12월 21일,"December 21, 1993",1993年12月21日,1993年12月21日,1993年12月21日,21 de diciembre de 1993,21 décembre 1993,21. Dezember 1993,21 de dezembro de 1993,21. joulukuuta 1993
+CAPTION_ARRIVAL_PERSON,"에릭 리드, 로열 패스넷 생명보험 조사관","Eric Read, Investigator, Royal Pathnet Life Insurance",エリック・リード、ロイヤル・パスネット生命保険 調査員,埃里克·里德，皇家帕斯内特人寿保险调查员,艾瑞克·里德，皇家帕斯內特人壽保險調查員,"Eric Read, investigador de Royal Pathnet Life Insurance","Eric Read, enquêteur chez Royal Pathnet Life Insurance","Eric Read, Ermittler bei Royal Pathnet Life Insurance","Eric Read, investigador da Royal Pathnet Life Insurance","Eric Read, tutkija, Royal Pathnet Life Insurance"
+CAPTION_ARRIVAL_PLACE,호스티아 호텔 정문,"Hotel Hostia, Main Entrance",ホテル・ホスティア 正門,霍斯蒂亚酒店 正门,霍斯蒂亞飯店 正門,"Hotel Hostia, entrada principal","Hôtel Hostia, entrée principale","Hotel Hostia, Haupteingang","Hotel Hostia, entrada principal","Hotel Hostia, pääsisäänkäynti"
+PHONE_CALL_SENIOR,선배에게 전화한다,Call my senior colleague,先輩に電話する,给前辈打电话,打電話給前輩,Llamar a mi compañero veterano,Appeler mon collègue expérimenté,Den erfahrenen Kollegen anrufen,Ligar para meu colega mais experiente,Soita vanhemmalle kollegalle
+PHONE_REPORT_COMPANY,회사에 진행 상황을 보고한다,Report my progress to the office,会社に進捗を報告する,向公司汇报调查进展,向公司報告調查進度,Informar a la oficina de mis avances,Faire mon rapport au bureau,Der Firma den Ermittlungsstand melden,Relatar o andamento à empresa,Raportoi edistymisestä toimistolle

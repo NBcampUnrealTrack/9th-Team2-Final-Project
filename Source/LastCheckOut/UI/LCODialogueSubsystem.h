@@ -11,9 +11,11 @@ class ULCOInteractComponent;
 class ULCODialogueWidget;
 class ULCOPlayerInteractionComponent;
 class UWorld;
+class ULCOStorySubsystem;
 
 // 대화창이 닫힐 때 (NPC / NPC 없는 대화 공통). bCompletedNormally: 끝까지 진행했는지 (ESC 등 중단이면 false)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCODialogueFinished, FName, DialogueID, bool, bCompletedNormally);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLCODialogueNodeEvent, FName, DialogueID, FName, NodeID);
 
 USTRUCT()
 struct FLCODialogueProgressTransaction
@@ -51,31 +53,89 @@ public:
 	virtual void PlayerControllerChanged(APlayerController* NewPlayerController) override;
 
 	// NPC 없이 대화 시작 (전화기 등). DialogueFlow_<DialogueID>.csv를 StartNodeID부터 재생
-	// WorkSenior는 기존 첫 대화 완료 기록으로 FIRST_001 / SECOND_001을 선택한다.
+	// WorkSenior는 첫 대화 완료 기록으로 FIRST_001 / SECOND_001을 선택한다.
+	// REPORT_001 명시 요청은 첫 통화 완료 후 별도로 재생하며 완료 기록을 변경하지 않는다.
 	// 그 외 NPC 없는 대화는 진행 기록을 사용하지 않는다. 이미 대화 중이거나 열기에 실패하면 false
 	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
 	bool StartDialogue(FName DialogueID, FName StartNodeID, AActor* Interactor);
 
+	UFUNCTION(BlueprintPure, Category = "LCO|Dialogue")
+	bool HasCompletedWorkSeniorCall() const { return CompletedFirstConversationNPCIds.Contains(FName(TEXT("WorkSenior"))); }
+
 	TArray<FName> GetCompletedFirstConversations() const
 	{
-		return CompletedFirstConversationNPCIds.Array();
+		TArray<FName> Result = CompletedFirstConversationNPCIds.Array();
+		// Namespaced UI state travels through the existing dialogue save field.
+		for (FName State : SeniorCleanerStates)
+		{
+			// Story owns notebook persistence; retain legacy storage only if Story is unavailable.
+			if (GetStorySubsystem() && (State == FName(TEXT("NOTEBOOK_CONFISCATED")) || State == FName(TEXT("C2_NotebookConfiscated")))) continue;
+			Result.Add(FName(*(TEXT("__LCO_SC_STATE__") + State.ToString())));
+		}
+		return Result;
 	}
 
 	void RestoreCompletedFirstConversations(const TArray<FName>& InIds)
 	{
-		CompletedFirstConversationNPCIds = TSet<FName>(InIds);
+		CompletedFirstConversationNPCIds.Empty();
+		SeniorCleanerStates.Empty();
+		for (FName ID : InIds)
+		{
+			const FString Value = ID.ToString();
+			const FString Prefix(TEXT("__LCO_SC_STATE__"));
+			if (Value.StartsWith(Prefix))
+			{
+				const FName State(*Value.RightChop(Prefix.Len()));
+				// SaveManager restores Story first. Old UI mirrors must not re-confiscate a returned notebook.
+				if (GetStorySubsystem() && (State == FName(TEXT("NOTEBOOK_CONFISCATED")) || State == FName(TEXT("C2_NotebookConfiscated")))) continue;
+				SetSeniorCleanerState(State, true);
+			}
+			else CompletedFirstConversationNPCIds.Add(ID);
+		}
+		HandleStoryStateFlagChanged(TEXT("C2_NotebookConfiscated"), IsNotebookConfiscated());
 	}
 
 	void ResetDialogueProgress()
 	{
 		CompletedFirstConversationNPCIds.Empty();
+		SeniorCleanerStates.Empty();
 	}
+
+	UFUNCTION(BlueprintPure, Category = "LCO|Dialogue|SeniorCleaner")
+	bool HasSeniorCleanerState(FName State) const
+	{
+		if (State == FName(TEXT("NOTEBOOK_CONFISCATED")) || State == FName(TEXT("C2_NotebookConfiscated")))
+			return IsNotebookConfiscated();
+		return SeniorCleanerStates.Contains(State);
+	}
+
+	// The three SC_* states plus the legacy/canonical notebook state names are accepted.
+	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue|SeniorCleaner")
+	void SetSeniorCleanerState(FName State, bool bEnabled);
+
+	// Story's C2_NotebookConfiscated is authoritative, including after load without change events.
+	UFUNCTION(BlueprintPure, Category = "LCO|Dialogue")
+	bool IsNotebookConfiscated() const;
+
+	UFUNCTION(BlueprintCallable, Category = "LCO|Dialogue")
+	void SetNotebookConfiscated(bool bConfiscated);
 
 	// 대화창이 닫힐 때 호출 (NPC 대화 포함)
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
 	FOnLCODialogueFinished OnDialogueFinished;
 
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
+	FOnLCODialogueNodeEvent OnDialogueNodeEntered;
+
+	UPROPERTY(BlueprintAssignable, Category = "LCO|Dialogue")
+	FOnLCODialogueNodeEvent OnDialogueNodeConfirmed;
+
 private:
+	ULCOStorySubsystem* GetStorySubsystem() const;
+
+	UFUNCTION()
+	void HandleStoryStateFlagChanged(FName FlagName, bool bIsSet);
+
 	UFUNCTION()
 	void HandlePossessedPawnChanged(APawn* OldPawn, APawn* NewPawn);
 
@@ -90,6 +150,12 @@ private:
 
 	UFUNCTION()
 	void HandleDialogueClosed(ALCONPCBase* NPC, FName DialogueID, bool bCompletedNormally, bool bCompletedFirstConversation);
+
+	UFUNCTION()
+	void HandleDialogueNodeEntered(FName DialogueID, FName NodeID);
+
+	UFUNCTION()
+	void HandleDialogueNodeConfirmed(FName DialogueID, FName NodeID);
 
 	void HandleWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources);
 	void HandlePostLoadMapWithWorld(UWorld* LoadedWorld);
@@ -135,5 +201,11 @@ private:
 	TSet<FName> CompletedFirstConversationNPCIds;
 
 	UPROPERTY(Transient)
+	TSet<FName> SeniorCleanerStates;
+
+	UPROPERTY(Transient)
 	FLCODialogueProgressTransaction PendingProgressTransaction;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<ULCOStorySubsystem> BoundStorySubsystem;
 };

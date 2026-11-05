@@ -10,6 +10,8 @@
 #include "Player/LCOPlayerInteractionComponent.h"
 #include "TimerManager.h"
 #include "UI/LCODialogueWidget.h"
+#include "UI/LCONotebookUISubsystem.h"
+#include "UI/LCONotebookWidget.h"
 #include "Story/LCOStorySubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Misc/FileHelper.h"
@@ -24,6 +26,11 @@ ULCODialogueSubsystem::ULCODialogueSubsystem()
 void ULCODialogueSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	if (ULCOStorySubsystem* Story = GetStorySubsystem())
+	{
+		BoundStorySubsystem = Story;
+		Story->OnStateFlagChanged.AddUniqueDynamic(this, &ThisClass::HandleStoryStateFlagChanged);
+	}
 
 	FWorldDelegates::OnWorldCleanup.AddUObject(this, &ThisClass::HandleWorldCleanup);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &ThisClass::HandlePostLoadMapWithWorld);
@@ -36,6 +43,9 @@ void ULCODialogueSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void ULCODialogueSubsystem::Deinitialize()
 {
+	if (ULCOStorySubsystem* Story = BoundStorySubsystem.Get())
+		Story->OnStateFlagChanged.RemoveDynamic(this, &ThisClass::HandleStoryStateFlagChanged);
+	BoundStorySubsystem.Reset();
 	FWorldDelegates::OnWorldCleanup.RemoveAll(this);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 
@@ -88,8 +98,16 @@ bool ULCODialogueSubsystem::StartDialogue(FName DialogueID, FName StartNodeID, A
 
 	// Do not replace the transaction belonging to an already active conversation.
 	if (DialogueWidget->IsDialogueActive()) return false;
+	// Reporting is independent of the first-conversation transaction.
+	if (StartNodeID == FName(TEXT("REPORT_001")))
+	{
+		if (!HasCompletedWorkSeniorCall()) return false;
+		return DialogueWidget->OpenDialogueByID(DialogueID, StartNodeID, Interactor, false);
+	}
 	const bool bFirstCall = !CompletedFirstConversationNPCIds.Contains(DialogueID);
-	const FName CallStartNode = bFirstCall ? FName(TEXT("FIRST_001")) : FName(TEXT("SECOND_001"));
+	// Keep the mandatory first call; only repeat calls use the confiscation-specific flow.
+	const FName CallStartNode = bFirstCall ? FName(TEXT("FIRST_001"))
+		: IsNotebookConfiscated() ? FName(TEXT("NOTEBOOK_CONFISCATED_001")) : FName(TEXT("SECOND_001"));
 	BeginDialogueProgressTransaction(DialogueID, bFirstCall);
 	if (!DialogueWidget->OpenDialogueByID(DialogueID, CallStartNode, Interactor, bFirstCall))
 	{
@@ -134,9 +152,23 @@ void ULCODialogueSubsystem::HandleNPCConversationEnded()
 	ActiveNPC.Reset();
 }
 
+void ULCODialogueSubsystem::HandleDialogueNodeEntered(FName DialogueID, FName NodeID)
+{
+	OnDialogueNodeEntered.Broadcast(DialogueID, NodeID);
+}
+
+void ULCODialogueSubsystem::HandleDialogueNodeConfirmed(FName DialogueID, FName NodeID)
+{
+	OnDialogueNodeConfirmed.Broadcast(DialogueID, NodeID);
+}
+
 void ULCODialogueSubsystem::HandleDialogueClosed(ALCONPCBase* NPC, FName DialogueID, bool bCompletedNormally, bool bCompletedFirstConversation)
 {
-	CommitDialogueProgressTransaction(DialogueID, bCompletedNormally, bCompletedFirstConversation);
+	const bool bConfiscationOnly = DialogueID == FName(TEXT("__LCO_NOTEBOOK_CONFISCATED__"));
+	if (!bConfiscationOnly)
+	{
+		CommitDialogueProgressTransaction(DialogueID, bCompletedNormally, bCompletedFirstConversation);
+	}
 
 	if (IsValid(NPC))
 	{
@@ -148,7 +180,8 @@ void ULCODialogueSubsystem::HandleDialogueClosed(ALCONPCBase* NPC, FName Dialogu
 		ActiveNPC.Reset();
 	}
 
-	OnDialogueFinished.Broadcast(DialogueID, bCompletedNormally);
+	// The replacement has its own identity and is never an original NPC completion.
+	if (!bConfiscationOnly) OnDialogueFinished.Broadcast(DialogueID, bCompletedNormally);
 }
 
 void ULCODialogueSubsystem::HandleWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources)
@@ -215,6 +248,8 @@ void ULCODialogueSubsystem::TryCreateDialogue(APlayerController* PlayerControlle
 				DialogueWidget = ExistingDialogueWidget;
 				DialogueWidget->OnDialogueWidgetClosed.RemoveDynamic(this, &ThisClass::HandleDialogueClosed);
 				DialogueWidget->OnDialogueWidgetClosed.AddDynamic(this, &ThisClass::HandleDialogueClosed);
+				DialogueWidget->OnDialogueNodeEntered.AddUniqueDynamic(this, &ThisClass::HandleDialogueNodeEntered);
+				DialogueWidget->OnDialogueNodeConfirmed.AddUniqueDynamic(this, &ThisClass::HandleDialogueNodeConfirmed);
 				return;
 			}
 		}
@@ -225,6 +260,8 @@ void ULCODialogueSubsystem::TryCreateDialogue(APlayerController* PlayerControlle
 	{
 		DialogueWidget->OnDialogueWidgetClosed.RemoveDynamic(this, &ThisClass::HandleDialogueClosed);
 		DialogueWidget->OnDialogueWidgetClosed.AddDynamic(this, &ThisClass::HandleDialogueClosed);
+		DialogueWidget->OnDialogueNodeEntered.AddUniqueDynamic(this, &ThisClass::HandleDialogueNodeEntered);
+		DialogueWidget->OnDialogueNodeConfirmed.AddUniqueDynamic(this, &ThisClass::HandleDialogueNodeConfirmed);
 	}
 }
 
@@ -247,6 +284,8 @@ void ULCODialogueSubsystem::CleanupDialogue()
 
 	DialogueWidget->OnDialogueWidgetClosed.RemoveDynamic(this, &ThisClass::HandleDialogueClosed);
 	DialogueWidget->UnbindFromOptionsInput();
+	DialogueWidget->OnDialogueNodeEntered.RemoveDynamic(this, &ThisClass::HandleDialogueNodeEntered);
+	DialogueWidget->OnDialogueNodeConfirmed.RemoveDynamic(this, &ThisClass::HandleDialogueNodeConfirmed);
 	if (DialogueWidget->IsInViewport())
 	{
 		DialogueWidget->CloseDialogue(true);
@@ -257,6 +296,67 @@ void ULCODialogueSubsystem::CleanupDialogue()
 	}
 
 	DialogueWidget = nullptr;
+}
+
+void ULCODialogueSubsystem::SetSeniorCleanerState(FName State, bool bEnabled)
+{
+	if (State == FName(TEXT("NOTEBOOK_CONFISCATED")) || State == FName(TEXT("C2_NotebookConfiscated")))
+	{
+		SetNotebookConfiscated(bEnabled);
+		return;
+	}
+	static const TSet<FName> Supported = { TEXT("SC_407_CONFIRMED"), TEXT("SC_INTERROGATION_ATTEMPTED"),
+		TEXT("SC_POST_T15_SEEN") };
+	if (!Supported.Contains(State)) return;
+	if (bEnabled) SeniorCleanerStates.Add(State);
+	else SeniorCleanerStates.Remove(State);
+}
+
+ULCOStorySubsystem* ULCODialogueSubsystem::GetStorySubsystem() const
+{
+	const ULocalPlayer* LocalPlayer = GetLocalPlayer();
+	UGameInstance* GameInstance = LocalPlayer ? LocalPlayer->GetGameInstance() : nullptr;
+	return GameInstance ? GameInstance->GetSubsystem<ULCOStorySubsystem>() : nullptr;
+}
+
+bool ULCODialogueSubsystem::IsNotebookConfiscated() const
+{
+	if (const ULCOStorySubsystem* Story = GetStorySubsystem())
+		return Story->HasStateFlag(TEXT("C2_NotebookConfiscated"));
+	return SeniorCleanerStates.Contains(FName(TEXT("C2_NotebookConfiscated")));
+}
+
+void ULCODialogueSubsystem::HandleStoryStateFlagChanged(FName FlagName, bool bIsSet)
+{
+	if (FlagName != FName(TEXT("C2_NotebookConfiscated"))) return;
+	if (bIsSet)
+	{
+		if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+		{
+			if (ULCONotebookUISubsystem* NotebookUI = LocalPlayer->GetSubsystem<ULCONotebookUISubsystem>())
+			{
+				if (ULCONotebookWidget* Notebook = NotebookUI->GetNotebookWidget()) Notebook->CloseNotebook();
+			}
+		}
+	}
+	if (DialogueWidget) DialogueWidget->RefreshNotebookConfiscationState();
+}
+
+void ULCODialogueSubsystem::SetNotebookConfiscated(bool bConfiscated)
+{
+	if (ULCOStorySubsystem* Story = GetStorySubsystem())
+	{
+		SeniorCleanerStates.Remove(FName(TEXT("NOTEBOOK_CONFISCATED")));
+		SeniorCleanerStates.Remove(FName(TEXT("C2_NotebookConfiscated")));
+		if (bConfiscated) Story->SetStateFlag(TEXT("C2_NotebookConfiscated"));
+		else Story->ClearStateFlag(TEXT("C2_NotebookConfiscated"));
+		return;
+	}
+	if (IsNotebookConfiscated() == bConfiscated) return;
+	const FName State(TEXT("C2_NotebookConfiscated"));
+	if (bConfiscated) SeniorCleanerStates.Add(State);
+	else SeniorCleanerStates.Remove(State);
+	HandleStoryStateFlagChanged(State, bConfiscated);
 }
 
 void ULCODialogueSubsystem::BeginDialogueProgressTransaction(FName DialogueID, bool bStartedFirstConversation, FName ProgressKey)
@@ -464,6 +564,15 @@ void ULCODialogueSubsystem::TryStartDialogueForInteraction(ULCOInteractComponent
 
 	if (!DialogueWidget)
 	{
+		if (IsNotebookConfiscated()) NPC->EndConversation();
+		return;
+	}
+
+	const bool bConfiscated = IsNotebookConfiscated();
+	if (bConfiscated && DialogueWidget->IsDialogueActive())
+	{
+		// Do not replace an existing UI or leave a second NPC waiting for it.
+		if (ActiveNPC.Get() != NPC) NPC->EndConversation();
 		return;
 	}
 
@@ -476,6 +585,18 @@ void ULCODialogueSubsystem::TryStartDialogueForInteraction(ULCOInteractComponent
 	ActiveNPC = NPC;
 	NPC->OnConversationEnded.RemoveDynamic(this, &ThisClass::HandleNPCConversationEnded);
 	NPC->OnConversationEnded.AddDynamic(this, &ThisClass::HandleNPCConversationEnded);
+
+	if (bConfiscated)
+	{
+		// Branch before chapter selection, progress transactions and original flow playback.
+		if (!DialogueWidget->OpenNotebookConfiscatedDialogue(NPC, Interactor))
+		{
+			NPC->OnConversationEnded.RemoveDynamic(this, &ThisClass::HandleNPCConversationEnded);
+			ActiveNPC.Reset();
+			if (NPC->IsInConversation()) NPC->EndConversation();
+		}
+		return;
+	}
 
 	const FName NPCId = NPC->GetNPCId();
 

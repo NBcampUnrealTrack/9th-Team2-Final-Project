@@ -97,4 +97,6 @@ Content/MetaHumans/
 # 손전등 외부 에셋 (Fab, 구글 드라이브로 공유)
 /Content/DynamicFlashlight/
 /Content/FreeAnimationLibrary/
+/Content/__ExternalActors__/IgnoredAssets/
+/Content/__ExternalObjects__/IgnoredAssets/
 /.mcp.json

@@ -167,6 +167,16 @@ void ULCONotebookWidget::OpenNotebook()
 		return;
 	}
 
+	// 관리인에게 수첩을 압수당한 상태면 열지 않음 (관리인 방에서 되찾으면 다시 열림)
+	if (const ULCOStorySubsystem* StorySubsystem = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>())
+	{
+		if (StorySubsystem->HasStateFlag(TEXT("C2_NotebookConfiscated")))
+		{
+			UE_LOG(LogTemp, Log, TEXT("[LCONotebookWidget] OpenNotebook ignored: notebook confiscated"));
+			return;
+		}
+	}
+
 	if (const ALCOPlayerController* LCOPC = Cast<ALCOPlayerController>(GetOwningPlayer()))
 	{
 		if (LCOPC->IsInUIMode())

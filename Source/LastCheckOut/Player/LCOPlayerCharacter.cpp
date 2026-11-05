@@ -23,6 +23,7 @@
 #include "Components/SpotLightComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/CollisionProfile.h"
+#include "Camera/PlayerCameraManager.h"
 
 ALCOPlayerCharacter::ALCOPlayerCharacter()
 {
@@ -125,6 +126,10 @@ void ALCOPlayerCharacter::BeginPlay()
 	FirstPersonMesh->HideBoneByName(TEXT("neck_01"), EPhysBodyOp::PBO_None);
 
 	QuickSlotComponent->OnCameraEquipChanged.AddDynamic(this, &ALCOPlayerCharacter::HandleCameraEquipChanged);
+	QuickSlotComponent->OnUVLightChanged.AddDynamic(this, &ALCOPlayerCharacter::HandleUVLightChanged);
+	// 좌클릭 촬영 결과 → 찍는 몽타주 (퀵슬롯이 Capture를 호출하면 결과 델리게이트로 받음)
+	CameraCaptureComponent->OnPhotoCaptured.AddDynamic(this, &ALCOPlayerCharacter::HandlePhotoCaptured);
+	CameraCaptureComponent->OnCaptureFailed.AddDynamic(this, &ALCOPlayerCharacter::HandleCaptureFailed);
 	SetViewMode(DefaultViewMode);
 	
 	CurrentSenseCharges = MaxSenseCharges;
@@ -150,6 +155,7 @@ void ALCOPlayerCharacter::Tick(float DeltaSeconds)
 	
 	UpdateSprint();
 	UpdateBuffEffects(DeltaSeconds);
+	UpdateConversationFocus(DeltaSeconds);
 	UpdateCameraFOV(DeltaSeconds);
 	UpdateHeadBob(DeltaSeconds);
 	UpdateFlashlight();
@@ -301,7 +307,8 @@ void ALCOPlayerCharacter::Interact()
 
 void ALCOPlayerCharacter::ToggleView()
 {
-	if (IsActionBlocked())
+	// 카메라를 든 동안(뷰파인더)에는 시점 전환 막기
+	if (IsActionBlocked() || bCameraEquipped)
 	{
 		return;
 	}
@@ -338,6 +345,7 @@ void ALCOPlayerCharacter::SetViewMode(ELCOViewMode NewMode)
 	// 손 카메라를 시점에 맞는 손에 부착
 	AttachHeldCamera();
 	UpdateFlashlightVisuals();
+	UpdateViewfinderVisuals();
 	// 1인칭에서는 내 몸 가림 처리 끄기 (그림자가 디더로 깨지는 문제 방지)
 	CameraOcclusionComponent->SetSelfOcclusionEnabled(!bFirstPerson);
 }
@@ -350,6 +358,13 @@ void ALCOPlayerCharacter::UpdateCameraFOV(float DeltaSeconds)
 	// 감각 홀드 중에는 진행도에 따라 줌인 (발동 / 취소되면 진행도가 0이 되어 원래 FOV로 풀림)
 	const float SenseZoomAlpha = FMath::InterpEaseInOut(0.f, 1.f, GetSenseHoldProgress(), 2.f);
 	TargetFOV -= SenseZoomFOV * SenseZoomAlpha;
+	// 카메라 뷰파인더: 들면 서서히 줌인 (카메라 안으로 들어가는 느낌), 내리면 원래대로
+	ViewfinderAlpha = FMath::FInterpTo(ViewfinderAlpha, bInViewfinder ? 1.f : 0.f, DeltaSeconds, ViewfinderZoomSpeed);
+	TargetFOV -= ViewfinderZoomFOV * ViewfinderAlpha;
+	
+	// 대화 중 살짝 줌인, 끝나면 원래대로
+	ConversationAlpha = FMath::FInterpTo(ConversationAlpha, ConversationTarget.IsValid() ? 1.f : 0.f, DeltaSeconds, ConversationTurnSpeed);
+	TargetFOV -= ConversationZoomFOV * ConversationAlpha;
 
 	Camera->SetFieldOfView(FMath::FInterpTo(Camera->FieldOfView, TargetFOV, DeltaSeconds, FOVInterpSpeed));
 }
@@ -593,12 +608,81 @@ void ALCOPlayerCharacter::HandleCameraEquipChanged(bool bEquipped)
 	bCameraEquipped = bEquipped;
 	HeldCameraMesh->SetVisibility(bEquipped);
 
+	// 뷰파인더는 눈에 대는 화면이라 1인칭으로 들어가고, 내리면 원래 시점으로 복귀
+	if (bEquipped)
+	{
+		ViewModeBeforeCamera = ViewMode;
+		if (ViewMode != ELCOViewMode::FirstPerson)
+		{
+			SetViewMode(ELCOViewMode::FirstPerson);
+		}
+	}
+	else if (ViewMode != ViewModeBeforeCamera)
+	{
+		SetViewMode(ViewModeBeforeCamera);
+	}
+
+	// 먼저 카메라를 눈앞으로 드는 동작을 보여주고, 다 들면 뷰파인더로 들어감. 내릴 때는 바로 나옴
+	GetWorldTimerManager().ClearTimer(ViewfinderTimerHandle);
+	if (bEquipped && CameraRaiseTime > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(ViewfinderTimerHandle, this, &ALCOPlayerCharacter::EnterViewfinder, CameraRaiseTime, false);
+	}
+	else if (bEquipped)
+	{
+		EnterViewfinder();
+	}
+	else
+	{
+		SetInViewfinder(false);
+	}
+
+	UpdateViewfinderVisuals();
+	UpdateFlashlightVisuals();
+
 	if (UAnimMontage* Montage = bEquipped ? CameraEquipMontage : CameraUnequipMontage)
 	{
 		PlayAnimMontage(Montage);
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("[LCOPlayerCharacter] Camera %s"), bEquipped ? TEXT("Equipped") : TEXT("Unequipped"));
+}
+
+void ALCOPlayerCharacter::HandleUVLightChanged(bool bOn)
+{
+	bUVLightOn = bOn;
+	UpdateFlashlightVisuals();
+}
+
+void ALCOPlayerCharacter::HandlePhotoCaptured(FName CaptureID, UTexture2D* PhotoImage, FText PhotoTitle, FText PhotoDescription)
+{
+	PlayCameraShootMontage();
+}
+
+void ALCOPlayerCharacter::HandleCaptureFailed(ELCOCameraCaptureResult Result)
+{
+	// 셔터는 눌렀는데 대상이 없거나 이미 찍은 경우도 찍는 동작은 보여줌 (대기 시간 / 오류는 제외)
+	if (Result == ELCOCameraCaptureResult::NoTarget || Result == ELCOCameraCaptureResult::AlreadyCaptured)
+	{
+		PlayCameraShootMontage();
+	}
+}
+
+void ALCOPlayerCharacter::PlayCameraShootMontage()
+{
+	if (!bCameraEquipped || !CameraShootMontage)
+	{
+		return;
+	}
+
+	// 연타해도 처음부터 다시 재생되지 않게
+	const UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && AnimInstance->Montage_IsPlaying(CameraShootMontage))
+	{
+		return;
+	}
+
+	PlayAnimMontage(CameraShootMontage);
 }
 
 // ---------- 웅크리기 ----------
@@ -914,13 +998,16 @@ void ALCOPlayerCharacter::UpdateFlashlight()
 void ALCOPlayerCharacter::UpdateFlashlightVisuals()
 {
 	const bool bFirstPerson = (ViewMode == ELCOViewMode::FirstPerson);
-	const bool bShowArms = bFlashlightOn && bFirstPerson;
+	const bool bHoldingLight = IsHoldingLight();
 
-	// 1인칭: 카메라에 붙은 손전등 팔 + 그 손의 손전등 모델 (자식까지 같이)
+	// 손전등 / UV 라이트를 들고 있을 때 1인칭 손전등 팔 표시 (카메라를 든 동안에는 숨김)
+	const bool bShowArms = bHoldingLight && bFirstPerson && !bCameraEquipped;
+
+	// 1인칭: 카메라에 붙은 손전등 팔 + 그 손의 모델 (자식까지 같이)
 	FlashlightArmsMesh->SetVisibility(bShowArms, true);
 
-	// 전신용 손전등 모델: 켜져 있을 때 보이지만, 1인칭에서는 내 화면에서 숨김 (손전등 팔이 대신 보임)
-	FlashlightMesh->SetVisibility(bFlashlightOn);
+	// 전신용 모델: 들고 있을 때 보이지만, 1인칭에서는 내 화면에서 숨김 (손전등 팔이 대신 보임)
+	FlashlightMesh->SetVisibility(bHoldingLight);
 	FlashlightMesh->SetOwnerNoSee(bFirstPerson);
 
 	// 1인칭 전신 메시의 오른팔은 손전등 팔과 겹치지 않게 숨김
@@ -932,4 +1019,93 @@ void ALCOPlayerCharacter::UpdateFlashlightVisuals()
 	{
 		FirstPersonMesh->UnHideBoneByName(FlashlightArmBone);
 	}
+}
+
+void ALCOPlayerCharacter::UpdateViewfinderVisuals()
+{
+	// 1인칭으로 카메라를 들고 있으면 뷰파인더 화면이라 내 팔 / 손 카메라를 내 화면에서 숨김
+	const bool bHideArms = bInViewfinder && ViewMode == ELCOViewMode::FirstPerson;
+
+	HeldCameraMesh->SetOwnerNoSee(bInViewfinder);
+
+	if (bInViewfinder)
+	{
+		FirstPersonMesh->HideBoneByName(TEXT("clavicle_l"), EPhysBodyOp::PBO_None);
+		FirstPersonMesh->HideBoneByName(TEXT("clavicle_r"), EPhysBodyOp::PBO_None);
+	}
+	else
+	{
+		FirstPersonMesh->UnHideBoneByName(TEXT("clavicle_l"));
+		FirstPersonMesh->UnHideBoneByName(TEXT("clavicle_r"));
+	}
+}
+
+// ---------- 대화 시점 ----------
+
+void ALCOPlayerCharacter::BeginConversationFocus(AActor* Target)
+{
+	ConversationTarget = Target;
+}
+
+void ALCOPlayerCharacter::EndConversationFocus()
+{
+	ConversationTarget.Reset();
+}
+
+void ALCOPlayerCharacter::UpdateConversationFocus(float DeltaSeconds)
+{
+	AActor* Target = ConversationTarget.Get();
+	if (!Target || !Controller)
+	{
+		return;
+	}
+
+	// 바라볼 위치: NPC 머리 뼈 (없으면 NPC 위치 + 높이)
+	FVector FocusLocation = Target->GetActorLocation() + FVector(0.f, 0.f, ConversationFocusHeight);
+	if (const ACharacter* TargetCharacter = Cast<ACharacter>(Target))
+	{
+		const USkeletalMeshComponent* TargetMesh = TargetCharacter->GetMesh();
+		if (TargetMesh && TargetMesh->DoesSocketExist(ConversationFocusBone))
+		{
+			FocusLocation = TargetMesh->GetSocketLocation(ConversationFocusBone);
+		}
+	}
+
+	// 카메라에서 NPC 얼굴을 바라보는 방향으로 천천히 회전 (몸은 PUBG식 회전으로 자동으로 따라 돎)
+	const FRotator DesiredRotation = (FocusLocation - Camera->GetComponentLocation()).Rotation();
+	const FRotator NewRotation = FMath::RInterpTo(Controller->GetControlRotation(), DesiredRotation, DeltaSeconds, ConversationTurnSpeed);
+	Controller->SetControlRotation(NewRotation);
+}
+
+void ALCOPlayerCharacter::EnterViewfinder()
+{
+	// 타이머 도중 카메라를 내렸으면 무시
+	if (!bCameraEquipped)
+	{
+		return;
+	}
+
+	// 팔이 사라지는 순간을 짧은 암전으로 가림 (카메라에 눈을 대는 느낌)
+	if (ViewfinderFadeTime > 0.f)
+	{
+		const APlayerController* PC = Cast<APlayerController>(GetController());
+		if (PC && PC->PlayerCameraManager)
+		{
+			PC->PlayerCameraManager->StartCameraFade(1.f, 0.f, ViewfinderFadeTime, FLinearColor::Black);
+		}
+	}
+
+	SetInViewfinder(true);
+}
+
+void ALCOPlayerCharacter::SetInViewfinder(bool bNewInViewfinder)
+{
+	if (bInViewfinder == bNewInViewfinder)
+	{
+		return;
+	}
+
+	bInViewfinder = bNewInViewfinder;
+	UpdateViewfinderVisuals();
+	OnViewfinderChanged.Broadcast(bInViewfinder);
 }

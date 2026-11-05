@@ -8,6 +8,7 @@
 #include "LCOPuzzleBase.generated.h"
 
 class ALCOOpenableBase;
+class ULCOPuzzleViewComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPuzzleSolved, ALCOPuzzleBase*, Puzzle);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPuzzleFailed, ALCOPuzzleBase*, Puzzle);
@@ -18,6 +19,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPuzzleActivated, ALCOPuzzleBase*,
 // 공통 처리: 활성화 조건(선행 퍼즐), 실패 / 리셋, 해결 결과(잠금 해제 대상, 스토리 결과), 저장 복원
 // 저장: 해결 여부는 ULCOPuzzleSubsystem(퍼즐 ID 기준), 활성 상태는 LCOWorldStateSubsystem(ILCOSaveableActor)
 //       → Activate() / Deactivate()로 바꾼 활성 상태도 맵 이동 / 이어하기 후 유지됨
+// 확대 보기: ULCOPuzzleViewComponent가 붙어 있으면 F키는 보기 시작만 하고, 보기 중 클릭부터 퍼즐 입력으로 처리
 UCLASS(Abstract, Blueprintable)
 class LASTCHECKOUT_API ALCOPuzzleBase : public AActor, public ILCOInteractionReceiver, public ILCOSaveableActor
 {
@@ -30,7 +32,7 @@ public:
 	// 공통 검사 후 HandlePuzzleInput으로 전달. 자식은 이 함수 대신 HandlePuzzleInput을 구현할 것
 	virtual void HandleInteraction_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) override final;
 
-	// 해결됐거나 비활성 상태면 잠금
+	// 해결됐거나 비활성 상태, 또는 확대 보기 중이면 잠금
 	virtual bool IsInteractionLocked_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const override;
 
 	// 비활성 상태면 InactivePrompt, 그 외에는 컴포넌트 기본 문구
@@ -202,4 +204,8 @@ private:
 	int32 FailCount = 0;
 
 	FDelegateHandle RestoredHandle;
+
+	// 확대 보기 컴포넌트 (없으면 F키로 바로 퍼즐 입력)
+	UPROPERTY()
+	TObjectPtr<ULCOPuzzleViewComponent> ViewComponent;
 };

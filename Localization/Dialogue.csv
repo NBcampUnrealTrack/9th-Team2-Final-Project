@@ -1,2 +1,3 @@
 Key,ko,en,ja,zh-CN,zh-TW,es,fr,de,pt-BR,fi
-NPC_NO_QUESTIONS,필요한 일이 생기면 다시 말씀해 주십시오.,Please speak to me again if you need anything.,,,,,,,,
+NPC_NOTEBOOK_CONFISCATED,우선 수첩을 되찾아야 한다.,"First, I need to get my notebook back.",まずは手帳を取り戻さなければ。,首先得把笔记本拿回来。,首先得把筆記本拿回來。,Primero tengo que recuperar mi libreta.,"D'abord, je dois récupérer mon carnet.",Zuerst muss ich mein Notizbuch zurückholen.,"Primeiro, preciso recuperar meu caderno.",Ensin minun on saatava muistikirjani takaisin.
+NPC_NO_QUESTIONS,"""필요한 일이 생기면 다시 말씀해 주십시오.""","""Please speak to me again if you need anything.""",「何かご用がありましたら、またお声がけください。」,“如果有需要，请再来找我。”,「如果有需要，請再來找我。」,"""Si necesita algo, vuelva a hablar conmigo.""","""Si vous avez besoin de quoi que ce soit, revenez me voir.""","""Wenn Sie etwas brauchen, sprechen Sie mich einfach wieder an.""","""Se precisar de algo, é só falar comigo de novo.""","""Jos tarvitsette jotain, puhukaa minulle uudelleen."""

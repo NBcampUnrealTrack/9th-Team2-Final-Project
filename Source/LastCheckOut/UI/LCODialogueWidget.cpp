@@ -1,4 +1,5 @@
 #include "UI/LCODialogueWidget.h"
+#include "UI/LCOPhoneOverlayWidget.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Border.h"
@@ -6,6 +7,7 @@
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
+#include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 #include "Inventory/InventoryComponent.h"
@@ -20,6 +22,7 @@
 #include "Story/LCOStorySubsystem.h"
 #include "TimerManager.h"
 #include "UI/LCODialogueChoiceWidget.h"
+#include "UI/LCODialogueSubsystem.h"
 #include "UI/LCOInteractionPromptSubsystem.h"
 #include "UObject/SoftObjectPath.h"
 
@@ -28,11 +31,13 @@ namespace
 	const FName RowTypeLine = TEXT("Line");
 	const FName RowTypeChoice = TEXT("Choice");
 	const FName SystemSpeakerID = TEXT("System");
+	const FName NarratorSpeakerID = TEXT("Narrator");
 	const FName WorkSeniorDialogueID = TEXT("WorkSenior");
 	const FName ProtagonistSpeakerID = TEXT("Protagonist");
 	const FName FirstNodeID = TEXT("FIRST_01");
 	const FName DefaultNodeID = TEXT("DEFAULT_01");
 	const FName NoQuestionsNodeID = TEXT("__LCO_NO_QUESTIONS__");
+	const FName NotebookConfiscatedNodeID = TEXT("__LCO_NOTEBOOK_CONFISCATED__");
 	const FName EndNodeID = TEXT("END");
 
 	bool IsHighSurrogate(TCHAR Character)
@@ -131,6 +136,8 @@ void ULCODialogueWidget::NativeOnInitialized()
 
 	SetIsFocusable(true);
 	SetChoicesVisible(false);
+	OnDialogueNodeEntered.AddUniqueDynamic(this, &ThisClass::HandlePhoneNodeEntered);
+	OnDialogueNodeConfirmed.AddUniqueDynamic(this, &ThisClass::HandlePhoneNodeConfirmed);
 
 	if (ALCOPlayerController* LCOPC = Cast<ALCOPlayerController>(GetOwningPlayer()))
 	{
@@ -149,6 +156,10 @@ void ULCODialogueWidget::NativeConstruct()
 
 void ULCODialogueWidget::NativeDestruct()
 {
+	// External removal is an interruption, never a completed company report.
+	if ((ActiveDialogueID == WorkSeniorDialogueID || ActiveDialogueID == NotebookConfiscatedNodeID)
+		&& !bIsClosingDialogue) CloseDialogue();
+	ResetPhonePresentation();
 	ClearAutoAdvanceTimer();
 	ClearTypewriterTimer();
 	UnbindLocalizationEvents();
@@ -161,10 +172,244 @@ void ULCODialogueWidget::NativeDestruct()
 	Super::NativeDestruct();
 }
 
+FReply ULCODialogueWidget::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	const FKey InputKey = InKeyEvent.GetKey();
+	if (IsInViewport() && IsDialogueActive() && (InputKey == EKeys::LeftControl || InputKey == EKeys::RightControl))
+	{
+		const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID);
+		if (IsPhoneProgressBlocked() || !Node || Node->RowType != RowTypeLine
+			|| (bPhoneReport && ActiveNodeID == FName(TEXT("REPORT_004"))))
+		{
+			StopFastForward();
+		}
+		else if (!InKeyEvent.IsRepeat())
+		{
+			if (InputKey == EKeys::LeftControl) bLeftControlHeld = true;
+			else bRightControlHeld = true;
+			FastForwardElapsed = FMath::Max(0.01f, FastForwardInterval);
+		}
+		return FReply::Handled();
+	}
+	if (InKeyEvent.GetKey() == EKeys::F) bPhoneFDown = true;
+	if (IsPhoneProgressBlocked())
+	{
+		if (InKeyEvent.GetKey() == EKeys::F && bTutorialOpen
+			&& !bTutorialNeedsFreshPress && !InKeyEvent.IsRepeat())
+		{
+			bTutorialHolding = true;
+			TutorialHeldSeconds = 0.f;
+		}
+		return FReply::Handled();
+	}
+	if (InputKey == EKeys::F && InKeyEvent.IsRepeat()) return FReply::Handled();
+	// Only dialogue/options keys and mouse input may reach focused children or game input.
+	const FKey Key = InKeyEvent.GetKey();
+	const bool bAllowedInput = Key == EKeys::Escape || Key == EKeys::O || Key == EKeys::F || Key.IsMouseButton();
+	if (IsInViewport() && IsDialogueActive() && !bAllowedInput)
+	{
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent);
+}
+
+bool ULCODialogueWidget::IsPhoneProgressBlocked() const
+{
+	return bTutorialOpen || bTutorialAwaitRelease || bPhoneFadeActive;
+}
+
+FReply ULCODialogueWidget::NativeOnPreviewMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (IsPhoneProgressBlocked()) return FReply::Handled();
+	return Super::NativeOnPreviewMouseButtonDown(InGeometry, InMouseEvent);
+}
+
+void ULCODialogueWidget::HandlePhoneNodeEntered(FName DialogueID, FName NodeID)
+{
+	const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(NodeID);
+	if ((Node && Node->RowType == RowTypeChoice)
+		|| (DialogueID == WorkSeniorDialogueID && NodeID == FName(TEXT("REPORT_004")))) StopFastForward();
+	if (DialogueID != WorkSeniorDialogueID || NodeID != FName(TEXT("REPORT_001"))) return;
+	StopFastForward();
+	bPhoneReport = true;
+	bPhoneFadeActive = true;
+	bPhoneFadeIn = false;
+	PhoneFadeElapsed = 0.f;
+	PhoneOverlay = CreateWidget<ULCOPhoneOverlayWidget>(GetOwningPlayer());
+	if (!PhoneOverlay)
+	{
+		CloseDialogue();
+		return;
+	}
+	PhoneOverlay->Configure(FText::GetEmpty(), nullptr, false);
+	PhoneOverlay->SetFadeOpacity(0.f);
+	PhoneOverlay->AddToViewport(ViewportZOrder - 1);
+}
+
+void ULCODialogueWidget::HandlePhoneNodeConfirmed(FName DialogueID, FName NodeID)
+{
+	if (DialogueID != WorkSeniorDialogueID) return;
+	if (bPhoneReport && NodeID == FName(TEXT("REPORT_004")))
+	{
+		bPhoneFadeActive = true;
+		bPhoneFadeIn = true;
+		PhoneFadeElapsed = 0.f;
+		return;
+	}
+	FName Tutorial;
+	if (NodeID == FName(TEXT("FIRST_030")) || NodeID == FName(TEXT("SECOND_TUTORIAL_004"))) Tutorial = TEXT("Camera");
+	else if (NodeID == FName(TEXT("FIRST_045")) || NodeID == FName(TEXT("SECOND_TUTORIAL_005"))) Tutorial = TEXT("Sense");
+	else if (NodeID == FName(TEXT("FIRST_053")) || NodeID == FName(TEXT("SECOND_TUTORIAL_006"))) Tutorial = TEXT("Notebook");
+	if (Tutorial.IsNone()) return;
+	StopFastForward();
+
+	PhoneOverlay = CreateWidget<ULCOPhoneOverlayWidget>(GetOwningPlayer());
+	if (!PhoneOverlay)
+	{
+		CloseDialogue();
+		return;
+	}
+	const FText Title = Tutorial == FName(TEXT("Camera"))
+		? NSLOCTEXT("LCOPhoneTutorial", "Camera", "카메라")
+		: Tutorial == FName(TEXT("Sense"))
+		? NSLOCTEXT("LCOPhoneTutorial", "Sense", "감각 능력")
+		: NSLOCTEXT("LCOPhoneTutorial", "Notebook", "수첩 및 추리");
+	const TObjectPtr<UTexture2D>* Texture = PhoneTutorialImages.Find(Tutorial);
+	PhoneOverlay->Configure(Title, Texture ? Texture->Get() : nullptr, true, TutorialHoldSeconds);
+	PhoneOverlay->AddToViewport(ViewportZOrder + 1);
+	bTutorialOpen = true;
+	bTutorialNeedsFreshPress = bPhoneFDown;
+	bTutorialAdvancePending = true;
+	bTutorialHolding = false;
+	TutorialHeldSeconds = 0.f;
+	SetKeyboardFocus();
+}
+
+FReply ULCODialogueWidget::NativeOnKeyUp(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (InKeyEvent.GetKey() == EKeys::LeftControl || InKeyEvent.GetKey() == EKeys::RightControl)
+	{
+		if (InKeyEvent.GetKey() == EKeys::LeftControl) bLeftControlHeld = false;
+		else bRightControlHeld = false;
+		if (!bLeftControlHeld && !bRightControlHeld) StopFastForward();
+		return FReply::Handled();
+	}
+	if (InKeyEvent.GetKey() == EKeys::F)
+	{
+		bPhoneFDown = false;
+		bTutorialHolding = false;
+		bTutorialNeedsFreshPress = false;
+		TutorialHeldSeconds = 0.f;
+		if (bTutorialAwaitRelease)
+		{
+			ReleaseTutorialInput();
+			return FReply::Handled();
+		}
+		if (bTutorialOpen) return FReply::Handled();
+	}
+	return Super::NativeOnKeyUp(InGeometry, InKeyEvent);
+}
+
+void ULCODialogueWidget::ReleaseTutorialInput()
+{
+	bTutorialAwaitRelease = false;
+	const bool bResume = bTutorialAdvancePending;
+	bTutorialAdvancePending = false;
+	// This node was already acknowledged before opening the popup.
+	if (bResume && IsDialogueActive()) AdvanceDialogue(false);
+}
+
+void ULCODialogueWidget::StopFastForward()
+{
+	// Repeats cannot re-arm this; resuming requires a new Ctrl key-down.
+	bLeftControlHeld = false;
+	bRightControlHeld = false;
+	FastForwardElapsed = 0.f;
+}
+
+void ULCODialogueWidget::TickFastForward(float DeltaSeconds)
+{
+	if (!bLeftControlHeld && !bRightControlHeld) return;
+	APlayerController* PC = GetOwningPlayer();
+	const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID);
+	if (!IsInViewport() || !IsDialogueActive() || !PC
+		|| (!HasUserFocus(PC) && !HasUserFocusedDescendants(PC))
+		|| UGameplayStatics::IsGamePaused(this) || IsPhoneProgressBlocked()
+		|| !Node || Node->RowType != RowTypeLine
+		|| (bPhoneReport && ActiveNodeID == FName(TEXT("REPORT_004"))))
+	{
+		StopFastForward();
+		return;
+	}
+	FastForwardElapsed += DeltaSeconds;
+	if (FastForwardElapsed < FMath::Max(0.01f, FastForwardInterval)) return;
+	// At most one existing dialogue action per tick; never catch up in an unbounded loop.
+	FastForwardElapsed = 0.f;
+	ClearAutoAdvanceTimer();
+	AdvanceDialogue(); // Completes typing first, then advances on the next interval.
+}
+
+void ULCODialogueWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	TickFastForward(InDeltaTime);
+	if (bTutorialOpen && bTutorialHolding)
+	{
+		if (!HasKeyboardFocus() || UGameplayStatics::IsGamePaused(this))
+		{
+			bTutorialHolding = false;
+			TutorialHeldSeconds = 0.f;
+		}
+		else
+		{
+			TutorialHeldSeconds += InDeltaTime;
+			if (TutorialHeldSeconds >= FMath::Max(0.01f, TutorialHoldSeconds))
+			{
+				if (PhoneOverlay) PhoneOverlay->RemoveFromParent();
+				PhoneOverlay = nullptr;
+				bTutorialOpen = false;
+				bTutorialHolding = false;
+				bTutorialAwaitRelease = true;
+			}
+		}
+	}
+	if (!bPhoneFadeActive || !PhoneOverlay || UGameplayStatics::IsGamePaused(this)) return;
+	PhoneFadeElapsed += InDeltaTime;
+	const float Alpha = FMath::Clamp(PhoneFadeElapsed / FMath::Max(0.01f, PhoneReportFadeSeconds), 0.f, 1.f);
+	PhoneOverlay->SetFadeOpacity(bPhoneFadeIn ? 1.f - Alpha : Alpha);
+	if (Alpha < 1.f) return;
+	bPhoneFadeActive = false;
+	if (bPhoneFadeIn)
+	{
+		// Normal completion is emitted only after the final acknowledgement AND fade-in.
+		CompleteActiveConversation();
+	}
+}
+
+void ULCODialogueWidget::ResetPhonePresentation()
+{
+	StopFastForward();
+	if (PhoneOverlay) PhoneOverlay->RemoveFromParent();
+	PhoneOverlay = nullptr;
+	bTutorialOpen = false;
+	bPhoneFDown = false;
+	bTutorialAwaitRelease = false;
+	bTutorialHolding = false;
+	bTutorialNeedsFreshPress = false;
+	bTutorialAdvancePending = false;
+	TutorialHeldSeconds = 0.f;
+	bPhoneReport = false;
+	bPhoneFadeActive = false;
+	bPhoneFadeIn = false;
+	PhoneFadeElapsed = 0.f;
+}
+
 FReply ULCODialogueWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
-	if (IsInViewport() && (InKeyEvent.GetKey() == EKeys::F || InKeyEvent.GetKey() == EKeys::Enter || InKeyEvent.GetKey() == EKeys::SpaceBar))
+	if (IsInViewport() && InKeyEvent.GetKey() == EKeys::F)
 	{
+		if (IsPhoneProgressBlocked() || InKeyEvent.IsRepeat()) return FReply::Handled();
 		if (bAutoAdvanceActive) return FReply::Handled();
 		if (bIsTypewriting)
 		{
@@ -182,6 +427,7 @@ FReply ULCODialogueWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FK
 
 FReply ULCODialogueWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
+	if (IsPhoneProgressBlocked()) return FReply::Handled();
 	if (IsInViewport() && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && !ActiveNodeID.IsNone())
 	{
 		if (bAutoAdvanceActive) return FReply::Handled();
@@ -237,22 +483,69 @@ bool ULCODialogueWidget::OpenDialogueByID(FName DialogueID, FName StartNodeID, A
 	return OpenDialogueInternal(nullptr, InInteractor, DialogueID, StartNodeID, bPlayFirstConversation);
 }
 
+bool ULCODialogueWidget::OpenNotebookConfiscatedDialogue(ALCONPCBase* InNPC, AActor* InInteractor)
+{
+	if (!IsValid(InNPC) || !IsValid(InInteractor) || IsDialogueActive()) return false;
+	return OpenDialogueInternal(InNPC, InInteractor, NotebookConfiscatedNodeID, NotebookConfiscatedNodeID, false);
+}
+
 bool ULCODialogueWidget::OpenDialogueInternal(ALCONPCBase* InNPC, AActor* InInteractor, FName DialogueID, FName InitialNodeID, bool bPlayFirstConversation)
 {
 	ActiveNPC = InNPC;
 	Interactor = InInteractor;
 	ActiveDialogueID = DialogueID;
+	LastLineSpeakerID = NAME_None;
 	bActiveDialogueStartedAsFirstConversation = bPlayFirstConversation;
 	bActiveDialogueCompletedNormally = false;
+	bActiveDialogueIsPostT15 = false;
+	bActiveDialogueConfirms407 = false;
 	LastVoicePlaybackTime = -FLT_MAX;
 
-	if (!LoadFlowForDialogueID(ActiveDialogueID))
+	const bool bConfiscationOnly = ActiveDialogueID == NotebookConfiscatedNodeID;
+	if (bConfiscationOnly)
+	{
+		// Runtime-only flow: never load or execute the original NPC's nodes.
+		ActiveFlow = FLCODialogueFlow();
+		VisibleChoiceTargets.Empty();
+	}
+	else if (!LoadFlowForDialogueID(ActiveDialogueID))
 	{
 		ActiveNPC.Reset();
 		Interactor.Reset();
 		ActiveDialogueID = NAME_None;
 		bActiveDialogueStartedAsFirstConversation = false;
 		return false;
+	}
+
+	if (ActiveDialogueID == FName(TEXT("SeniorCleaner")) && IsValid(InNPC))
+	{
+		FName PreferredNode = InitialNodeID;
+		if (IsConditionMet(TEXT("T15")))
+		{
+			PreferredNode = IsConditionMet(TEXT("SC_POST_T15_SEEN")) ? FName(TEXT("POST_T15_DEFAULT")) : FName(TEXT("POST_T15_01"));
+		}
+		else if (bPlayFirstConversation)
+		{
+			PreferredNode = IsConditionMet(TEXT("T12")) ? FName(TEXT("FIRST_T12_01")) : FirstNodeID;
+		}
+		else if (IsConditionMet(TEXT("T12&!SC_407_CONFIRMED"))) PreferredNode = TEXT("T12_REVISIT_01");
+		else if (IsConditionMet(TEXT("SC_407_CONFIRMED"))) PreferredNode = TEXT("DEFAULT_02");
+		// Older CSVs retain their original entry points.
+		if (ActiveFlow.Nodes.Contains(PreferredNode)) InitialNodeID = PreferredNode;
+		bActiveDialogueIsPostT15 = InitialNodeID == FName(TEXT("POST_T15_01"));
+		bActiveDialogueConfirms407 = InitialNodeID == FName(TEXT("FIRST_T12_01"))
+			|| InitialNodeID == FName(TEXT("T12_REVISIT_01"));
+	}
+
+	if (IsValid(InNPC))
+	{
+		FLCODialogueNode Confiscated;
+		Confiscated.NodeID = NotebookConfiscatedNodeID;
+		Confiscated.RowType = RowTypeLine;
+		Confiscated.SpeakerID = NarratorSpeakerID;
+		Confiscated.TextKey = TEXT("NPC_NOTEBOOK_CONFISCATED");
+		Confiscated.bEndConversation = true;
+		ActiveFlow.Nodes.Add(NotebookConfiscatedNodeID, MoveTemp(Confiscated));
 	}
 
 	if (!ActiveFlow.Nodes.Contains(InitialNodeID))
@@ -269,7 +562,7 @@ bool ULCODialogueWidget::OpenDialogueInternal(ALCONPCBase* InNPC, AActor* InInte
 		return false;
 	}
 
-	if (IsValid(InNPC) && !bPlayFirstConversation)
+	if (IsValid(InNPC) && !bPlayFirstConversation && !bConfiscationOnly)
 	{
 		// Register before playback so switching to this line never invalidates pointers into Nodes.
 		FLCODialogueNode Fallback;
@@ -307,11 +600,15 @@ void ULCODialogueWidget::CloseDialogue(bool bEndNPCConversation)
 	}
 
 	TGuardValue<bool> ClosingGuard(bIsClosingDialogue, true);
+	ResetPhonePresentation();
+	++NodeActivationSerial;
+	bActiveNodeConfirmed = false;
 
 	ALCONPCBase* NPC = ActiveNPC.Get();
 	const FName ClosingDialogueID = ActiveDialogueID;
 	const bool bCompletedNormally = bActiveDialogueCompletedNormally;
-	const bool bCompletedFirstConversation = bActiveDialogueStartedAsFirstConversation && bCompletedNormally;
+	const bool bCompletedFirstConversation = bActiveDialogueStartedAsFirstConversation && bCompletedNormally
+		&& ActiveNodeID != NotebookConfiscatedNodeID;
 
 	ClearAutoAdvanceTimer();
 	ClearTypewriterTimer();
@@ -320,6 +617,7 @@ void ULCODialogueWidget::CloseDialogue(bool bEndNPCConversation)
 
 	ActiveNodeID = NAME_None;
 	ActiveDialogueID = NAME_None;
+	LastLineSpeakerID = NAME_None;
 	FullTypewriterString.Empty();
 	TypewriterVisibleLength = 0;
 	bIsTypewriting = false;
@@ -328,6 +626,8 @@ void ULCODialogueWidget::CloseDialogue(bool bEndNPCConversation)
 	VisibleChoiceTargets.Empty();
 	bActiveDialogueStartedAsFirstConversation = false;
 	bActiveDialogueCompletedNormally = false;
+	bActiveDialogueConfirms407 = false;
+	bActiveDialogueIsPostT15 = false;
 	SetChoicesVisible(false);
 
 	if (IsInViewport())
@@ -377,6 +677,10 @@ void ULCODialogueWidget::HandleOptionsRequested()
 
 void ULCODialogueWidget::HandleChoiceSelected(FName ChoiceID)
 {
+	if (IsPhoneProgressBlocked()) return;
+	const FLCODialogueNode* CurrentNode = ActiveFlow.Nodes.Find(ActiveNodeID);
+	if (CurrentNode && TryStartNotebookConfiscatedDialogue(*CurrentNode)) return;
+
 	const FName* TargetNodeID = VisibleChoiceTargets.Find(ChoiceID);
 	if (!TargetNodeID)
 	{
@@ -401,6 +705,7 @@ void ULCODialogueWidget::HandleChoiceSelected(FName ChoiceID)
 		}
 	}
 
+	if (!ConfirmActiveNode()) return;
 	if (IsEndNode(SelectedTarget))
 	{
 		CompleteActiveConversation();
@@ -637,7 +942,7 @@ bool ULCODialogueWidget::LoadFlowForDialogueID(FName DialogueID)
 
 bool ULCODialogueWidget::ValidateSpeakerNameKey(FName SpeakerID, const FString& Context) const
 {
-	if (SpeakerID == SystemSpeakerID) return true;
+	if (SpeakerID == SystemSpeakerID || SpeakerID == NarratorSpeakerID) return true;
 
 	if (SpeakerID.IsNone())
 	{
@@ -679,11 +984,17 @@ void ULCODialogueWidget::StartNode(FName NodeID)
 		return;
 	}
 
+	if (TryStartNotebookConfiscatedDialogue(*Node)) return;
 	if (TryStartNoQuestionsDialogue(*Node)) return;
 
 	ActiveNodeID = NodeID;
 	SetChoicesVisible(false);
 	VisibleChoiceTargets.Empty();
+	bActiveNodeConfirmed = false;
+	const uint64 EntrySerial = ++NodeActivationSerial;
+	OnDialogueNodeEntered.Broadcast(ActiveDialogueID, ActiveNodeID);
+	// Subscribers may close the UI or begin a different node/dialogue synchronously.
+	if (NodeActivationSerial != EntrySerial) return;
 
 	if (Node->RowType == RowTypeLine)
 	{
@@ -725,7 +1036,8 @@ void ULCODialogueWidget::ShowCurrentLine()
 		return;
 	}
 
-	RefreshSpeakerPresentation(Node->SpeakerID);
+	LastLineSpeakerID = Node->SpeakerID;
+	RefreshSpeakerPresentation(LastLineSpeakerID);
 	const FText DisplayText = ReplaceDialogueKeyPlaceholders(ResolveDialogueText(Node->TextKey));
 
 	if (bAutoAdvanceActive)
@@ -740,7 +1052,9 @@ void ULCODialogueWidget::ShowCurrentLine()
 	}
 
 	// 증언 획득 (조건 검사 후 수첩 증언 탭에 자동 기록, 이미 있으면 무시)
-	if (!Node->UnlockFlag.IsNone())
+	// SeniorCleaner completion states are committed by CompleteActiveConversation, never Story unlocks.
+	if (!Node->UnlockFlag.IsNone()
+		&& !(ActiveDialogueID == FName(TEXT("SeniorCleaner")) && Node->UnlockFlag.ToString().StartsWith(TEXT("SC_"))))
 	{
 		if (ULCOStorySubsystem* StorySubsystem = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>())
 		{
@@ -754,8 +1068,18 @@ void ULCODialogueWidget::ShowCurrentLine()
 	}
 }
 
-void ULCODialogueWidget::AdvanceDialogue()
+bool ULCODialogueWidget::ConfirmActiveNode()
 {
+	if (bIsClosingDialogue || ActiveDialogueID.IsNone() || ActiveNodeID.IsNone() || bActiveNodeConfirmed) return false;
+	bActiveNodeConfirmed = true;
+	const uint64 ConfirmedSerial = NodeActivationSerial;
+	OnDialogueNodeConfirmed.Broadcast(ActiveDialogueID, ActiveNodeID);
+	return NodeActivationSerial == ConfirmedSerial && !IsPhoneProgressBlocked();
+}
+
+void ULCODialogueWidget::AdvanceDialogue(bool bPlayerConfirmed)
+{
+	if (IsPhoneProgressBlocked()) return;
 	if (bAutoAdvanceActive) return;
 	if (bIsTypewriting)
 	{
@@ -783,6 +1107,7 @@ void ULCODialogueWidget::AdvanceDialogue()
 
 	if (Node->bEndConversation || IsEndNode(Node->NextNodeID))
 	{
+		if (bPlayerConfirmed && !ConfirmActiveNode()) return;
 		CompleteActiveConversation();
 		return;
 	}
@@ -796,14 +1121,16 @@ void ULCODialogueWidget::AdvanceDialogue()
 		return;
 	}
 
-	StartNode(Node->NextNodeID);
+	const FName NextNodeID = Node->NextNodeID;
+	if (bPlayerConfirmed && !ConfirmActiveNode()) return;
+	StartNode(NextNodeID);
 }
 
 void ULCODialogueWidget::HandleAutoAdvance()
 {
 	if (!bAutoAdvanceActive || !IsInViewport()) return;
 	bAutoAdvanceActive = false;
-	AdvanceDialogue();
+	AdvanceDialogue(false);
 }
 
 void ULCODialogueWidget::ClearAutoAdvanceTimer()
@@ -814,11 +1141,28 @@ void ULCODialogueWidget::ClearAutoAdvanceTimer()
 
 void ULCODialogueWidget::CompleteActiveConversation()
 {
+	if (ActiveNodeID == NotebookConfiscatedNodeID)
+	{
+		// Acknowledging this line closes the UI, not the NPC's story conversation.
+		CloseDialogue(true);
+		return;
+	}
 	const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID);
 	const FName ReportKeyword = ActiveDialogueID == FName(TEXT("Manager")) && Node
 		? Node->ReportKeyword : NAME_None;
 	const bool bHasReportEvidence = !ReportKeyword.IsNone() && IsConditionMet(ReportKeyword);
 	bActiveDialogueCompletedNormally = true;
+	// Only the original SeniorCleaner flow can commit its completion states.
+	if (ActiveDialogueID == FName(TEXT("SeniorCleaner")) && ActiveNodeID != NotebookConfiscatedNodeID)
+	{
+		if (ULCODialogueSubsystem* Dialogue = GetOwningLocalPlayer() ? GetOwningLocalPlayer()->GetSubsystem<ULCODialogueSubsystem>() : nullptr)
+		{
+			if (bActiveDialogueConfirms407) Dialogue->SetSeniorCleanerState(TEXT("SC_407_CONFIRMED"), true);
+			if (ActiveNodeID == FName(TEXT("K09_FAIL_04")) || ActiveNodeID == FName(TEXT("K10_FAIL_04")))
+				Dialogue->SetSeniorCleanerState(TEXT("SC_INTERROGATION_ATTEMPTED"), true);
+			if (bActiveDialogueIsPostT15) Dialogue->SetSeniorCleanerState(TEXT("SC_POST_T15_SEEN"), true);
+		}
+	}
 	CloseDialogue(true);
 
 	// Finish the dialogue and commit its progress before an existing report API can travel/save.
@@ -921,6 +1265,7 @@ void ULCODialogueWidget::FinishTypewriter()
 
 void ULCODialogueWidget::HandleTypewriterCompleted()
 {
+	if (IsPhoneProgressBlocked()) return;
 	const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID);
 	if (!Node || Node->bEndConversation || IsEndNode(Node->NextNodeID))
 	{
@@ -977,6 +1322,8 @@ bool ULCODialogueWidget::HasAvailableQuestions(const FLCODialogueNode& ChoiceNod
 
 bool ULCODialogueWidget::TryStartNoQuestionsDialogue(const FLCODialogueNode& Node)
 {
+	// Preserve preceding lines; the common confiscation gate runs at the actual choice node.
+	if (IsNotebookConfiscated()) return false;
 	// Only NPC repeat conversations with an actual choice step use this fallback.
 	// Phone dialogue, first conversations and ordinary line-only sequences retain their flow.
 	if (!ActiveNPC.IsValid() || bActiveDialogueStartedAsFirstConversation || Node.bEndConversation) return false;
@@ -987,6 +1334,11 @@ bool ULCODialogueWidget::TryStartNoQuestionsDialogue(const FLCODialogueNode& Nod
 		if (NextNode && NextNode->RowType == RowTypeChoice) ChoiceNode = NextNode;
 	}
 	if (!ChoiceNode || HasAvailableQuestions(*ChoiceNode)) return false;
+	// Keep available exit choices visible so the player decides when to leave.
+	if (ChoiceNode->Choices.ContainsByPredicate([this](const FLCODialogueChoiceRow& Choice)
+	{
+		return IsExitChoice(Choice) && IsConditionMet(Choice.Condition);
+	})) return false;
 
 	// Feed a side-effect-free terminal line through the existing typewriter/normal-close path.
 	FLCODialogueNode* Fallback = ActiveFlow.Nodes.Find(NoQuestionsNodeID);
@@ -998,6 +1350,9 @@ bool ULCODialogueWidget::TryStartNoQuestionsDialogue(const FLCODialogueNode& Nod
 
 void ULCODialogueWidget::RefreshChoices()
 {
+	const FLCODialogueNode* CurrentNode = ActiveFlow.Nodes.Find(ActiveNodeID);
+	if (CurrentNode && TryStartNotebookConfiscatedDialogue(*CurrentNode)) return;
+
 	if (!ChoicesPanel)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LCODialogue] Cannot display choices: ChoicesPanel is not bound (Dialogue=%s Node=%s Widget=%s)"),
@@ -1019,7 +1374,8 @@ void ULCODialogueWidget::RefreshChoices()
 	}
 	if (TryStartNoQuestionsDialogue(*Node)) return;
 
-	RefreshSpeakerPresentation(Node->SpeakerID);
+	// The displayed text still belongs to the last Line, including on language refresh.
+	if (!LastLineSpeakerID.IsNone()) RefreshSpeakerPresentation(LastLineSpeakerID);
 
 	TSubclassOf<ULCODialogueChoiceWidget> LoadedChoiceWidgetClass = ChoiceWidgetClass.IsNull() ? nullptr : ChoiceWidgetClass.LoadSynchronous();
 	if (!LoadedChoiceWidgetClass)
@@ -1095,7 +1451,7 @@ void ULCODialogueWidget::RefreshVisibleText()
 
 void ULCODialogueWidget::RefreshSpeakerPresentation(FName SpeakerID)
 {
-	if (SpeakerID == SystemSpeakerID)
+	if (SpeakerID == SystemSpeakerID || SpeakerID == NarratorSpeakerID)
 	{
 		if (Text_SpeakerName) Text_SpeakerName->SetText(FText::GetEmpty());
 		if (Img_SpeakerPortrait)
@@ -1152,11 +1508,74 @@ bool ULCODialogueWidget::IsEndNode(FName NodeID) const
 	return NodeID == EndNodeID;
 }
 
+bool ULCODialogueWidget::IsNotebookConfiscated() const
+{
+	const ULCODialogueSubsystem* Dialogue = GetOwningLocalPlayer() ? GetOwningLocalPlayer()->GetSubsystem<ULCODialogueSubsystem>() : nullptr;
+	return Dialogue && Dialogue->IsNotebookConfiscated();
+}
+
+bool ULCODialogueWidget::TryStartNotebookConfiscatedDialogue(const FLCODialogueNode& Node)
+{
+	if (!ActiveNPC.IsValid() || Node.RowType != RowTypeChoice || !IsNotebookConfiscated()) return false;
+	SetChoicesVisible(false);
+	VisibleChoiceTargets.Empty();
+	if (ChoicesPanel) ChoicesPanel->ClearChildren();
+	StartNode(NotebookConfiscatedNodeID);
+	return true;
+}
+
+void ULCODialogueWidget::RefreshNotebookConfiscationState()
+{
+	const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID);
+	if (ActiveNPC.IsValid() && Node && Node->RowType == RowTypeChoice) RefreshChoices();
+}
+
+void ULCODialogueWidget::RefreshSeniorCleanerChoices()
+{
+	const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID);
+	if (ActiveDialogueID == FName(TEXT("SeniorCleaner")) && Node && Node->RowType == RowTypeChoice)
+		RefreshChoices();
+}
+
 bool ULCODialogueWidget::IsConditionMet(FName Condition) const
 {
+	// Extended expressions are deliberately limited to SeniorCleaner.
+	if (ActiveDialogueID != FName(TEXT("SeniorCleaner"))) return IsSingleConditionMet(Condition);
+	if (Condition.IsNone()) return true;
+	TArray<FString> Terms;
+	Condition.ToString().ParseIntoArray(Terms, TEXT("&"), false);
+	for (FString Term : Terms)
+	{
+		Term.TrimStartAndEndInline();
+		const bool bNegated = Term.RemoveFromStart(TEXT("!"));
+		Term.TrimStartAndEndInline();
+		if (Term.IsEmpty() || Term.Contains(TEXT("!"))) return false;
+		const FName Token(*Term);
+		bool bMet = false;
+		if (Token == FName(TEXT("NOTEBOOK_CONFISCATED")) || Term.StartsWith(TEXT("SC_")))
+		{
+			const ULCODialogueSubsystem* Dialogue = GetOwningLocalPlayer() ? GetOwningLocalPlayer()->GetSubsystem<ULCODialogueSubsystem>() : nullptr;
+			bMet = Dialogue && Dialogue->HasSeniorCleanerState(Token);
+		}
+		else bMet = IsSingleConditionMet(Token);
+		if (bMet == bNegated) return false;
+	}
+	return !Terms.IsEmpty();
+}
+
+bool ULCODialogueWidget::IsSingleConditionMet(FName Condition) const
+{
+	if (Condition == FName(TEXT("C2_NotebookConfiscated")) || Condition == FName(TEXT("NOTEBOOK_CONFISCATED")))
+		return IsNotebookConfiscated();
 	if (Condition.IsNone())
 	{
 		return true;
+	}
+
+	// 현재 목표 ID (예: C2_FollowCaretaker)
+	if (const ULCOStorySubsystem* Story = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>())
+	{
+		if (Story->IsCurrentObjective(Condition)) return true;
 	}
 
 	if (UsesActOneNotebookConditions())
@@ -1257,6 +1676,12 @@ bool ULCODialogueWidget::ShouldPlayDialogueCharacterSound(const FString& Reveale
 
 const FLCODialogueVoiceSettings* ULCODialogueWidget::GetActiveVoiceSettings() const
 {
+	// Narration stays silent regardless of speaker or dialogue voice overrides.
+	if (const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID))
+	{
+		if (Node->SpeakerID == NarratorSpeakerID) return nullptr;
+	}
+
 	if (ActiveDialogueID == WorkSeniorDialogueID)
 	{
 		const FLCODialogueNode* Node = ActiveFlow.Nodes.Find(ActiveNodeID);
@@ -1449,6 +1874,8 @@ FString ULCODialogueWidget::ResolveDialogueKeyBinding(FName BindingName) const
 
 FText ULCODialogueWidget::ResolveSpeakerName(FName SpeakerID) const
 {
+	if (SpeakerID == NarratorSpeakerID) return FText::GetEmpty();
+
 	const FName LocalSpeakerNameKey = SpeakerID.IsNone() ? NAME_None : FName(*(SpeakerID.ToString() + TEXT("_NAME")));
 	if (const ULCOLocalizationSubsystem* LocalizationSubsystem = GetGameInstance()->GetSubsystem<ULCOLocalizationSubsystem>())
 	{

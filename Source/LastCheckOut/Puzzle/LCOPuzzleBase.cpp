@@ -1,5 +1,6 @@
 #include "Puzzle/LCOPuzzleBase.h"
 #include "Puzzle/LCOPuzzleSubsystem.h"
+#include "Puzzle/LCOPuzzleViewComponent.h"
 #include "Interaction/LCOInteractComponent.h"
 #include "Interaction/LCOOpenableBase.h"
 #include "Engine/GameInstance.h"
@@ -16,6 +17,8 @@ ALCOPuzzleBase::ALCOPuzzleBase()
 void ALCOPuzzleBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	ViewComponent = FindComponentByClass<ULCOPuzzleViewComponent>();
 
 	if (PuzzleID.IsNone())
 	{
@@ -63,6 +66,13 @@ void ALCOPuzzleBase::HandleInteraction_Implementation(ULCOInteractComponent* Sou
 		return;
 	}
 
+	// 확대 보기 퍼즐: F키는 보기 시작만 함. 보기 중 클릭은 ViewComponent가 다시 이 함수로 보냄
+	if (ViewComponent && !ViewComponent->IsViewing())
+	{
+		ViewComponent->EnterView(Interactor);
+		return;
+	}
+
 	const FName InputID = SourceComponent ? SourceComponent->GetInputID() : NAME_None;
 
 	// InputID와 상관없이 상호작용이 들어올 때마다 먼저 알림 (소리, 연출 등)
@@ -73,7 +83,7 @@ void ALCOPuzzleBase::HandleInteraction_Implementation(ULCOInteractComponent* Sou
 
 bool ALCOPuzzleBase::IsInteractionLocked_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const
 {
-	return bIsSolved || !bIsActive;
+	return bIsSolved || !bIsActive || (ViewComponent && ViewComponent->IsViewing());
 }
 
 FText ALCOPuzzleBase::GetInteractionPrompt_Implementation(ULCOInteractComponent* SourceComponent, AActor* Interactor) const
@@ -136,6 +146,11 @@ void ALCOPuzzleBase::SolvePuzzle()
 
 	OnPuzzleSolved();
 	OnSolved.Broadcast(this);
+
+	if (ViewComponent)
+	{
+		ViewComponent->HandlePuzzleSolved();
+	}
 }
 
 void ALCOPuzzleBase::FailPuzzle()

@@ -14,6 +14,10 @@ namespace
 	// 1막 / 2막 챕터 ID
 	const FName Chapter1ID(TEXT("Chapter1"));
 	const FName Chapter2ID(TEXT("Chapter2"));
+	const FName Chapter3ID(TEXT("Chapter3"));
+
+	// 2막 시작 ~ 별관 도착까지 관리인을 따라가는 중
+	const FName FollowCaretakerObjectiveID(TEXT("C2_FollowCaretaker"));
 }
 
 void ULCOStorySubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -38,6 +42,7 @@ void ULCOStorySubsystem::StartNewStory()
 	CurrentObjectiveID = NAME_None;
 	CompletedObjectives.Empty();
 	StoryFlags.Empty();
+	StateFlags.Empty();
 
 	// 첫 챕터 시작
 	// 첫 챕터 ID는 DataTable(DataManager)이 생기기 전까지 임시로 여기에서 지정
@@ -359,6 +364,7 @@ ELCOReportResult ULCOStorySubsystem::ReportToManager(ELCOStoryFlag PresentedKeyw
 			// 407호 조사 허가 → 1막 클리어, 바로 2막 시작 (이동·저장은 GameMode가 처리)
 			CompleteChapter(Chapter1ID);
 			StartChapter(Chapter2ID);
+			StartObjective(FollowCaretakerObjectiveID);
 			Result = ELCOReportResult::Chapter1Clear;
 		}
 		else
@@ -375,6 +381,29 @@ ELCOReportResult ULCOStorySubsystem::ReportToManager(ELCOStoryFlag PresentedKeyw
 
 	OnReportResolved.Broadcast(PresentedKeyword, Result);
 	return Result;
+}
+
+bool ULCOStorySubsystem::CanCompleteChapter2() const
+{
+	return CurrentChapterID == Chapter2ID && HasFlag(ELCOStoryFlag::K11);
+}
+
+bool ULCOStorySubsystem::TryCompleteChapter2()
+{
+	if (!CanCompleteChapter2())
+	{
+		// Log Test
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] TryCompleteChapter2 ignored: Chapter = %s, K11 = %d"),
+			*CurrentChapterID.ToString(), HasFlag(ELCOStoryFlag::K11));
+		return false;
+	}
+
+	// 2막 클리어 → 3막 시작 (이동·저장은 GameMode가 처리)
+	CompleteChapter(Chapter2ID);
+	StartChapter(Chapter3ID);
+
+	OnChapterAdvanced.Broadcast(Chapter2ID, Chapter3ID);
+	return true;
 }
 
 void ULCOStorySubsystem::RecordFlagToNotebook(ELCOStoryFlag Flag) const
@@ -502,4 +531,45 @@ void ULCOStorySubsystem::RestoreStoryFlags(const TArray<FName>& FlagNames)
 
 	// Log Test
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] RestoreStoryFlags: %d"), StoryFlags.Num());
+}
+
+void ULCOStorySubsystem::SetStateFlag(FName FlagName)
+{
+	if (FlagName.IsNone() || StateFlags.Contains(FlagName))
+	{
+		return;
+	}
+
+	StateFlags.Add(FlagName);
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] SetStateFlag: %s"), *FlagName.ToString());
+	OnStateFlagChanged.Broadcast(FlagName, true);
+}
+
+void ULCOStorySubsystem::ClearStateFlag(FName FlagName)
+{
+	if (StateFlags.Remove(FlagName) == 0)
+	{
+		return;
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] ClearStateFlag: %s"), *FlagName.ToString());
+	OnStateFlagChanged.Broadcast(FlagName, false);
+}
+
+void ULCOStorySubsystem::RestoreStateFlags(const TArray<FName>& FlagNames)
+{
+	StateFlags.Empty();
+	for (const FName& FlagName : FlagNames)
+	{
+		if (!FlagName.IsNone())
+		{
+			StateFlags.Add(FlagName);
+		}
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOStorySubsystem] RestoreStateFlags: %d"), StateFlags.Num());
 }

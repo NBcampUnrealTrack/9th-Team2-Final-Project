@@ -24,6 +24,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/CollisionProfile.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Interaction/LCOInteractComponent.h"
+#include "Interaction/LCODoor.h"
+#include "Animation/AnimInstance.h"
 
 ALCOPlayerCharacter::ALCOPlayerCharacter()
 {
@@ -302,7 +305,15 @@ void ALCOPlayerCharacter::Interact()
 		return;
 	}
 
-	InteractionComponent->TryInteract();
+	// 상호작용 전에 바라보는 문과 열림 상태를 기억 (닫힌 문이 실제로 열렸을 때만 문 여는 동작)
+	const ULCOInteractComponent* Target = InteractionComponent->GetFocusedComponent();
+	const ALCODoor* Door = Target ? Cast<ALCODoor>(Target->GetOwner()) : nullptr;
+	const bool bDoorWasOpen = Door && Door->IsOpen();
+
+	if (InteractionComponent->TryInteract() && Door && bDoorWasOpen != Door->IsOpen())
+	{
+		PlayDoorOpenMontage();
+	}
 }
 
 void ALCOPlayerCharacter::ToggleView()
@@ -685,6 +696,15 @@ void ALCOPlayerCharacter::PlayCameraShootMontage()
 	PlayAnimMontage(CameraShootMontage);
 }
 
+void ALCOPlayerCharacter::PlayDoorOpenMontage()
+{
+	if (!DoorOpenMontage || bCameraEquipped)
+	{
+		return;
+	}
+	PlayAnimMontage(DoorOpenMontage);
+}
+
 // ---------- 웅크리기 ----------
 
 void ALCOPlayerCharacter::CrouchPressed()
@@ -742,7 +762,15 @@ void ALCOPlayerCharacter::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHe
 
 void ALCOPlayerCharacter::UpdateCameraHeight(float DeltaSeconds)
 {
-	const float TargetHeight = bIsCrouched ? CrouchedCameraPivotHeight : CameraPivotHeight;
+	float TargetHeight = bIsCrouched ? CrouchedCameraPivotHeight : CameraPivotHeight;
+
+	// 1인칭: 애니메이션 머리 뼈 높이를 따라감 (앉아도 눈이 실제 머리에 있어서 손 / 다리가 코앞에 오지 않음)
+	if (bFirstPersonFollowHead && ViewMode == ELCOViewMode::FirstPerson && GetMesh()->DoesSocketExist(FirstPersonHeadBone))
+	{
+		const FVector HeadLocation = GetMesh()->GetSocketLocation(FirstPersonHeadBone);
+		TargetHeight = (HeadLocation - GetActorLocation()).Z + FirstPersonEyeOffset;
+	}
+
 	CurrentCameraHeight = FMath::FInterpTo(CurrentCameraHeight, TargetHeight, DeltaSeconds, CameraHeightInterpSpeed);
 	ApplyCameraHeight();
 }

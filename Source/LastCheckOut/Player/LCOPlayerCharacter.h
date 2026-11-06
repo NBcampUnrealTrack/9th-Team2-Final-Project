@@ -353,6 +353,8 @@ protected:
 
 	// 카메라 찍는 몽타주 재생 (카메라를 들고 있을 때만, 재생 중이면 무시)
 	void PlayCameraShootMontage();
+	// 닫힌 문을 열었을 때 문 여는 몽타주 재생
+	void PlayDoorOpenMontage();
 	
 	// 웅크리기 입력
 	void CrouchPressed();
@@ -518,6 +520,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Held")
 	TObjectPtr<UAnimMontage> CameraShootMontage;
 	
+	// 문을 열 때 몽타주 (상체만, UpperBody 슬롯. 비워두면 재생 안 함)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction")
+	TObjectPtr<UAnimMontage> DoorOpenMontage;
+	
 	// 마우스 감도 배율
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|Look", meta = (ClampMin = "0.1", ClampMax = "5.0"))
 	float LookSensitivity = 1.f;
@@ -588,6 +594,17 @@ protected:
 	// 1인칭 눈 위치를 몸 앞쪽으로 당기는 거리 (목 / 머리 안쪽 단면이 보이지 않게)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FirstPerson")
 	float FirstPersonCameraForwardOffset = 10.f;
+	
+	// 1인칭 카메라 높이를 애니메이션 머리 뼈 높이에 맞출지 (앉기 등 자세가 바뀌어도 눈 위치 유지)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FirstPerson")
+	bool bFirstPersonFollowHead = true;
+
+	// 따라갈 머리 뼈 / 뼈 기준 눈 높이 보정 (뼈는 머리 아래쪽이라 살짝 위로)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FirstPerson")
+	FName FirstPersonHeadBone = TEXT("head");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera|FirstPerson")
+	float FirstPersonEyeOffset = 8.f;
 	
 	// ---------- 헤드밥 (1인칭) ----------
 

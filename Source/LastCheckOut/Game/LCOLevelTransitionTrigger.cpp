@@ -64,6 +64,19 @@ void ALCOLevelTransitionTrigger::HandleBeginOverlap(UPrimitiveComponent* Overlap
 
 	bHasTriggered = true;
 
+	// 챕터 클리어 조건이 되면 이동하지 않고 챕터 클리어 (이후 처리는 GameMode)
+	if (bCompleteChapterIfReady)
+	{
+		ULCOStorySubsystem* StorySubsystem = GetGameInstance()->GetSubsystem<ULCOStorySubsystem>();
+		if (StorySubsystem && StorySubsystem->CanCompleteChapter2())
+		{
+			// Log Test
+			UE_LOG(LogLCOCore, Log, TEXT("[LCOLevelTransitionTrigger] %s: Chapter complete -> no travel"), *GetName());
+			StorySubsystem->TryCompleteChapter2();
+			return;
+		}
+	}
+
 	// Log Test
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOLevelTransitionTrigger] %s: Travel to %s (Entry = %s)"),
 		*GetName(), *TargetLevel.ToString(), *TargetPlayerStartTag.ToString());

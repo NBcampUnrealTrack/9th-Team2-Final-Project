@@ -24,6 +24,9 @@ namespace LCOStoryIDs
 	// 엔딩
 	inline const FName End3(TEXT("End3"));
 
+	// 출시 범위 끝 (2막 클리어 → "To be continued")
+	inline const FName ToBeContinued(TEXT("ToBeContinued"));
+
 	// 추리 키워드 플래그 이름 앞글자 (ELCOStoryFlag의 K01 ~)
 	inline const TCHAR* const DeductionFlagPrefix = TEXT("K");
 

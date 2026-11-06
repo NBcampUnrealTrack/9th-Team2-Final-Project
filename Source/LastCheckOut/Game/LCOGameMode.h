@@ -9,6 +9,7 @@
 class ULCOGameInstance;
 class ALCOTimeOfDayManager;
 class ULCOTimeOfDayPresetAsset;
+class UUserWidget;
 struct FLCOPlayerCarryData;
 
 // 챕터 설정 (시작 위치 / 시간대 / 수첩 압수)
@@ -32,6 +33,11 @@ struct FLCOChapterStartInfo
 	// 추격에서 잡히면 수첩 압수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chapter")
 	bool bConfiscateNotebookOnCaught = true;
+
+	// 아직 만들지 않은 챕터 (출시 범위 끝). 이 챕터로 넘어가면 시간대 · 이동 · 저장 없이 "To be continued" 엔딩
+	// 저장하지 않으므로 이어하기는 마지막 저장 시점부터. 챕터를 만들면 체크 해제
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chapter")
+	bool bEndOfContent = false;
 };
 
 // 엔딩 도달 (UI: 엔딩 화면 표시 후 FinishEnding 호출)
@@ -106,6 +112,18 @@ protected:
 	// 엔딩 화면이 연결되지 않았을 때 메인 메뉴로 이동하기까지 기다리는 시간
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|Story", meta = (ClampMin = "0.0", Units = "s"))
 	float EndingReturnDelay = 1.f;
+
+	// 엔딩 시작 시 화면이 검게 바뀌는 시간 (끝나면 엔딩 화면 표시)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Ending", meta = (ClampMin = "0.0", Units = "s"))
+	float EndingFadeOutDuration = 1.5f;
+
+	// 엔딩 ID → 엔딩 화면 위젯 (예: ToBeContinued → WBP_ToBeContinued, End3 → WBP_End3)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Ending")
+	TMap<FName, TSubclassOf<UUserWidget>> EndingWidgets;
+
+	// 엔딩 화면을 보여 주는 시간 (끝나면 메인 메뉴)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Ending", meta = (ClampMin = "0.0", Units = "s"))
+	float EndingScreenDuration = 4.f;
 	
 private:
 	void InitializeCurrentMap();
@@ -141,6 +159,15 @@ private:
 
 	// 엔딩 진행 중 (중복 호출 방지)
 	bool bEndingInProgress = false;
+
+	// 페이드 아웃이 끝나면 엔딩 화면 표시 (위젯이 없으면 OnEndingReached 또는 메인 메뉴)
+	void ShowEndingScreen();
+
+	FName PendingEndingID;
+	FTimerHandle EndingFadeTimer;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UUserWidget> EndingWidget;
 
 	// 맵 주소에 AutoSave 옵션이 붙어 왔으면 자동 저장
 	void TryAutoSaveOnArrival();

@@ -22,6 +22,9 @@
 #include "AI/Chasing/LCOChasingManager.h"
 #include "Game/LCOTimeOfDayPresetAsset.h"
 #include "Story/LCOStoryIDs.h"
+#include "Blueprint/UserWidget.h"
+#include "Camera/PlayerCameraManager.h"
+#include "GameFramework/PlayerController.h"
 
 namespace
 {
@@ -559,6 +562,16 @@ void ALCOGameMode::HandleCaughtSequenceFinished(AActor* Player)
 
 void ALCOGameMode::StartChapterTransition(FName NewChapterID)
 {
+	// 아직 없는 챕터 (출시 범위 끝): 시간대 · 이동 · 저장 없이 엔딩 → 이어하기는 마지막 저장 시점부터
+	const FLCOChapterStartInfo* EndCheckInfo = ChapterStartInfos.Find(NewChapterID);
+	if (EndCheckInfo && EndCheckInfo->bEndOfContent)
+	{
+		// Log Test
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartChapterTransition: %s is end of content -> To be continued"), *NewChapterID.ToString());
+		ReachEnding(LCOStoryIDs::ToBeContinued);
+		return;
+	}
+
 	// 시간대 먼저 진행. 맵 이동 전에 바꿔야 도착 자동 저장에 같이 저장됨
 	AdvanceTimeOfDay(GetTimeOfDayForChapter(NewChapterID));
 
@@ -588,19 +601,77 @@ void ALCOGameMode::ReachEnding(FName EndingID)
 		return;
 	}
 	bEndingInProgress = true;
+	PendingEndingID = EndingID;
 
-	// 엔딩 화면이 연결되어 있으면 화면이 FinishEnding을 호출
-	if (OnEndingReached.IsBound())
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ReachEnding: %s -> Fade out (%.1fs)"), *EndingID.ToString(), EndingFadeOutDuration);
+
+	// 이동 · 시점 잠금, 퀵슬롯 HUD 숨김 (레벨이 바뀌므로 풀지 않음)
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (PlayerController)
 	{
-		// Log Test
-		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ReachEnding: %s -> Ending screen"), *EndingID.ToString());
-		OnEndingReached.Broadcast(EndingID);
+		PlayerController->SetIgnoreMoveInput(true);
+		PlayerController->SetIgnoreLookInput(true);
+	}
+	if (ALCOPlayerCharacter* Player = Cast<ALCOPlayerCharacter>(UGameplayStatics::GetPlayerPawn(this, 0)))
+	{
+		if (ULCOQuickSlotComponent* QuickSlot = Player->GetQuickSlot())
+		{
+			QuickSlot->SetHUDHiddenByCutscene(true);
+		}
+	}
+
+	// 화면을 검게 (끝난 뒤에도 검은 화면 유지)
+	if (PlayerController && PlayerController->PlayerCameraManager && EndingFadeOutDuration > 0.f)
+	{
+		PlayerController->PlayerCameraManager->StartCameraFade(0.f, 1.f, EndingFadeOutDuration, FLinearColor::Black, false, true);
+		GetWorldTimerManager().SetTimer(EndingFadeTimer, this, &ThisClass::ShowEndingScreen, EndingFadeOutDuration, false);
 		return;
 	}
 
-	// 엔딩 화면 미연결: 잠시 후 메인 메뉴로
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ReachEnding: %s -> No ending screen, return to main menu in %.1fs"),
-		*EndingID.ToString(), EndingReturnDelay);
+	ShowEndingScreen();
+}
+
+void ALCOGameMode::ShowEndingScreen()
+{
+	// 1) 엔딩 위젯이 지정되어 있으면 표시 → EndingScreenDuration 뒤 메인 메뉴
+	const TSubclassOf<UUserWidget>* WidgetClass = EndingWidgets.Find(PendingEndingID);
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (WidgetClass && *WidgetClass && PlayerController)
+	{
+		EndingWidget = CreateWidget<UUserWidget>(PlayerController, *WidgetClass);
+		if (EndingWidget)
+		{
+			EndingWidget->AddToViewport(100);
+
+			// Log Test
+			UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ShowEndingScreen: %s (%s, %.1fs)"),
+				*PendingEndingID.ToString(), *EndingWidget->GetClass()->GetName(), EndingScreenDuration);
+
+			if (EndingScreenDuration > 0.f)
+			{
+				GetWorldTimerManager().SetTimer(ReturnToMainMenuTimer, this, &ThisClass::ReturnToMainMenu, EndingScreenDuration, false);
+			}
+			else
+			{
+				ReturnToMainMenu();
+			}
+			return;
+		}
+	}
+
+	// 2) BP에서 엔딩 화면을 직접 연결한 경우: 화면이 FinishEnding을 호출
+	if (OnEndingReached.IsBound())
+	{
+		// Log Test
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ShowEndingScreen: %s -> OnEndingReached"), *PendingEndingID.ToString());
+		OnEndingReached.Broadcast(PendingEndingID);
+		return;
+	}
+
+	// 3) 엔딩 화면 없음: 잠시 후 메인 메뉴로
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ShowEndingScreen: %s -> No ending screen, return to main menu in %.1fs"),
+		*PendingEndingID.ToString(), EndingReturnDelay);
 	if (EndingReturnDelay > 0.f)
 	{
 		GetWorldTimerManager().SetTimer(ReturnToMainMenuTimer, this, &ThisClass::ReturnToMainMenu, EndingReturnDelay, false);

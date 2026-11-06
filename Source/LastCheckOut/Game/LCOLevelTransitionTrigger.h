@@ -45,6 +45,11 @@ protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "LCO|Travel")
 	FName ObjectiveToComplete;
 
+	// 챕터 클리어 조건이 되면 이동 대신 챕터 클리어 (현재는 2막: K11). 조건이 안 되면 평소처럼 이동
+	// 예: 별관 출구 트리거
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "LCO|Travel")
+	bool bCompleteChapterIfReady = false;
+
 	// 꺼져 있으면 닿아도 이동하지 않음
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LCO|Travel")
 	bool bTriggerEnabled = true;

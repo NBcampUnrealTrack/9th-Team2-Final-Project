@@ -46,10 +46,26 @@ void ALCOElevator::Tick(float DeltaTime)
 		return;
 	}
 
-	// 일정한 속도로 목표 높이까지 이동 (X / Y는 그대로 유지)
+	// 목표 높이까지 이동 (X / Y는 그대로 유지)
 	const FVector Location = Car->GetRelativeLocation();
 	const float TargetZ = Floors[TargetFloorIndex].Height;
-	const float NewZ = FMath::FInterpConstantTo(Location.Z, TargetZ, DeltaTime, MoveSpeed);
+	const float Remaining = FMath::Abs(TargetZ - Location.Z);
+
+	if (Acceleration > 0.f)
+	{
+		// 가속: 최고 속도까지 Acceleration만큼씩 증가
+		// 감속: 남은 거리에서 Acceleration으로 멈출 수 있는 속도(√(2·a·d))를 넘지 않게 제한
+		// (도착 직전 속도가 0에 가까워져 멈춰 버리지 않도록 최소 속도 유지)
+		constexpr float MinApproachSpeed = 5.f;
+		const float StoppableSpeed = FMath::Max(FMath::Sqrt(2.f * Acceleration * Remaining), MinApproachSpeed);
+		CurrentSpeed = FMath::Min3(CurrentSpeed + Acceleration * DeltaTime, MoveSpeed, StoppableSpeed);
+	}
+	else
+	{
+		CurrentSpeed = MoveSpeed;
+	}
+
+	const float NewZ = FMath::FInterpConstantTo(Location.Z, TargetZ, DeltaTime, CurrentSpeed);
 	Car->SetRelativeLocation(FVector(Location.X, Location.Y, NewZ));
 
 	if (FMath::IsNearlyEqual(NewZ, TargetZ, KINDA_SMALL_NUMBER))
@@ -198,12 +214,19 @@ void ALCOElevator::StartClosingDoors()
 	OnDoorsClosing(CurrentFloorIndex);
 	OnDoorsClosingDelegate.Broadcast(this, CurrentFloorIndex);
 
-	GetWorldTimerManager().SetTimer(DoorTimerHandle, this, &ALCOElevator::StartMoving, FMath::Max(DoorDuration, KINDA_SMALL_NUMBER), false);
+	GetWorldTimerManager().SetTimer(DoorTimerHandle, this, &ALCOElevator::HandleDoorsClosed, FMath::Max(DoorDuration, KINDA_SMALL_NUMBER), false);
+}
+
+void ALCOElevator::HandleDoorsClosed()
+{
+	// 문이 다 닫힌 뒤 잠시 멈췄다가 출발 (State는 DoorsClosing 유지 → 상호작용 잠김)
+	CallAfterDelay(&ALCOElevator::StartMoving, DepartureDelay);
 }
 
 void ALCOElevator::StartMoving()
 {
 	State = ELCOElevatorState::Moving;
+	CurrentSpeed = 0.f;
 	OnMoveStarted(CurrentFloorIndex, TargetFloorIndex);
 
 	SetActorTickEnabled(true);
@@ -212,6 +235,7 @@ void ALCOElevator::StartMoving()
 void ALCOElevator::Arrive()
 {
 	SetActorTickEnabled(false);
+	CurrentSpeed = 0.f;
 
 	CurrentFloorIndex = TargetFloorIndex;
 
@@ -220,11 +244,28 @@ void ALCOElevator::Arrive()
 	OnArrived(CurrentFloorIndex);
 	OnArrivedDelegate.Broadcast(this, CurrentFloorIndex);
 
+	// 도착 후 잠시 멈췄다가 문 열기 (State는 Moving 유지 → 상호작용 잠김. Tick은 꺼져 있음)
+	CallAfterDelay(&ALCOElevator::StartOpeningDoors, ArrivalDelay);
+}
+
+void ALCOElevator::StartOpeningDoors()
+{
 	State = ELCOElevatorState::DoorsOpening;
 	OnDoorsOpening(CurrentFloorIndex);
 	OnDoorsOpeningDelegate.Broadcast(this, CurrentFloorIndex);
 
 	GetWorldTimerManager().SetTimer(DoorTimerHandle, this, &ALCOElevator::FinishOpeningDoors, FMath::Max(DoorDuration, KINDA_SMALL_NUMBER), false);
+}
+
+void ALCOElevator::CallAfterDelay(void (ALCOElevator::*Function)(), float Delay)
+{
+	if (Delay <= 0.f)
+	{
+		(this->*Function)();
+		return;
+	}
+
+	GetWorldTimerManager().SetTimer(DoorTimerHandle, this, Function, Delay, false);
 }
 
 void ALCOElevator::FinishOpeningDoors()

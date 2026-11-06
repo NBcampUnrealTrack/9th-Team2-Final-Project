@@ -152,6 +152,9 @@ private:
 	// 이동 · 시점 잠금 해제 (NextLevel이 없을 때)
 	void UnlockPlayerInput();
 
+	// 이동 · 시점 잠금 (BeginPlay 다음 프레임. PlayerController BeginPlay의 입력 초기화 이후에 걸어야 유지됨)
+	void LockPlayerInput();
+
 	void ScheduleIntroDialogue();
 	void StartIntroDialogue();
 	void TravelToNextLevel();
@@ -159,6 +162,7 @@ private:
 	FTimerHandle StartDialogueTimerHandle;
 	FTimerHandle ArrivalFadeTimerHandle;
 	FTimerHandle ArrivalBGMTimerHandle;
+	FTimerHandle LockInputTimerHandle;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAudioComponent> ArrivalBGMComponent;
@@ -171,4 +175,7 @@ private:
 	bool bArrivalFadePlayed = false;
 	bool bDepartureSoundPlayed = false;
 	bool bInputLocked = false;
+
+	// 잠금 해제가 이미 요청됨 (다음 프레임 잠금보다 해제가 먼저 오면 잠그지 않음)
+	bool bInputUnlockRequested = false;
 };

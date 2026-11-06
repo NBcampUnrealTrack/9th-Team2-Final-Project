@@ -55,23 +55,14 @@ void ALCOTaxiIntroDirector::BeginPlay()
 
 	SetQuickSlotHUDHidden(this, true);
 
-	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0))
-	{
-		if (bLockPlayerMovement)
-		{
-			PlayerController->SetIgnoreMoveInput(true);
-		}
-		if (bLockPlayerLook)
-		{
-			PlayerController->SetIgnoreLookInput(true);
-		}
-		bInputLocked = bLockPlayerMovement || bLockPlayerLook;
+	// 이동 · 시점 잠금은 다음 프레임에 (PlayerController BeginPlay가 입력 잠금을 초기화하므로)
+	LockInputTimerHandle = GetWorldTimerManager().SetTimerForNextTick(this, &ThisClass::LockPlayerInput);
 
-		// 페이드 인 전까지 검은 화면 유지
-		if (bStartScreenBlack && PlayerController->PlayerCameraManager)
-		{
-			PlayerController->PlayerCameraManager->SetManualCameraFade(1.f, FLinearColor::Black, false);
-		}
+	// 페이드 인 전까지 검은 화면 유지 (카메라 설정이라 입력 초기화와 무관, 바로 적용)
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (bStartScreenBlack && PlayerController && PlayerController->PlayerCameraManager)
+	{
+		PlayerController->PlayerCameraManager->SetManualCameraFade(1.f, FLinearColor::Black, false);
 	}
 
 	// 택시 출발 사운드 (대사 확인 시점)
@@ -275,9 +266,39 @@ void ALCOTaxiIntroDirector::PlayTaxiDepartureSound_Implementation()
 	UGameplayStatics::PlaySound2D(this, TaxiDepartureSound, DepartureSoundVolume);
 }
 
+void ALCOTaxiIntroDirector::LockPlayerInput()
+{
+	if (bInputLocked || bInputUnlockRequested)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	if (bLockPlayerMovement)
+	{
+		PlayerController->SetIgnoreMoveInput(true);
+	}
+	if (bLockPlayerLook)
+	{
+		PlayerController->SetIgnoreLookInput(true);
+	}
+	bInputLocked = bLockPlayerMovement || bLockPlayerLook;
+
+	// Log Test
+	UE_LOG(LogTemp, Warning, TEXT("[LCOTaxiIntroDirector] Player input locked (Move = %s, Look = %s)"),
+		bLockPlayerMovement ? TEXT("true") : TEXT("false"), bLockPlayerLook ? TEXT("true") : TEXT("false"));
+}
+
 void ALCOTaxiIntroDirector::UnlockPlayerInput()
 {
 	SetQuickSlotHUDHidden(this, false);
+	bInputUnlockRequested = true;
+	GetWorldTimerManager().ClearTimer(LockInputTimerHandle);
 
 	if (!bInputLocked)
 	{
@@ -306,6 +327,7 @@ void ALCOTaxiIntroDirector::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	GetWorldTimerManager().ClearTimer(StartDialogueTimerHandle);
 	GetWorldTimerManager().ClearTimer(ArrivalFadeTimerHandle);
 	GetWorldTimerManager().ClearTimer(ArrivalBGMTimerHandle);
+	GetWorldTimerManager().ClearTimer(LockInputTimerHandle);
 
 	if (LocationCaptionWidget)
 	{

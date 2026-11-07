@@ -8,20 +8,36 @@
 
 class ULCOGameInstance;
 class ALCOTimeOfDayManager;
+class ULCOTimeOfDayPresetAsset;
+class UUserWidget;
 struct FLCOPlayerCarryData;
 
-// 챕터 시작 위치 (챕터가 시작되면 이 맵의 이 PlayerStart로 이동)
+// 챕터 설정 (시작 위치 / 시간대 / 수첩 압수)
+// 목록에 없는 챕터(Chapter1)는 정오 이후, 이동 없음, 압수 없음
 USTRUCT(BlueprintType)
 struct FLCOChapterStartInfo
 {
 	GENERATED_BODY()
 
-	// 비우면 이동 없이 그 자리에서 자동 저장
+	// 챕터가 시작되면 이동할 맵. 비우면 이동 없이 그 자리에서 자동 저장
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chapter")
 	TSoftObjectPtr<UWorld> Level;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chapter")
 	FName PlayerStartTag;
+
+	// 이 챕터의 시간대 (앞으로만 진행)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chapter")
+	ELCOTimeOfDay TimeOfDay = ELCOTimeOfDay::Noon;
+
+	// 추격에서 잡히면 수첩 압수
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chapter")
+	bool bConfiscateNotebookOnCaught = true;
+
+	// 아직 만들지 않은 챕터 (출시 범위 끝). 이 챕터로 넘어가면 시간대 · 이동 · 저장 없이 "To be continued" 엔딩
+	// 저장하지 않으므로 이어하기는 마지막 저장 시점부터. 챕터를 만들면 체크 해제
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chapter")
+	bool bEndOfContent = false;
 };
 
 // 엔딩 도달 (UI: 엔딩 화면 표시 후 FinishEnding 호출)
@@ -54,8 +70,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "LCO|TimeOfDay")
 	void AdvanceTimeOfDay(ELCOTimeOfDay NewTimeOfDay);
 
-	// 챕터별 시간대 (Chapter1: 정오 이후 / Chapter2: 해질녘 / Chapter3: 저녁)
-	static ELCOTimeOfDay GetTimeOfDayForChapter(FName ChapterID);
+	// 챕터별 시간대 (ChapterStartInfos의 TimeOfDay, 목록에 없으면 정오 이후)
+	ELCOTimeOfDay GetTimeOfDayForChapter(FName ChapterID) const;
 
 	// 엔딩 도달. OnEndingReached에 연결된 화면이 없으면 EndingReturnDelay 후 메인 메뉴로
 	UFUNCTION(BlueprintCallable, Category = "LCO|Ending")
@@ -81,9 +97,13 @@ protected:
 	// 맵을 떠날 때: 스토리 알림 연결 해제
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	// 챕터 ID(Chapter2, Chapter3 ...) → 시작 맵 + 도착 PlayerStart 태그
+	// 챕터 ID(Chapter2, Chapter3 ...) → 시작 맵 + 도착 PlayerStart 태그 + 시간대 + 수첩 압수
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|Story")
 	TMap<FName, FLCOChapterStartInfo> ChapterStartInfos;
+
+	// 모든 맵 공용 시간대 조명 값 (DA_TimeOfDayPresets). 비우면 맵마다 배치된 매니저의 값 사용
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|TimeOfDay")
+	TObjectPtr<ULCOTimeOfDayPresetAsset> TimeOfDayPresets;
 
 	// 엔딩 후 돌아갈 메인 메뉴 맵
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|Story")
@@ -92,6 +112,18 @@ protected:
 	// 엔딩 화면이 연결되지 않았을 때 메인 메뉴로 이동하기까지 기다리는 시간
 	UPROPERTY(EditDefaultsOnly, Category = "LCO|Story", meta = (ClampMin = "0.0", Units = "s"))
 	float EndingReturnDelay = 1.f;
+
+	// 엔딩 시작 시 화면이 검게 바뀌는 시간 (끝나면 엔딩 화면 표시)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Ending", meta = (ClampMin = "0.0", Units = "s"))
+	float EndingFadeOutDuration = 1.5f;
+
+	// 엔딩 ID → 엔딩 화면 위젯 (예: ToBeContinued → WBP_ToBeContinued, End3 → WBP_End3)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Ending")
+	TMap<FName, TSubclassOf<UUserWidget>> EndingWidgets;
+
+	// 엔딩 화면을 보여 주는 시간 (끝나면 메인 메뉴)
+	UPROPERTY(EditDefaultsOnly, Category = "LCO|Ending", meta = (ClampMin = "0.0", Units = "s"))
+	float EndingScreenDuration = 4.f;
 	
 private:
 	void InitializeCurrentMap();
@@ -103,6 +135,9 @@ private:
 	void StorePlayerCarryData();
 	
 	void RestorePlayerCarryData();
+
+	// 이어하기: 저장한 위치 / 방향으로 플레이어 이동 (위치 정보가 없으면 PlayerStart 그대로)
+	void RestoreSavedPlayerTransform();
 
 	// 지배인 보고 결과 처리 (1막 클리어 → 2막 시작 맵으로 이동 + 도착 후 자동 저장)
 	UFUNCTION()
@@ -124,6 +159,15 @@ private:
 
 	// 엔딩 진행 중 (중복 호출 방지)
 	bool bEndingInProgress = false;
+
+	// 페이드 아웃이 끝나면 엔딩 화면 표시 (위젯이 없으면 OnEndingReached 또는 메인 메뉴)
+	void ShowEndingScreen();
+
+	FName PendingEndingID;
+	FTimerHandle EndingFadeTimer;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UUserWidget> EndingWidget;
 
 	// 맵 주소에 AutoSave 옵션이 붙어 왔으면 자동 저장
 	void TryAutoSaveOnArrival();

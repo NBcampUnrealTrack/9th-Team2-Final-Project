@@ -14,6 +14,7 @@ class UAudioComponent;
 // - 택시 안에서는 플레이어 이동을 막음 (bLockPlayerLook이면 시점 회전도)
 // - 호텔 도착 맵: bStartScreenBlack이면 검은 화면 → 페이드 인 → 대화 시작, DepartureSoundNodeID 확인 시 택시 출발 사운드
 // - NextLevel이 비어 있으면 대화가 끝날 때 이동 · 시점 잠금 해제
+// - DriverLookTarget이 있으면 대사 전에 카메라를 그쪽으로 돌리고 시점 고정 (택시 뒷자리 → 기사)
 UCLASS()
 class LASTCHECKOUT_API ALCOTaxiIntroDirector : public AActor
 {
@@ -127,6 +128,36 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "LCO|TaxiIntro|Arrival", meta = (ClampMin = "0.0"))
 	float DepartureSoundVolume = 1.f;
 
+	// ---------- 좌석 ----------
+
+	// 캐릭터 움직임을 꺼서 좌석에서 미끄러지거나 떨어지지 않게 함
+	UPROPERTY(EditAnywhere, Category = "LCO|TaxiIntro|Seat")
+	bool bFreezeCharacter = false;
+
+	// 앉아서 볼 수 있는 각도 제한 (시작 방향 기준)
+	UPROPERTY(EditAnywhere, Category = "LCO|TaxiIntro|Seat")
+	bool bLimitSeatedLook = false;
+
+	// 시작 방향 기준 좌우로 볼 수 있는 각도
+	UPROPERTY(EditAnywhere, Category = "LCO|TaxiIntro|Seat", meta = (EditCondition = "bLimitSeatedLook", ClampMin = "0.0", ClampMax = "180.0", Units = "deg"))
+	float SeatedYawRange = 100.f;
+
+	UPROPERTY(EditAnywhere, Category = "LCO|TaxiIntro|Seat", meta = (EditCondition = "bLimitSeatedLook", ClampMin = "-89.0", ClampMax = "0.0", Units = "deg"))
+	float SeatedPitchMin = -30.f;
+
+	UPROPERTY(EditAnywhere, Category = "LCO|TaxiIntro|Seat", meta = (EditCondition = "bLimitSeatedLook", ClampMin = "0.0", ClampMax = "89.0", Units = "deg"))
+	float SeatedPitchMax = 20.f;
+
+	// ---------- 기사 쪽으로 카메라 회전 ----------
+
+	// 대사 전에 카메라가 바라볼 대상 (택시 기사 또는 기사 머리 위치의 빈 액터). 비우면 바로 대사 시작
+	UPROPERTY(EditInstanceOnly, Category = "LCO|TaxiIntro|LookAtDriver")
+	TObjectPtr<AActor> DriverLookTarget;
+
+	// 기사 쪽으로 도는 시간
+	UPROPERTY(EditAnywhere, Category = "LCO|TaxiIntro|LookAtDriver", meta = (ClampMin = "0.0", Units = "s"))
+	float LookAtDriverDuration = 1.f;
+
 private:
 	UFUNCTION()
 	void HandleDialogueFinished(FName FinishedDialogueID, bool bCompletedNormally);
@@ -152,6 +183,17 @@ private:
 	// 이동 · 시점 잠금 해제 (NextLevel이 없을 때)
 	void UnlockPlayerInput();
 
+	// 이동 · 시점 잠금 (BeginPlay 다음 프레임. PlayerController BeginPlay의 입력 초기화 이후에 걸어야 유지됨)
+	void LockPlayerInput();
+
+	// 좌석 각도 제한 적용 / 원래대로
+	void ApplySeatedLookLimit();
+	void RestoreSeatedLookLimit();
+
+	// 기사 쪽으로 카메라 회전 시작 / 매 프레임 회전 / 끝나면 대사 시작
+	void BeginLookAtDriver();
+	void TickLookAtDriver();
+
 	void ScheduleIntroDialogue();
 	void StartIntroDialogue();
 	void TravelToNextLevel();
@@ -159,6 +201,17 @@ private:
 	FTimerHandle StartDialogueTimerHandle;
 	FTimerHandle ArrivalFadeTimerHandle;
 	FTimerHandle ArrivalBGMTimerHandle;
+	FTimerHandle LockInputTimerHandle;
+	FTimerHandle LookAtDriverTimerHandle;
+
+	FRotator LookAtStartRotation = FRotator::ZeroRotator;
+	float LookAtStartTime = 0.f;
+
+	// 좌석 각도 제한 전 원래 값
+	float SavedViewYawMin = 0.f;
+	float SavedViewYawMax = 359.999f;
+	float SavedViewPitchMin = -89.9f;
+	float SavedViewPitchMax = 89.9f;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAudioComponent> ArrivalBGMComponent;
@@ -171,4 +224,12 @@ private:
 	bool bArrivalFadePlayed = false;
 	bool bDepartureSoundPlayed = false;
 	bool bInputLocked = false;
+
+	// 잠금 해제가 이미 요청됨 (다음 프레임 잠금보다 해제가 먼저 오면 잠그지 않음)
+	bool bInputUnlockRequested = false;
+
+	bool bLookAtDriverDone = false;
+	bool bLookLockedByDriver = false;
+	bool bSeatedLookLimited = false;
+	bool bCharacterFrozen = false;
 };

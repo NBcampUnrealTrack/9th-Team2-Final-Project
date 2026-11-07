@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "NPC/LCONPCBase.h"
 #include "LCOActivitySpot.generated.h"
 
 class UAnimMontage;
@@ -65,6 +66,14 @@ struct FLCOActivityStep
 	// GrabProp일 때 물건이 NPC 정면에서 더 돌아가는 각도(도). 카트 손잡이 방향이 어긋날 때 맞춘다.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Activity")
 	float PropYaw = 0.f;
+
+	// GrabProp일 때 물건을 붙일 메시 소켓/본 이름(예: hand_r). 비워 두면 NPC 앞에 붙는다(카트). 지정하면 PropOffset/PropYaw는 그 소켓 기준이다.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Activity")
+	FName PropSocket = NAME_None;
+
+	// GrabProp일 때 잡는 동안 적용할 상체 동작. 카트는 PushCart, 손에 드는 가방은 CarryBag으로 지정한다.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Activity")
+	ENPCUpperBodyState GrabState = ENPCUpperBodyState::PushCart;
 };
 
 // NPC가 찾아가서 할 일을 하는 지점. 레벨에 배치하고, NPC 인스턴스의 Routine 목록에 순서대로 지정한다.

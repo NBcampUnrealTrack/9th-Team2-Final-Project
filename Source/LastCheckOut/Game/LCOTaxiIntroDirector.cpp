@@ -9,6 +9,8 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/PlayerCameraManager.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Sound/SoundBase.h"
 #include "Components/AudioComponent.h"
 #include "TimerManager.h"
@@ -55,23 +57,25 @@ void ALCOTaxiIntroDirector::BeginPlay()
 
 	SetQuickSlotHUDHidden(this, true);
 
-	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0))
+	// 좌석: 캐릭터 움직임 끄기 (중력으로 떨어지지 않게)
+	if (bFreezeCharacter)
 	{
-		if (bLockPlayerMovement)
+		ACharacter* PlayerCharacter = Cast<ACharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
+		if (PlayerCharacter && PlayerCharacter->GetCharacterMovement())
 		{
-			PlayerController->SetIgnoreMoveInput(true);
+			PlayerCharacter->GetCharacterMovement()->DisableMovement();
+			bCharacterFrozen = true;
 		}
-		if (bLockPlayerLook)
-		{
-			PlayerController->SetIgnoreLookInput(true);
-		}
-		bInputLocked = bLockPlayerMovement || bLockPlayerLook;
+	}
 
-		// 페이드 인 전까지 검은 화면 유지
-		if (bStartScreenBlack && PlayerController->PlayerCameraManager)
-		{
-			PlayerController->PlayerCameraManager->SetManualCameraFade(1.f, FLinearColor::Black, false);
-		}
+	// 이동 · 시점 잠금은 다음 프레임에 (PlayerController BeginPlay가 입력 잠금을 초기화하므로)
+	LockInputTimerHandle = GetWorldTimerManager().SetTimerForNextTick(this, &ThisClass::LockPlayerInput);
+
+	// 페이드 인 전까지 검은 화면 유지 (카메라 설정이라 입력 초기화와 무관, 바로 적용)
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (bStartScreenBlack && PlayerController && PlayerController->PlayerCameraManager)
+	{
+		PlayerController->PlayerCameraManager->SetManualCameraFade(1.f, FLinearColor::Black, false);
 	}
 
 	// 택시 출발 사운드 (대사 확인 시점)
@@ -275,9 +279,178 @@ void ALCOTaxiIntroDirector::PlayTaxiDepartureSound_Implementation()
 	UGameplayStatics::PlaySound2D(this, TaxiDepartureSound, DepartureSoundVolume);
 }
 
+void ALCOTaxiIntroDirector::LockPlayerInput()
+{
+	if (bInputLocked || bInputUnlockRequested)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	if (bLockPlayerMovement)
+	{
+		PlayerController->SetIgnoreMoveInput(true);
+	}
+	if (bLockPlayerLook)
+	{
+		PlayerController->SetIgnoreLookInput(true);
+	}
+	bInputLocked = bLockPlayerMovement || bLockPlayerLook;
+
+	// Log Test
+	UE_LOG(LogTemp, Warning, TEXT("[LCOTaxiIntroDirector] Player input locked (Move = %s, Look = %s)"),
+		bLockPlayerMovement ? TEXT("true") : TEXT("false"), bLockPlayerLook ? TEXT("true") : TEXT("false"));
+
+	// PlayerController BeginPlay가 시점 각도를 설정한 뒤에 적용
+	ApplySeatedLookLimit();
+}
+
+void ALCOTaxiIntroDirector::ApplySeatedLookLimit()
+{
+	if (!bLimitSeatedLook || bSeatedLookLimited)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	APlayerCameraManager* CameraManager = PlayerController ? PlayerController->PlayerCameraManager : nullptr;
+	if (!CameraManager)
+	{
+		return;
+	}
+
+	SavedViewYawMin = CameraManager->ViewYawMin;
+	SavedViewYawMax = CameraManager->ViewYawMax;
+	SavedViewPitchMin = CameraManager->ViewPitchMin;
+	SavedViewPitchMax = CameraManager->ViewPitchMax;
+
+	// 시작 방향 기준 좌우 SeatedYawRange
+	const float StartYaw = PlayerController->GetControlRotation().Yaw;
+	CameraManager->ViewYawMin = StartYaw - SeatedYawRange;
+	CameraManager->ViewYawMax = StartYaw + SeatedYawRange;
+	CameraManager->ViewPitchMin = SeatedPitchMin;
+	CameraManager->ViewPitchMax = SeatedPitchMax;
+	bSeatedLookLimited = true;
+
+	// Log Test
+	UE_LOG(LogTemp, Warning, TEXT("[LCOTaxiIntroDirector] Seated look limit: Yaw %.0f ~ %.0f, Pitch %.0f ~ %.0f"),
+		CameraManager->ViewYawMin, CameraManager->ViewYawMax, SeatedPitchMin, SeatedPitchMax);
+}
+
+void ALCOTaxiIntroDirector::RestoreSeatedLookLimit()
+{
+	if (!bSeatedLookLimited)
+	{
+		return;
+	}
+	bSeatedLookLimited = false;
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (APlayerCameraManager* CameraManager = PlayerController ? PlayerController->PlayerCameraManager : nullptr)
+	{
+		CameraManager->ViewYawMin = SavedViewYawMin;
+		CameraManager->ViewYawMax = SavedViewYawMax;
+		CameraManager->ViewPitchMin = SavedViewPitchMin;
+		CameraManager->ViewPitchMax = SavedViewPitchMax;
+	}
+}
+
+void ALCOTaxiIntroDirector::BeginLookAtDriver()
+{
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (!PlayerController || !IsValid(DriverLookTarget))
+	{
+		bLookAtDriverDone = true;
+		StartIntroDialogue();
+		return;
+	}
+
+	// 회전 중에는 마우스 시점 입력 막기 (대화가 끝날 때까지 유지)
+	if (!bLookLockedByDriver)
+	{
+		PlayerController->SetIgnoreLookInput(true);
+		bLookLockedByDriver = true;
+	}
+
+	LookAtStartRotation = PlayerController->GetControlRotation();
+	LookAtStartTime = GetWorld()->GetTimeSeconds();
+
+	// Log Test
+	UE_LOG(LogTemp, Warning, TEXT("[LCOTaxiIntroDirector] Look at driver: %s (%.1fs)"), *DriverLookTarget->GetName(), LookAtDriverDuration);
+
+	GetWorldTimerManager().SetTimer(LookAtDriverTimerHandle, this, &ThisClass::TickLookAtDriver, 0.01f, true);
+	TickLookAtDriver();
+}
+
+void ALCOTaxiIntroDirector::TickLookAtDriver()
+{
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (!PlayerController || !IsValid(DriverLookTarget))
+	{
+		GetWorldTimerManager().ClearTimer(LookAtDriverTimerHandle);
+		bLookAtDriverDone = true;
+		StartIntroDialogue();
+		return;
+	}
+
+	const float Elapsed = GetWorld()->GetTimeSeconds() - LookAtStartTime;
+	const float Alpha = LookAtDriverDuration > 0.f ? FMath::Clamp(Elapsed / LookAtDriverDuration, 0.f, 1.f) : 1.f;
+
+	// 처음과 끝이 느린 곡선
+	const float EasedAlpha = FMath::InterpEaseInOut(0.f, 1.f, Alpha, 2.f);
+
+	const FVector CameraLocation = PlayerController->PlayerCameraManager
+		? PlayerController->PlayerCameraManager->GetCameraLocation()
+		: PlayerController->GetPawn() ? PlayerController->GetPawn()->GetPawnViewLocation() : GetActorLocation();
+	const FRotator TargetRotation = (DriverLookTarget->GetActorLocation() - CameraLocation).Rotation();
+
+	FRotator NewRotation = FQuat::Slerp(LookAtStartRotation.Quaternion(), TargetRotation.Quaternion(), EasedAlpha).Rotator();
+	NewRotation.Roll = 0.f;
+	PlayerController->SetControlRotation(NewRotation);
+
+	if (Alpha < 1.f)
+	{
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(LookAtDriverTimerHandle);
+	bLookAtDriverDone = true;
+
+	// Log Test
+	UE_LOG(LogTemp, Warning, TEXT("[LCOTaxiIntroDirector] Look at driver finished -> Start dialogue"));
+	StartIntroDialogue();
+}
+
 void ALCOTaxiIntroDirector::UnlockPlayerInput()
 {
 	SetQuickSlotHUDHidden(this, false);
+	bInputUnlockRequested = true;
+	GetWorldTimerManager().ClearTimer(LockInputTimerHandle);
+	GetWorldTimerManager().ClearTimer(LookAtDriverTimerHandle);
+
+	// 기사 쪽 시점 고정 / 좌석 각도 제한 / 캐릭터 고정 해제
+	APlayerController* LookController = UGameplayStatics::GetPlayerController(this, 0);
+	if (bLookLockedByDriver && LookController)
+	{
+		LookController->SetIgnoreLookInput(false);
+	}
+	bLookLockedByDriver = false;
+	RestoreSeatedLookLimit();
+
+	if (bCharacterFrozen)
+	{
+		bCharacterFrozen = false;
+		ACharacter* PlayerCharacter = Cast<ACharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
+		if (PlayerCharacter && PlayerCharacter->GetCharacterMovement())
+		{
+			PlayerCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+		}
+	}
 
 	if (!bInputLocked)
 	{
@@ -306,6 +479,9 @@ void ALCOTaxiIntroDirector::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	GetWorldTimerManager().ClearTimer(StartDialogueTimerHandle);
 	GetWorldTimerManager().ClearTimer(ArrivalFadeTimerHandle);
 	GetWorldTimerManager().ClearTimer(ArrivalBGMTimerHandle);
+	GetWorldTimerManager().ClearTimer(LockInputTimerHandle);
+	GetWorldTimerManager().ClearTimer(LookAtDriverTimerHandle);
+	RestoreSeatedLookLimit();
 
 	if (LocationCaptionWidget)
 	{
@@ -330,6 +506,13 @@ void ALCOTaxiIntroDirector::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ALCOTaxiIntroDirector::StartIntroDialogue()
 {
+	// 기사 쪽으로 카메라를 먼저 돌린 뒤 대사 시작
+	if (!bLookAtDriverDone && IsValid(DriverLookTarget))
+	{
+		BeginLookAtDriver();
+		return;
+	}
+
 	ULCODialogueSubsystem* DialogueSubsystem = GetDialogueSubsystem(this);
 	if (!DialogueSubsystem)
 	{

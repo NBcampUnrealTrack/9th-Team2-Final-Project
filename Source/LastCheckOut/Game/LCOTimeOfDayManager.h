@@ -8,6 +8,7 @@
 class ADirectionalLight;
 class ASkyLight;
 class APostProcessVolume;
+class ULCOTimeOfDayPresetAsset;
 
 // 맵의 시간대 조명 담당 (맵마다 1개 배치)
 // - 시간대는 챕터가 끝날 때만 진행 (1막: 정오 이후 / 2막: 해질녘 / 3막: 저녁). 맵 이동으로는 바뀌지 않음
@@ -25,6 +26,9 @@ public:
 	// 시간대 조명 적용 (연출 없이 즉시)
 	UFUNCTION(BlueprintCallable, Category = "LCO|TimeOfDay")
 	void ApplyTimeOfDay(ELCOTimeOfDay TimeOfDay);
+
+	// 모든 맵 공용 조명 값 지정 (LCOGameMode가 호출). 비어 있으면 이 맵의 값 사용
+	void SetSharedPresets(ULCOTimeOfDayPresetAsset* InSharedPresets) { SharedPresets = InSharedPresets; }
 
 protected:
 	// 시간대가 적용된 뒤 호출 (BP에서 가로등 켜기, 안개 변경 등 추가 연출용)
@@ -45,6 +49,10 @@ protected:
 
 	// ---------- 시간대별 조명 값 ----------
 
+	// 체크하면 공용 값(DA_TimeOfDayPresets) 대신 아래 이 맵의 값 사용
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "LCO|TimeOfDay|Preset")
+	bool bUseMapPreset = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LCO|TimeOfDay|Preset")
 	FLCOTimeOfDayPreset NoonPreset;
 
@@ -56,4 +64,7 @@ protected:
 
 private:
 	const FLCOTimeOfDayPreset& GetPreset(ELCOTimeOfDay TimeOfDay) const;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ULCOTimeOfDayPresetAsset> SharedPresets;
 };

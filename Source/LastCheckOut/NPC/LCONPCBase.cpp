@@ -79,7 +79,7 @@ void ALCONPCBase::SetRunSpeed()
 
 #pragma region 들고 있는 물건
 
-void ALCONPCBase::AttachCarriedProp(AActor* Prop, FVector Offset, float Yaw)
+void ALCONPCBase::AttachCarriedProp(AActor* Prop, FVector Offset, float Yaw, FName Socket)
 {
 	if (!Prop)
 	{
@@ -90,11 +90,22 @@ void ALCONPCBase::AttachCarriedProp(AActor* Prop, FVector Offset, float Yaw)
 	DropCarriedProp();
 
 	Prop->SetActorEnableCollision(false);
-	Prop->AttachToActor(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
-	// 캐릭터의 기준점은 캡슐 중심이므로, Z는 발바닥(바닥) 기준이 되도록 캡슐 절반 높이만큼 내린다.
-	Prop->SetActorRelativeLocation(FVector(Offset.X, Offset.Y, Offset.Z - GetSimpleCollisionHalfHeight()));
-	Prop->SetActorRelativeRotation(FRotator(0.f, Yaw, 0.f));
+	if (!Socket.IsNone() && GetMesh())
+	{
+		// 손에 드는 물건: 메시의 소켓/본에 붙인다. 오프셋은 그 소켓 기준이라 캡슐 높이 보정은 하지 않는다.
+		Prop->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Socket);
+		Prop->SetActorRelativeLocation(Offset);
+		Prop->SetActorRelativeRotation(FRotator(0.f, Yaw, 0.f));
+	}
+	else
+	{
+		Prop->AttachToActor(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
+		// 캐릭터의 기준점은 캡슐 중심이므로, Z는 발바닥(바닥) 기준이 되도록 캡슐 절반 높이만큼 내린다.
+		Prop->SetActorRelativeLocation(FVector(Offset.X, Offset.Y, Offset.Z - GetSimpleCollisionHalfHeight()));
+		Prop->SetActorRelativeRotation(FRotator(0.f, Yaw, 0.f));
+	}
 
 	CarriedProp = Prop;
 	SetMoveSpeedScale(CarriedPropSpeedScale);
@@ -111,6 +122,7 @@ void ALCONPCBase::DropCarriedProp()
 	Prop->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	Prop->SetActorEnableCollision(true);
 	CarriedProp.Reset();
+	UpperBodyState = ENPCUpperBodyState::None;
 	SetMoveSpeedScale(1.f);
 }
 
@@ -126,6 +138,7 @@ void ALCONPCBase::DropCarriedPropAt(const FVector& Location, const FRotator& Rot
 	Prop->SetActorLocationAndRotation(Location, FRotator(0.f, Rotation.Yaw, 0.f));
 	Prop->SetActorEnableCollision(true);
 	CarriedProp.Reset();
+	UpperBodyState = ENPCUpperBodyState::None;
 	SetMoveSpeedScale(1.f);
 }
 

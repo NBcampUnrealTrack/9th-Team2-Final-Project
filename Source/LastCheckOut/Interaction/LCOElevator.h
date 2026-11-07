@@ -41,7 +41,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnElevatorFloorEvent, ALCOElevator
 // - 이 액터: 통로 + Car(움직이는 칸, 안쪽 문, 안쪽 층 버튼)
 // - 층별 바깥 문 + 호출 버튼: ALCOElevatorLanding을 층마다 따로 배치 (층이 늘어도 이 BP는 그대로)
 // - 안쪽 층 버튼 = Car 아래의 LCOInteract 컴포넌트, InputID = 목표 층의 FloorID
-// - 흐름: 대기(문 열림) → 문 닫힘 → Car 이동 → 도착 → 문 열림
+// - 흐름: 대기(문 열림) → 문 닫힘 → (DepartureDelay) → Car 이동(가속 → 최고 속도 → 감속) → 도착 → (ArrivalDelay) → 문 열림
 // - Car(이동하는 칸) 아래에 바닥 / 벽 / 안쪽 버튼 메시를 붙이면 같이 움직임. 플레이어는 CharacterMovement가 바닥을 따라 같이 이동시킴
 // - 안쪽 문 애니메이션과 소리는 BP 자식에서 구현. 바깥 문은 승강장(ALCOElevatorLanding)이 델리게이트를 받아 처리
 // - 현재 층은 저장하지 않음: 맵에 들어오거나 불러오면 항상 StartFloorIndex 층에서 대기 (다른 층에서는 호출 버튼으로 부름)
@@ -147,7 +147,7 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Elevator")
 	void OnMoveStarted(int32 FromFloorIndex, int32 ToFloorIndex);
 
-	// 목표 층에 도착했을 때 (도착 벨 등)
+	// 목표 층에 도착했을 때 (도착 벨 등). ArrivalDelay 뒤에 OnDoorsOpening
 	UFUNCTION(BlueprintImplementableEvent, Category = "Elevator")
 	void OnArrived(int32 FloorIndex);
 
@@ -171,13 +171,27 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Elevator", meta = (ClampMin = "0"))
 	int32 StartFloorIndex = 0;
 
-	// Car 이동 속도 (cm/s). 너무 빠르면 내려갈 때 플레이어가 바닥에서 떨어질 수 있음
+	// Car 최고 이동 속도 (cm/s). 너무 빠르면 내려갈 때 플레이어가 바닥에서 떨어질 수 있음
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Elevator", meta = (ClampMin = "10.0", Units = "cm/s"))
 	float MoveSpeed = 200.f;
+
+	// 가속 / 감속 (cm/s²). 출발할 때 이 값으로 최고 속도까지 올리고, 도착 전에 같은 값으로 줄여 멈춤
+	// 예: MoveSpeed 200 / Acceleration 200 → 1초 동안 가속, 1초 동안 감속. 0이면 처음부터 끝까지 일정한 속도
+	// 층 사이가 짧으면 최고 속도에 닿기 전에 감속을 시작함
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Elevator", meta = (ClampMin = "0.0"))
+	float Acceleration = 200.f;
 
 	// 문이 열리거나 닫히는 데 걸리는 시간. BP 문 애니메이션 길이와 같게
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Elevator", meta = (ClampMin = "0.0", Units = "s"))
 	float DoorDuration = 1.f;
+
+	// 문이 다 닫힌 뒤 출발하기까지 기다리는 시간
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Elevator", meta = (ClampMin = "0.0", Units = "s"))
+	float DepartureDelay = 0.5f;
+
+	// 도착(OnArrived) 뒤 문이 열리기 시작하기까지 기다리는 시간
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Elevator", meta = (ClampMin = "0.0", Units = "s"))
+	float ArrivalDelay = 0.5f;
 
 	// 전원. 꺼져 있으면 버튼을 눌러도 움직이지 않음
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Elevator")
@@ -200,9 +214,14 @@ private:
 	bool HasRequiredItem(const FLCOElevatorFloor& Floor, const AActor* Requester) const;
 
 	void StartClosingDoors();
+	void HandleDoorsClosed();
 	void StartMoving();
 	void Arrive();
+	void StartOpeningDoors();
 	void FinishOpeningDoors();
+
+	// 대기 시간이 0 이하면 바로, 아니면 타이머로 호출
+	void CallAfterDelay(void (ALCOElevator::*Function)(), float Delay);
 
 	// Car를 해당 층 높이로 바로 이동 (X / Y는 유지)
 	void SnapCarToFloor(int32 FloorIndex);
@@ -211,6 +230,9 @@ private:
 
 	int32 CurrentFloorIndex = 0;
 	int32 TargetFloorIndex = 0;
+
+	// 현재 이동 속도 (cm/s, 항상 양수). 출발 시 0
+	float CurrentSpeed = 0.f;
 
 	FTimerHandle DoorTimerHandle;
 };

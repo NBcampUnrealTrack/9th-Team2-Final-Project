@@ -63,6 +63,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "LCO|Save")
 	FString GetLoadedMapName() const;
 
+	// 이어하기로 복원할 플레이어 위치 / 방향을 꺼냄 (한 번만). 없으면 false (LCOGameMode에서 호출)
+	bool ConsumePendingPlayerTransform(FVector& OutLocation, FRotator& OutRotation);
+
 	// ---------- 델리게이트 ----------
 
 	UPROPERTY(BlueprintAssignable, Category = "LCO|Save")
@@ -79,9 +82,22 @@ private:
 	static const FString SaveSlotName;
 	static constexpr int32 SaveUserIndex = 0;
 
+	// 현재 세이브 형식 버전. 저장 항목을 추가 / 변경하면 1 올리고 UpgradeSaveData에 보정 추가
+	// 1: 첫 버전
+	// 2: 플레이어 위치 / 방향 저장 (이어하기 시 저장한 자리에서 시작)
+	static constexpr int32 CurrentSaveVersion = 2;
+
+	// 예전 버전 세이브의 빠진 값 보정 (불러온 직후 호출)
+	void UpgradeSaveData(ULCOSaveGame* SaveData) const;
+
 	// LoadSaveFile로 읽어온 데이터
 	UPROPERTY()
 	TObjectPtr<ULCOSaveGame> LoadedSaveGame;
 
 	bool bIsSaving = false;
+
+	// ApplyLoadedData에서 채우고, 이어하기 맵에서 플레이어 생성 후 LCOGameMode가 꺼내 씀
+	bool bHasPendingPlayerTransform = false;
+	FVector PendingPlayerLocation = FVector::ZeroVector;
+	FRotator PendingPlayerRotation = FRotator::ZeroRotator;
 };

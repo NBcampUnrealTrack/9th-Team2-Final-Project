@@ -12,6 +12,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/Controller.h"
 
 const FString ULCOSaveManager::SaveSlotName(TEXT("LCO_Save_0"));
 
@@ -61,6 +62,7 @@ bool ULCOSaveManager::SaveGame()
 		return false;
 	}
 
+	SaveData->SaveVersion = CurrentSaveVersion;
 	SaveData->SavedTime = FDateTime::Now();
 
 	UWorld* World = GetGameInstance()->GetWorld();
@@ -107,6 +109,11 @@ bool ULCOSaveManager::SaveGame()
 		Player->RestoreSenseCharges(Player->GetMaxSenseCharges());
 		SenseCharges = Player->GetCurrentSenseCharges();
 		MaxSenseCharges = Player->GetMaxSenseCharges();
+
+		// [Player] 위치 / 바라보는 방향 (전화기 저장이면 전화기 앞)
+		SaveData->bHasPlayerTransform = true;
+		SaveData->PlayerLocation = Player->GetActorLocation();
+		SaveData->PlayerRotation = Player->GetController() ? Player->GetController()->GetControlRotation() : Player->GetActorRotation();
 	}
 
 	// [Player] 인벤토리 / 퀵슬롯 / 시점 (GameMode의 맵 이동 보관과 같은 함수 사용)
@@ -147,12 +154,13 @@ bool ULCOSaveManager::SaveGame()
 	OnSaveStarted.Broadcast();
 
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] SaveGame start: Map = %s, Chapter = %s, Objective = %s, Completed = %d, Notebook = %d, PlayerData = %s, Items = %d, FirstConversations = %d, SenseCharges = %d/%d, TimeOfDay = %s"),
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] SaveGame start: Map = %s, Chapter = %s, Objective = %s, Completed = %d, Notebook = %d, PlayerData = %s, Items = %d, FirstConversations = %d, SenseCharges = %d/%d, TimeOfDay = %s, PlayerLocation = %s"),
 		*SaveData->MapName, *SaveData->ChapterID.ToString(), *SaveData->ObjectiveID.ToString(),
 		SaveData->CompletedObjectives.Num(), SaveData->NotebookEntries.Num(),
 		SaveData->bHasPlayerData ? TEXT("true") : TEXT("false"), SaveData->PlayerData.InventorySlots.Num(),
 		SaveData->CompletedFirstConversations.Num(), SenseCharges, MaxSenseCharges,
-		*UEnum::GetValueAsString(SaveData->TimeOfDay));
+		*UEnum::GetValueAsString(SaveData->TimeOfDay),
+		SaveData->bHasPlayerTransform ? *SaveData->PlayerLocation.ToString() : TEXT("None"));
 
 	// 비동기 저장 (게임이 멈추지 않음). 완료되면 HandleAsyncSaveFinished 호출
 	FAsyncSaveGameToSlotDelegate SavedDelegate;
@@ -222,9 +230,11 @@ bool ULCOSaveManager::LoadSaveFile()
 	}
 
 	// Log Test
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] LoadSaveFile: Map = %s, Chapter = %s, Objective = %s, SavedTime = %s"),
-		*LoadedSaveGame->MapName, *LoadedSaveGame->ChapterID.ToString(), *LoadedSaveGame->ObjectiveID.ToString(),
-		*LoadedSaveGame->SavedTime.ToString());
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] LoadSaveFile: Version = %d, Map = %s, Chapter = %s, Objective = %s, SavedTime = %s"),
+		LoadedSaveGame->SaveVersion, *LoadedSaveGame->MapName, *LoadedSaveGame->ChapterID.ToString(),
+		*LoadedSaveGame->ObjectiveID.ToString(), *LoadedSaveGame->SavedTime.ToString());
+
+	UpgradeSaveData(LoadedSaveGame);
 
 	return true;
 }
@@ -293,10 +303,55 @@ bool ULCOSaveManager::ApplyLoadedData()
 		}
 	}
 
+	// [Player] 저장한 위치 → 캐릭터 생성 후 LCOGameMode가 이동 (위치 정보가 없는 세이브는 PlayerStart 그대로)
+	bHasPendingPlayerTransform = LoadedSaveGame->bHasPlayerTransform;
+	PendingPlayerLocation = LoadedSaveGame->PlayerLocation;
+	PendingPlayerRotation = LoadedSaveGame->PlayerRotation;
+
 	// Log Test
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] ApplyLoadedData done: Notebook = %d, PlayerData = %s, FirstConversations = %d, TimeOfDay = %s"),
 		LoadedSaveGame->NotebookEntries.Num(), LoadedSaveGame->bHasPlayerData ? TEXT("true") : TEXT("false"),
 		LoadedSaveGame->CompletedFirstConversations.Num(), *UEnum::GetValueAsString(LoadedSaveGame->TimeOfDay));
+	return true;
+}
+
+void ULCOSaveManager::UpgradeSaveData(ULCOSaveGame* SaveData) const
+{
+	if (!SaveData || SaveData->SaveVersion == CurrentSaveVersion)
+	{
+		return;
+	}
+
+	// 게임보다 새 버전의 세이브 (다운그레이드 등): 읽을 수 있는 값만 사용
+	if (SaveData->SaveVersion > CurrentSaveVersion)
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOSaveManager] UpgradeSaveData: save version %d is newer than game (%d)"),
+			SaveData->SaveVersion, CurrentSaveVersion);
+		return;
+	}
+
+	// 버전별 보정은 여기에 순서대로 추가
+	// 2: 플레이어 위치가 없음 → PlayerStart에서 시작
+	if (SaveData->SaveVersion < 2)
+	{
+		SaveData->bHasPlayerTransform = false;
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOSaveManager] UpgradeSaveData: %d -> %d"), SaveData->SaveVersion, CurrentSaveVersion);
+	SaveData->SaveVersion = CurrentSaveVersion;
+}
+
+bool ULCOSaveManager::ConsumePendingPlayerTransform(FVector& OutLocation, FRotator& OutRotation)
+{
+	if (!bHasPendingPlayerTransform)
+	{
+		return false;
+	}
+
+	bHasPendingPlayerTransform = false;
+	OutLocation = PendingPlayerLocation;
+	OutRotation = PendingPlayerRotation;
 	return true;
 }
 

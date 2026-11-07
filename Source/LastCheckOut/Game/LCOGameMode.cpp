@@ -9,6 +9,7 @@
 #include "QuickSlot/LCOQuickSlotComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerStart.h"
+#include "GameFramework/Controller.h"
 #include "EngineUtils.h"
 #include "Save/LCOSaveManager.h"
 #include "Save/LCOWorldStateSubsystem.h"
@@ -19,6 +20,21 @@
 #include "Core/LCOGameSettingsSubsystem.h"
 #include "Game/LCOTimeOfDayManager.h"
 #include "AI/Chasing/LCOChasingManager.h"
+#include "Game/LCOTimeOfDayPresetAsset.h"
+#include "Story/LCOStoryIDs.h"
+#include "Blueprint/UserWidget.h"
+#include "Camera/PlayerCameraManager.h"
+#include "GameFramework/PlayerController.h"
+
+namespace
+{
+	// 맵 이동 URL 옵션 (TravelToLevel에서 붙이고, 도착한 맵에서 읽음)
+	const TCHAR* const EntryOption = TEXT("Entry");
+	const TCHAR* const AutoSaveOption = TEXT("AutoSave");
+
+	// 도착 태그가 없을 때 찾는 PlayerStart 태그
+	const FName DefaultPlayerStartTag(TEXT("Start"));
+}
 
 ALCOGameMode::ALCOGameMode()
 {
@@ -210,11 +226,11 @@ void ALCOGameMode::TravelToLevel(TSoftObjectPtr<UWorld> Level, FName PlayerStart
 	FString Options;
 	if (!PlayerStartTag.IsNone())
 	{
-		Options = FString::Printf(TEXT("Entry=%s"), *PlayerStartTag.ToString());
+		Options = FString::Printf(TEXT("%s=%s"), EntryOption, *PlayerStartTag.ToString());
 	}
 	if (bAutoSaveOnArrival)
 	{
-		Options += Options.IsEmpty() ? TEXT("AutoSave") : TEXT("?AutoSave");
+		Options += Options.IsEmpty() ? FString(AutoSaveOption) : FString::Printf(TEXT("?%s"), AutoSaveOption);
 	}
 
 	// Log Test
@@ -236,6 +252,9 @@ void ALCOGameMode::HandleMatchHasStarted()
 
 	// 캐릭터 BeginPlay의 SetViewMode(DefaultViewMode) 이후에 복원해야 시점이 덮어써지지 않음
 	RestorePlayerCarryData();
+
+	// 이어하기면 저장한 자리로 이동 (전화기 저장 → 전화기 앞)
+	RestoreSavedPlayerTransform();
 
 	// 저장된 게임플레이 설정(감도 / Y축 반전)을 새 캐릭터에 적용 (새 게임 / 맵 이동 / 이어하기 공통)
 	if (const ULCOGameSettingsSubsystem* GameSettings = GetGameInstance()->GetSubsystem<ULCOGameSettingsSubsystem>())
@@ -396,6 +415,40 @@ void ALCOGameMode::RestorePlayerCarryData()
 		Data.SenseCharges, Data.PermanentMoveSpeedMultiplier, Data.PermanentRegenMultiplier);
 }
 
+void ALCOGameMode::RestoreSavedPlayerTransform()
+{
+	ULCOSaveManager* SaveManager = GetGameInstance()->GetSubsystem<ULCOSaveManager>();
+	FVector SavedLocation;
+	FRotator SavedRotation;
+	if (!SaveManager || !SaveManager->ConsumePendingPlayerTransform(SavedLocation, SavedRotation))
+	{
+		return;
+	}
+
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!PlayerPawn)
+	{
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] RestoreSavedPlayerTransform: Player not found"));
+		return;
+	}
+
+	// 캐릭터는 좌우 방향만, 카메라는 저장할 때 보던 방향 그대로
+	if (!PlayerPawn->TeleportTo(SavedLocation, FRotator(0.f, SavedRotation.Yaw, 0.f)))
+	{
+		// 저장한 자리가 막혀 있으면 (맵 수정 등) PlayerStart 그대로
+		UE_LOG(LogLCOCore, Warning, TEXT("[LCOGameMode] Continue -> Saved location blocked (%s), keep PlayerStart"), *SavedLocation.ToString());
+		return;
+	}
+
+	if (AController* PlayerController = PlayerPawn->GetController())
+	{
+		PlayerController->SetControlRotation(SavedRotation);
+	}
+
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] Continue -> Player moved to saved location (%s)"), *SavedLocation.ToString());
+}
+
 AActor* ALCOGameMode::ChoosePlayerStart_Implementation(AController* Player)
 {
 	// 에디터 Play From Here로 시작하면 엔진 기본 방식 사용 (카메라 위치에서 시작)
@@ -409,10 +462,10 @@ AActor* ALCOGameMode::ChoosePlayerStart_Implementation(AController* Player)
 	}
 
 	// 맵 이동 시 전달된 도착 태그 (예시: ?Entry=FromMain)
-	const FString EntryTag = UGameplayStatics::ParseOption(OptionsString, TEXT("Entry"));
+	const FString EntryTag = UGameplayStatics::ParseOption(OptionsString, EntryOption);
 
 	// 도착 태그가 없으면(새 게임 / 이어하기 / 메뉴 없이 Play) 기본 시작 위치 태그 "Start" 사용
-	const FName SearchTag = EntryTag.IsEmpty() ? FName(TEXT("Start")) : FName(*EntryTag);
+	const FName SearchTag = EntryTag.IsEmpty() ? DefaultPlayerStartTag : FName(*EntryTag);
 
 	for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
 	{
@@ -463,7 +516,7 @@ void ALCOGameMode::HandleReportResolved(ELCOStoryFlag PresentedKeyword, ELCORepo
 
 	case ELCOReportResult::End3:
 		// 진행 상태를 바꾸지 않았으므로 이어하기 = 마지막 저장 시점
-		ReachEnding(TEXT("End3"));
+		ReachEnding(LCOStoryIDs::End3);
 		break;
 
 	default:
@@ -494,20 +547,31 @@ void ALCOGameMode::HandleCaughtSequenceFinished(AActor* Player)
 		return;
 	}
 
-	// 1막에서는 압수하지 않음 (2막부터)
+	// 챕터 설정에서 압수를 켠 챕터만 (목록에 없는 1막은 압수 안 함)
 	const FName ChapterID = StorySubsystem->GetCurrentChapterID();
-	if (ChapterID.IsNone() || ChapterID == FName(TEXT("Chapter1")))
+	const FLCOChapterStartInfo* ChapterInfo = ChapterStartInfos.Find(ChapterID);
+	if (!ChapterInfo || !ChapterInfo->bConfiscateNotebookOnCaught)
 	{
 		return;
 	}
 
 	// Log Test
 	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] Caught -> Notebook confiscated (Chapter = %s)"), *ChapterID.ToString());
-	StorySubsystem->SetStateFlag(TEXT("C2_NotebookConfiscated"));
+	StorySubsystem->SetStateFlag(LCOStoryIDs::NotebookConfiscatedFlag);
 }
 
 void ALCOGameMode::StartChapterTransition(FName NewChapterID)
 {
+	// 아직 없는 챕터 (출시 범위 끝): 시간대 · 이동 · 저장 없이 엔딩 → 이어하기는 마지막 저장 시점부터
+	const FLCOChapterStartInfo* EndCheckInfo = ChapterStartInfos.Find(NewChapterID);
+	if (EndCheckInfo && EndCheckInfo->bEndOfContent)
+	{
+		// Log Test
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] StartChapterTransition: %s is end of content -> To be continued"), *NewChapterID.ToString());
+		ReachEnding(LCOStoryIDs::ToBeContinued);
+		return;
+	}
+
 	// 시간대 먼저 진행. 맵 이동 전에 바꿔야 도착 자동 저장에 같이 저장됨
 	AdvanceTimeOfDay(GetTimeOfDayForChapter(NewChapterID));
 
@@ -537,19 +601,77 @@ void ALCOGameMode::ReachEnding(FName EndingID)
 		return;
 	}
 	bEndingInProgress = true;
+	PendingEndingID = EndingID;
 
-	// 엔딩 화면이 연결되어 있으면 화면이 FinishEnding을 호출
-	if (OnEndingReached.IsBound())
+	// Log Test
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ReachEnding: %s -> Fade out (%.1fs)"), *EndingID.ToString(), EndingFadeOutDuration);
+
+	// 이동 · 시점 잠금, 퀵슬롯 HUD 숨김 (레벨이 바뀌므로 풀지 않음)
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (PlayerController)
 	{
-		// Log Test
-		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ReachEnding: %s -> Ending screen"), *EndingID.ToString());
-		OnEndingReached.Broadcast(EndingID);
+		PlayerController->SetIgnoreMoveInput(true);
+		PlayerController->SetIgnoreLookInput(true);
+	}
+	if (ALCOPlayerCharacter* Player = Cast<ALCOPlayerCharacter>(UGameplayStatics::GetPlayerPawn(this, 0)))
+	{
+		if (ULCOQuickSlotComponent* QuickSlot = Player->GetQuickSlot())
+		{
+			QuickSlot->SetHUDHiddenByCutscene(true);
+		}
+	}
+
+	// 화면을 검게 (끝난 뒤에도 검은 화면 유지)
+	if (PlayerController && PlayerController->PlayerCameraManager && EndingFadeOutDuration > 0.f)
+	{
+		PlayerController->PlayerCameraManager->StartCameraFade(0.f, 1.f, EndingFadeOutDuration, FLinearColor::Black, false, true);
+		GetWorldTimerManager().SetTimer(EndingFadeTimer, this, &ThisClass::ShowEndingScreen, EndingFadeOutDuration, false);
 		return;
 	}
 
-	// 엔딩 화면 미연결: 잠시 후 메인 메뉴로
-	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ReachEnding: %s -> No ending screen, return to main menu in %.1fs"),
-		*EndingID.ToString(), EndingReturnDelay);
+	ShowEndingScreen();
+}
+
+void ALCOGameMode::ShowEndingScreen()
+{
+	// 1) 엔딩 위젯이 지정되어 있으면 표시 → EndingScreenDuration 뒤 메인 메뉴
+	const TSubclassOf<UUserWidget>* WidgetClass = EndingWidgets.Find(PendingEndingID);
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (WidgetClass && *WidgetClass && PlayerController)
+	{
+		EndingWidget = CreateWidget<UUserWidget>(PlayerController, *WidgetClass);
+		if (EndingWidget)
+		{
+			EndingWidget->AddToViewport(100);
+
+			// Log Test
+			UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ShowEndingScreen: %s (%s, %.1fs)"),
+				*PendingEndingID.ToString(), *EndingWidget->GetClass()->GetName(), EndingScreenDuration);
+
+			if (EndingScreenDuration > 0.f)
+			{
+				GetWorldTimerManager().SetTimer(ReturnToMainMenuTimer, this, &ThisClass::ReturnToMainMenu, EndingScreenDuration, false);
+			}
+			else
+			{
+				ReturnToMainMenu();
+			}
+			return;
+		}
+	}
+
+	// 2) BP에서 엔딩 화면을 직접 연결한 경우: 화면이 FinishEnding을 호출
+	if (OnEndingReached.IsBound())
+	{
+		// Log Test
+		UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ShowEndingScreen: %s -> OnEndingReached"), *PendingEndingID.ToString());
+		OnEndingReached.Broadcast(PendingEndingID);
+		return;
+	}
+
+	// 3) 엔딩 화면 없음: 잠시 후 메인 메뉴로
+	UE_LOG(LogLCOCore, Log, TEXT("[LCOGameMode] ShowEndingScreen: %s -> No ending screen, return to main menu in %.1fs"),
+		*PendingEndingID.ToString(), EndingReturnDelay);
 	if (EndingReturnDelay > 0.f)
 	{
 		GetWorldTimerManager().SetTimer(ReturnToMainMenuTimer, this, &ThisClass::ReturnToMainMenu, EndingReturnDelay, false);
@@ -645,7 +767,7 @@ void ALCOGameMode::ReturnToMainMenu()
 
 void ALCOGameMode::TryAutoSaveOnArrival()
 {
-	if (!UGameplayStatics::HasOption(OptionsString, TEXT("AutoSave")))
+	if (!UGameplayStatics::HasOption(OptionsString, AutoSaveOption))
 	{
 		return;
 	}
@@ -723,17 +845,10 @@ void ALCOGameMode::AdvanceTimeOfDay(ELCOTimeOfDay NewTimeOfDay)
 	}
 }
 
-ELCOTimeOfDay ALCOGameMode::GetTimeOfDayForChapter(FName ChapterID)
+ELCOTimeOfDay ALCOGameMode::GetTimeOfDayForChapter(FName ChapterID) const
 {
-	if (ChapterID == FName(TEXT("Chapter2")))
-	{
-		return ELCOTimeOfDay::Sunset;
-	}
-	if (ChapterID == FName(TEXT("Chapter3")))
-	{
-		return ELCOTimeOfDay::Evening;
-	}
-	return ELCOTimeOfDay::Noon;
+	const FLCOChapterStartInfo* ChapterInfo = ChapterStartInfos.Find(ChapterID);
+	return ChapterInfo ? ChapterInfo->TimeOfDay : ELCOTimeOfDay::Noon;
 }
 
 void ALCOGameMode::ApplyTimeOfDayForTest(ELCOTimeOfDay TimeOfDay)
@@ -754,6 +869,8 @@ ALCOTimeOfDayManager* ALCOGameMode::FindTimeOfDayManager() const
 {
 	for (TActorIterator<ALCOTimeOfDayManager> It(GetWorld()); It; ++It)
 	{
+		// 공용 조명 값 전달 (비어 있으면 매니저가 맵 값 사용)
+		It->SetSharedPresets(TimeOfDayPresets);
 		return *It;
 	}
 	return nullptr;
